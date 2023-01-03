@@ -8,12 +8,16 @@ use winit::{
 use super::vertex::Vertex;
 
 const VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
-    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
-    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+    Vertex { position: [-0.5, -0.5, 0.0], color: [1.0, 0.0, 0.0] },
+    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
+    Vertex { position: [0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
+    Vertex { position: [-0.5, 0.5, 0.0], color: [1.0, 1.0, 1.0] },
 ];
 
-
+const INDICES: &[u16] = &[
+    0, 1, 2,
+    2, 3, 0
+];
 
 pub struct State {
     _instance: wgpu::Instance,
@@ -26,7 +30,8 @@ pub struct State {
     clear_color: wgpu::Color,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    num_vertices: u32,
+    index_buffer: wgpu::Buffer,
+    index_count: u32,
 }
 
 impl State {
@@ -118,11 +123,19 @@ impl State {
             }
         );
 
-        let num_vertices = VERTICES.len() as u32;
+        let index_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Index Buffer"),
+                contents: bytemuck::cast_slice(INDICES),
+                usage: wgpu::BufferUsages::INDEX,
+            }
+        );
+
+        let index_count = INDICES.len() as u32;
 
         Self {
-            instance,
-            adapter,
+            _instance: instance,
+            _adapter: adapter,
             surface,
             device,
             queue,
@@ -131,7 +144,8 @@ impl State {
             clear_color,
             render_pipeline,
             vertex_buffer,
-            num_vertices
+            index_buffer,
+            index_count
         }
     }
 
@@ -176,7 +190,8 @@ impl State {
         });
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..self.num_vertices, 0..1);
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.draw_indexed(0..self.index_count, 0, 0..1);
 
         drop(render_pass);
 
