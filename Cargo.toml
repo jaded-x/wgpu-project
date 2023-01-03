@@ -12,3 +12,5 @@ env_logger = "0.10.0"
 winit = "0.27.5"
 anyhow = "1.0.68"
 log = "0.4.17"
+pollster = "0.2.5"
+bytemuck = { version = "1.4", features = [ "derive" ] }
