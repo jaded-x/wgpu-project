@@ -14,3 +14,7 @@ anyhow = "1.0.68"
 log = "0.4.17"
 pollster = "0.2.5"
 bytemuck = { version = "1.4", features = [ "derive" ] }
+
+[dependencies.image]
+version = "0.24"
+features = ["png", "jpeg"]
