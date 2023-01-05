@@ -1,4 +1,5 @@
 pub mod engine;
+pub mod util;
 
 use engine::state::run;
 
