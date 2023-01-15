@@ -1,3 +1,5 @@
+use wgpu::util::DeviceExt;
+
 use std::f32::consts::FRAC_PI_2;
 
 use cgmath::{SquareMatrix, Point3, Rad, Matrix4, Vector3, InnerSpace, perspective};
@@ -13,11 +15,15 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2;
 
-#[derive(Debug)]
+
 pub struct Camera {
     pub position: Point3<f32>,
     yaw: Rad<f32>,
     pitch: Rad<f32>,
+    pub projection: Projection,
+    pub uniform: CameraUniform,
+    pub buffer: wgpu::Buffer,
+    pub bind_group: wgpu::BindGroup,
 }
 
 impl Camera {
@@ -25,12 +31,42 @@ impl Camera {
         V: Into<Point3<f32>>,
         Y: Into<Rad<f32>>,
         P: Into<Rad<f32>>,
-    >(position: V, yaw: Y, pitch: P) -> Self {
+    >(device: &wgpu::Device, camera_bind_group_layout: &wgpu::BindGroupLayout, position: V, yaw: Y, pitch: P, projection: Projection) -> Self {
+        let camera_uniform = CameraUniform::new();
+
+        let camera_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Camera Buffer"),
+                contents: bytemuck::cast_slice(&[camera_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: camera_buffer.as_entire_binding()
+                }
+            ],
+            label: Some("camera_bind_group")
+        });
+
         Self {
             position: position.into(),
             yaw: yaw.into(),
             pitch: pitch.into(),
+            projection,
+            uniform: camera_uniform,
+            buffer: camera_buffer,
+            bind_group: camera_bind_group,
         }
+    }
+
+    pub fn update_uniform(&mut self) {
+        let view_proj = (self.projection.calc_matrix() * self.calc_matrix()).into();
+        self.uniform.update(&self.position, view_proj);
     }
 
     pub fn calc_matrix(&self) -> Matrix4<f32> {
@@ -97,9 +133,9 @@ impl CameraUniform {
         }
     }
 
-    pub fn update_view_proj(&mut self, camera: &Camera, projection: &Projection) {
-        self.view_position = camera.position.to_homogeneous().into();
-        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into();
+    pub fn update(&mut self, eye: &Point3<f32>, view_proj: cgmath::Matrix4<f32>) {
+        self.view_position = eye.to_homogeneous().into();
+        self.view_proj = view_proj.into();
     }
 }
 
@@ -167,8 +203,8 @@ impl CameraController {
     }
 
     pub fn process_mouse(&mut self, mouse_dx: f64, mouse_dy: f64) {
-        self.rotate_horizontal = (mouse_dx as f32);
-        self.rotate_vertical = (mouse_dy as f32);
+        self.rotate_horizontal = mouse_dx as f32;
+        self.rotate_vertical = mouse_dy as f32;
     }
 
     pub fn process_scroll(&mut self, delta: &MouseScrollDelta) {
