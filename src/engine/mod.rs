@@ -5,4 +5,5 @@ pub mod instance;
 pub mod model;
 pub mod resources;
 pub mod light;
-pub mod plane;
+pub mod ecs;
+pub mod components;

@@ -78,6 +78,7 @@ pub trait DrawModel<'a> {
 
     fn draw_model(
         &mut self,
+        uniform: &'a wgpu::Buffer,
         model: &'a Model,
         camera_bind_group: &'a wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
@@ -123,10 +124,12 @@ where
 
     fn draw_model(
         &mut self,
+        uniform: &'b wgpu::Buffer,
         model: &'b Model,
         camera_bind_group: &'b wgpu::BindGroup,
         light_bind_group: &'b wgpu::BindGroup,
     ) {
+        self.set_vertex_buffer(1, uniform.slice(..));
         self.draw_model_instanced(model, 0..1, camera_bind_group, light_bind_group);
     }
 

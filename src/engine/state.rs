@@ -9,15 +9,18 @@ use cgmath::prelude::*;
 
 use super::{
     texture::Texture,
-    camera::{Camera, CameraUniform, CameraController, Projection},
-    instance::{Instance, InstanceRaw}, 
-    model::{Model, ModelVertex, Vertex, DrawModel, DrawLight},
+    camera::{Camera, CameraController, Projection},
+    instance::{InstanceRaw, Instance}, 
+    model::{Model, ModelVertex, Vertex, DrawLight, DrawModel},
     resources,
-    light::{Light, LightUniform},
+    light::Light, 
+    ecs::ECS,
+    components::*,
 };
 
-use crate::util::align::*;
-use crate::util::any_as_u8_slice;
+use transform::Transform;
+
+use crate::{util::any_as_u8_slice};
 
 pub struct State {
     _instance: wgpu::Instance,
@@ -32,10 +35,12 @@ pub struct State {
     camera: Camera,
     camera_controller: CameraController,
     depth_texture: Texture,
-    obj_model: Model,
-    lights: Vec<Light>,
+    models: Vec<Model>,
+    light: Light,
     light_render_pipeline: wgpu::RenderPipeline,
     mouse_pressed: bool,
+    model_buffer: wgpu::Buffer,
+    ecs: ECS,
 }
 
 impl State {
@@ -133,15 +138,13 @@ impl State {
         
         
 
-        let lights = vec![
-            Light::new(&device, &light_bind_group_layout, [2.0, 2.0, 2.0], [1.0, 0.5, 1.0]),
-            Light::new(&device, &light_bind_group_layout, [1.0, 1.0, 0.0], [0.0, 0.5, 1.0]),
-        ];
+        let light = Light::new(&device, &light_bind_group_layout, [2.0, 2.0, 2.0], [1.0, 0.5, 1.0]);
 
         let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
-        let obj_model = resources::load_model("untitled.obj", &device, &queue, &texture_bind_group_layout)
-            .await.unwrap();
+        let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
+        let cube_model = resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
+        let models = vec![sphere_model, cube_model];
 
         let clear_color = wgpu::Color::BLACK;
 
@@ -153,6 +156,17 @@ impl State {
                 &light_bind_group_layout,
             ],
             push_constant_ranges: &[],
+        });
+
+        let model_data = vec![(Instance {
+            position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+            rotation: cgmath::Quaternion { v: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 }, s: 0.0 }
+        }).to_raw()];
+
+        let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: bytemuck::cast_slice(&model_data),
+            usage: wgpu::BufferUsages::VERTEX,
         });
 
         let render_pipeline = {
@@ -190,6 +204,14 @@ impl State {
             )
         };
 
+        let mut ecs = ECS::new();
+        ecs.new_entity();
+        ecs.add_component(0, Transform {
+            position: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0},
+            rotation: cgmath::Quaternion { v: cgmath::Vector3 {x: 0.0, y: 0.0, z: 0.0}, s: 0.0 },
+            scale: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 }
+        });
+
         Self {
             _instance: instance,
             _adapter: adapter,
@@ -203,10 +225,12 @@ impl State {
             camera,
             camera_controller,
             depth_texture,
-            obj_model,
-            lights,
+            models,
+            light,
             light_render_pipeline,
             mouse_pressed: false,
+            model_buffer,
+            ecs,
         }
     }
 
@@ -305,12 +329,12 @@ impl State {
         self.camera.update_uniform();
         self.queue.write_buffer(&self.camera.buffer, 0, bytemuck::cast_slice(&[self.camera.uniform]));
 
-        let old_position: cgmath::Vector3<_> = self.lights[0].light_uniform.position.into();
-        self.lights[0].light_uniform.position =
+        let old_position: cgmath::Vector3<_> = self.light.uniform.position.into();
+        self.light.uniform.position =
             (cgmath::Quaternion::from_axis_angle((0.0, 1.0, 0.0).into(), cgmath::Deg(60.0 * dt.as_secs_f32()))
             * old_position).into();
 
-        self.queue.write_buffer(&self.lights[0].light_buffer, 0, unsafe {any_as_u8_slice(&[self.lights[0].light_uniform]) } );
+        self.queue.write_buffer(&self.light.buffer, 0, unsafe {any_as_u8_slice(&[self.light.uniform]) } );
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -343,9 +367,13 @@ impl State {
             })
         });
         render_pass.set_pipeline(&self.light_render_pipeline);
-        for light in self.lights.iter() {
-            render_pass.draw_light_model(&self.obj_model, &self.camera.bind_group, &light.light_bind_group);
-        }
+
+        render_pass.draw_light_model(&self.models[1], &self.camera.bind_group, &self.light.bind_group);
+
+        render_pass.set_pipeline(&self.render_pipeline);
+
+        render_pass.draw_model(&self.model_buffer, &self.models[1], &self.camera.bind_group, &self.light.bind_group);
+
 
         drop(render_pass);
 
