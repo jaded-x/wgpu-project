@@ -4,7 +4,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use crate::{util::{align::Align16, cast_slice}, engine::components::mesh::MeshTransform};
+use crate::{util::{align::Align16, cast_slice}};
 
 use super::{
     texture::Texture,
@@ -13,7 +13,7 @@ use super::{
     model::{Model, ModelVertex, Vertex, DrawModel},
     resources,
     light::Light, 
-    components::{*, mesh::{Vert, Mesh}}, window::{Window, WindowEvents},
+    components::{*, mesh::{Vert, Mesh}}, window::{Window, WindowEvents}, renderpass::{RenderPass, Pass},
 };
 
 use specs::prelude::*;
@@ -38,7 +38,9 @@ pub struct State {
     model_buffer: wgpu::Buffer,
     world: specs::World,
 
-    plane_pipeline: wgpu::RenderPipeline,
+    render_pass: RenderPass,
+
+    transform_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl State {
@@ -99,28 +101,6 @@ impl State {
             label: Some("texture_bind_group_layout")
         });
 
-        let plane_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[
-                &Mesh::get_transform_layout(&device),
-            ],
-            push_constant_ranges: &[],
-        });
-
-        let plane_pipeline = {
-            let shader = wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/plane.wgsl").into()),
-            };
-            Self::create_render_pipeline(
-                &device,
-                &plane_pipeline_layout,
-                config.format,
-                Some(Texture::DEPTH_FORMAT),
-                &[Vert::desc()],
-                shader,
-            )
-        };
 
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -213,14 +193,29 @@ impl State {
 
         let index_count = INDICES.len() as u32;
 
-        let mesh_transform = MeshTransform::new(&device, &Mesh::get_transform_layout(&device), Transform::default());
+        let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: None,
+        });
 
         let mut world = World::new();
         world.register::<Transform>();
         world.register::<Mesh>();
-        world.create_entity().with(Transform::default()).with(Mesh::new(vertex_buffer, index_buffer, index_count, mesh_transform)).build();
+        world.create_entity().with(Transform::default()).with(Mesh::new(vertex_buffer, index_buffer, index_count)).build();
         world.create_entity().build();
         
+        let render_pass = RenderPass::new(&device, &queue, &config);
 
         Self {
             _instance: instance,
@@ -239,7 +234,8 @@ impl State {
             mouse_pressed: false,
             model_buffer,
             world,
-            plane_pipeline,
+            transform_bind_group_layout,
+            render_pass,
         }
     }
 
@@ -337,66 +333,10 @@ impl State {
         self.camera_controller.update_camera(&mut self.camera, dt);
         self.camera.update_uniform();
         self.queue.write_buffer(&self.camera.buffer, 0, bytemuck::cast_slice(&[self.camera.uniform]));
-
-        let mut transforms = self.world.write_storage::<Transform>();
-        let mut meshes = self.world.write_storage::<Mesh>();
-
-        for (transform, mesh) in (&mut transforms, &mut meshes).join() {
-            transform.position.x = transform.position.x + 0.001;
-            self.queue.write_buffer(&mesh.transform.buffer, 0, cast_slice(&[transform.aligned()]));
-        }
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
-    
-        let meshes = self.world.read_storage::<Mesh>();
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[
-                Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.clear_color),
-                        store: true,
-                    }
-                })
-            ],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &self.depth_texture.view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
-                }),
-                stencil_ops: None,
-            })
-        });
-
-        //render_pass.set_pipeline(&self.render_pipeline);mi
-        //render_pass.draw_model(&self.model_buffer, &self.models[1], &self.camera.bind_group);
-
-        render_pass.set_pipeline(&self.plane_pipeline);
-
-        for mesh in meshes.join() {
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.set_bind_group(0, &mesh.transform.bind_group, &[]);
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-        }
-        
-        drop(render_pass);
-
-        self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-
-        Ok(())
+        self.render_pass.draw(&self.surface, &self.device, &self.queue, &self.world)
     }
 
 }
@@ -406,7 +346,6 @@ pub async fn run() {
     let window = Window::new();
 
     let mut state = State::new(&window).await;
-    let mut last_render_time = instant::Instant::now();
 
     window.run(move |event| match event {
         WindowEvents::Resized { width, height } => {
