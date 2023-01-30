@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-use crate::util::{align::*, any_as_u8_slice};
+use crate::util::{align::*, cast_slice};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -25,7 +25,7 @@ impl Light {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Light VB"),
-                contents: unsafe { any_as_u8_slice(&[uniform]) },
+                contents: cast_slice(&[uniform]),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }
         );

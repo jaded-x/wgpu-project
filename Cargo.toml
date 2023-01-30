@@ -13,9 +13,10 @@ winit = "0.27.5"
 anyhow = "1.0.68"
 log = "0.4.17"
 pollster = "0.2.5"
-bytemuck = { version = "1.4", features = [ "derive" ] }
-tobj = { version = "3.2.3", features = [ "async" ] }
+bytemuck = { version = "1.4", features = ["derive"] }
+tobj = { version = "3.2.3", features = ["async"] }
 instant = "0.1.12"
+specs = { version = "0.18.0", features = ["derive"] }
 
 [dependencies.image]
 version = "0.24"
