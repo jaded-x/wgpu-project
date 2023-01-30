@@ -2,7 +2,6 @@ use wgpu::util::DeviceExt;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::Window,
 };
 
 use crate::{util::{align::Align16, cast_slice}, engine::components::mesh::MeshTransform};
@@ -14,7 +13,7 @@ use super::{
     model::{Model, ModelVertex, Vertex, DrawModel},
     resources,
     light::Light, 
-    components::{*, mesh::{Vert, Mesh}},
+    components::{*, mesh::{Vert, Mesh}}, window::{Window, WindowEvents},
 };
 
 use specs::prelude::*;
@@ -44,9 +43,9 @@ pub struct State {
 
 impl State {
     async fn new(window: &Window) -> Self {
-        let window_size = window.inner_size();
+        let window_size = window.window.inner_size();
         let instance = wgpu::Instance::new(wgpu::Backends::all());
-        let surface = unsafe { instance.create_surface(&window) };
+        let surface = unsafe { instance.create_surface(&window.window) };
         let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -404,61 +403,22 @@ impl State {
 
 pub async fn run() {
     env_logger::init();
-    let event_loop = EventLoop::new();
-    let window = Window::new(&event_loop).unwrap();
-    window.set_title("wgpu");
+    let window = Window::new();
 
     let mut state = State::new(&window).await;
     let mut last_render_time = instant::Instant::now();
 
-    event_loop.run(move |event, _, control_flow| 
-        match event {
-            Event::DeviceEvent { 
-                event: DeviceEvent::MouseMotion { delta, },
-                ..
-            } => if state.mouse_pressed {
-                state.camera_controller.process_mouse(delta.0, delta.1)
-            }
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() && !state.input(event) => {
-                match event {
-                    WindowEvent::CloseRequested 
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size);
-                    }
-                    _ => {}
-                }
-            }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                let now = instant::Instant::now();
-                let dt = now - last_render_time;
-                last_render_time = now;
-                state.update(dt);
-                match state.render() {
-                    Ok(_) => {}
-                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.window_size),
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
-                }
-            }
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => {}
+    window.run(move |event| match event {
+        WindowEvents::Resized { width, height } => {
+            state.resize(winit::dpi::PhysicalSize { width, height });
         }
-    );
+        WindowEvents::Draw => {
+            //state.update();
+            state.render();
+        }
+        WindowEvents::Keyboard {
+            state,
+            virtual_keycode,
+        } => {}
+    });
 }
