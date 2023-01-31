@@ -1,11 +1,14 @@
-use std::collections::HashMap;
-
 use specs::{World, WorldExt, Join};
 use wgpu::{Surface, Device, Queue, util::DeviceExt};
 
 use crate::util::cast_slice;
 
-use super::{texture, components::{mesh::{Mesh, Vert}, transform::Transform}, context::create_render_pipeline, uniform_pool::UniformPool};
+use super::{
+    texture, 
+    components::{mesh::{Mesh, Vert}, 
+    transform::Transform}, 
+    context::create_render_pipeline
+};
 
 pub struct RenderPass {
     pub depth_texture: texture::Texture,

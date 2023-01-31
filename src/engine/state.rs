@@ -1,18 +1,16 @@
 use wgpu::util::DeviceExt;
 use winit::{
     event::*,
-    event_loop::{ControlFlow, EventLoop},
 };
 
-use crate::{util::{align::Align16, cast_slice}};
+use crate::{util::cast_slice};
 
 use super::{
     texture::Texture,
     camera::{Camera, CameraController, Projection},
     instance::{InstanceRaw, Instance}, 
-    model::{Model, ModelVertex, Vertex, DrawModel},
+    model::{Model, ModelVertex, Vertex},
     resources,
-    light::Light, 
     components::{*, mesh::{Vert, Mesh}}, window::{Window, WindowEvents}, renderpass::{RenderPass, Pass},
 };
 
@@ -332,7 +330,7 @@ impl State {
     fn update(&mut self, dt: instant::Duration) {
         self.camera_controller.update_camera(&mut self.camera, dt);
         self.camera.update_uniform();
-        self.queue.write_buffer(&self.camera.buffer, 0, bytemuck::cast_slice(&[self.camera.uniform]));
+        self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
