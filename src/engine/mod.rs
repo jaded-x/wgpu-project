@@ -8,5 +8,4 @@ pub mod light;
 pub mod components;
 pub mod window;
 pub mod context;
-pub mod renderpass;
-pub mod uniform_pool;
+pub mod renderer;

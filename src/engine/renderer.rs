@@ -6,23 +6,25 @@ use crate::util::cast_slice;
 use super::{
     texture, 
     components::{mesh::{Mesh, Vert}, 
-    transform::Transform}, 
+    transform::Transform, renderable::Renderable}, 
     context::create_render_pipeline
 };
 
-pub struct RenderPass {
+pub struct Renderer {
+    pub clear_color: wgpu::Color,
     pub depth_texture: texture::Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
-    pub bind_groups: Vec<wgpu::BindGroup>,
 }
 
-impl RenderPass {
+impl Renderer {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
     ) -> Self {
+        let clear_color = wgpu::Color::BLACK;
+
         let depth_texture = texture::Texture::create_depth_texture(&device, &config, "depth_texture");
 
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -65,10 +67,10 @@ impl RenderPass {
         };
 
         Self {
+            clear_color,
             depth_texture,
             transform_bind_group_layout,
             render_pipeline,
-            bind_groups: vec![],
         }
     }
 }
@@ -77,37 +79,22 @@ pub trait Pass {
     fn draw(&mut self, surface: &Surface, device: &Device, queue: &Queue, world: &World) -> Result<(), wgpu::SurfaceError>;
 }
 
-impl Pass for RenderPass {
+impl Pass for Renderer {
     fn draw(&mut self, surface: &Surface, device: &Device, queue: &Queue, world: &World) -> Result<(), wgpu::SurfaceError> {
         let output = surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
+            label: Some("Render Encoder")
         });
     
         let meshes = world.read_storage::<Mesh>();
         let transforms = world.read_storage::<Transform>();
+        let mut renderables = world.write_storage::<Renderable>();
 
-        for transform in transforms.join()  {
-            let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: cast_slice(&[transform.aligned()]),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            });
-
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &self.transform_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: buffer.as_entire_binding()
-                    }
-                ],
-                label: None,
-            });
-
-            self.bind_groups.push(bind_group);
+        for (transform, renderable) in (&transforms, &mut renderables).join()  {
+            renderable.update_buffer(&queue, transform.clone());
+            //println!("{}", transform.position.x);
         }
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -117,7 +104,7 @@ impl Pass for RenderPass {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {r: 0.0, g: 0.0, b: 0.0, a: 1.0}),
+                        load: wgpu::LoadOp::Clear(self.clear_color),
                         store: true,
                     }
                 })
@@ -134,10 +121,10 @@ impl Pass for RenderPass {
 
         render_pass.set_pipeline(&self.render_pipeline);
 
-        for (i, mesh) in meshes.join().enumerate()  {
+        for (renderable, mesh) in (&renderables, &meshes).join()  {
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.set_bind_group(0, &self.bind_groups[i], &[]);
+            render_pass.set_bind_group(0, &renderable.bind_group, &[]);
             render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
         }
         
