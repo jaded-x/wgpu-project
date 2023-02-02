@@ -2,6 +2,7 @@ use super::window::Window;
 
 pub struct Context {
     pub surface: wgpu::Surface,
+    pub window_size: winit::dpi::PhysicalSize<u32>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
@@ -9,7 +10,7 @@ pub struct Context {
 
 impl Context {
     pub async fn new(window: &Window) -> Self {
-        let size = &window.window.inner_size();
+        let window_size = window.window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::Backends::all());
         let surface = unsafe { instance.create_surface(&window.window) };
@@ -37,8 +38,8 @@ impl Context {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface.get_supported_formats(&adapter)[0],
-            width: size.width,
-            height: size.height,
+            width: window_size.width,
+            height: window_size.height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
         };
@@ -46,6 +47,7 @@ impl Context {
 
         Self {
             surface,
+            window_size,
             device,
             queue,
             config,

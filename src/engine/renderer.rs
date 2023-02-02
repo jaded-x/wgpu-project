@@ -94,7 +94,6 @@ impl Pass for Renderer {
 
         for (transform, renderable) in (&transforms, &mut renderables).join()  {
             renderable.update_buffer(&queue, transform.clone());
-            //println!("{}", transform.position.x);
         }
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
