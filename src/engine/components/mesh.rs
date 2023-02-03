@@ -20,7 +20,7 @@ impl Mesh {
 
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vert {
     pub position: [f32; 3],
 }

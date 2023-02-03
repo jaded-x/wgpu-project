@@ -1,7 +1,5 @@
 use specs::{World, WorldExt, Join};
-use wgpu::{Surface, Device, Queue, util::DeviceExt};
-
-use crate::util::cast_slice;
+use wgpu::{Surface, Device, Queue};
 
 use super::{
     texture, 
@@ -87,6 +85,8 @@ impl Pass for Renderer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder")
         });
+
+
     
         let meshes = world.read_storage::<Mesh>();
         let transforms = world.read_storage::<Transform>();

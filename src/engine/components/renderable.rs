@@ -1,4 +1,4 @@
-use specs::{Component, prelude::*, rayon::iter::Update};
+use specs::{Component, prelude::*};
 
 use super::transform::{Transform, TransformSize};
 

@@ -1,26 +1,26 @@
 use wgpu::util::DeviceExt;
-use winit::{
-    event::*,
-};
+use winit::event::*;
+use specs::prelude::*;
 
-use crate::{util::cast_slice, engine::{components::renderable::Renderable, context::Context}};
+use crate::util::cast_slice;
 
 use super::{
     texture::Texture,
     camera::{Camera, CameraController, Projection},
-    components::{*, mesh::{Vert, Mesh}}, 
+    components::{
+        mesh::{Vert, Mesh},
+        transform::Transform,
+        renderable::Renderable,
+    }, 
     window::{Window, WindowEvents}, 
     renderer::{Renderer, Pass},
+    context::Context
 };
-
-use specs::prelude::*;
-
-use transform::Transform;
 
 pub struct State {
     context: Context,
     renderer: Renderer,
-    
+
     camera: Camera,
     camera_controller: CameraController,
     world: specs::World,
@@ -29,7 +29,7 @@ pub struct State {
 impl State {
     async fn new(window: &Window) -> Self {
         let context = Context::new(window).await;
-        let renderer = Renderer::new(&context.device, &context.queue, &context.config);
+        let renderer = Renderer::new(&context.device, &context.queue, &context.config); 
 
         let camera_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -121,6 +121,7 @@ impl State {
         // self.camera.update_uniform();
         // self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
         
+
         let mut transforms = self.world.write_component::<Transform>();
         for transform in (&mut transforms).join() {
             transform.position.x = transform.position.x + 0.01;
@@ -128,6 +129,8 @@ impl State {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        
+
         self.renderer.draw(&self.context.surface, &self.context.device, &self.context.queue, &self.world)
     }
 
@@ -138,12 +141,18 @@ pub async fn run() {
     let window = Window::new();
 
     let mut state = State::new(&window).await;
+    let mut last_render_time = instant::Instant::now();
 
     window.run(move |event| match event {
         WindowEvents::Resized { width, height } => {
             state.resize(winit::dpi::PhysicalSize { width, height });
         }
         WindowEvents::Draw => {
+            let delta_s = last_render_time.elapsed();
+            let now = instant::Instant::now();
+            let dt = now - last_render_time;
+            last_render_time = now;
+
             state.update();
             state.render();
         }

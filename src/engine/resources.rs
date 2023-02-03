@@ -3,6 +3,8 @@ use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
 
 
+use crate::util::cast_slice;
+
 use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
@@ -95,13 +97,13 @@ pub async fn load_model(
             
             let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(&format!("{:?} Vertex Buffer", file_name)),
-                contents: bytemuck::cast_slice(&vertices),
+                contents: cast_slice(&vertices),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
             let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(&format!("{:?} Index Buffer", file_name)),
-                contents: bytemuck::cast_slice(&material.mesh.indices),
+                contents: cast_slice(&material.mesh.indices),
                 usage: wgpu::BufferUsages::INDEX,
             });
 

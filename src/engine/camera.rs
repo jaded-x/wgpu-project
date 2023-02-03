@@ -6,6 +6,8 @@ use cgmath::{SquareMatrix, Point3, Rad, Matrix4, Vector3, InnerSpace, perspectiv
 use instant::Duration;
 use winit::{event::{MouseScrollDelta, VirtualKeyCode, ElementState}, dpi::PhysicalPosition};
 
+use crate::util::cast_slice;
+
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
@@ -37,7 +39,7 @@ impl Camera {
         let camera_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Camera Buffer"),
-                contents: bytemuck::cast_slice(&[camera_uniform]),
+                contents: cast_slice(&[camera_uniform]),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -119,7 +121,7 @@ impl Projection {
 
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone)]
 pub struct CameraUniform {
     pub view_position: [f32; 4],
     pub view_proj: [[f32; 4]; 4],
