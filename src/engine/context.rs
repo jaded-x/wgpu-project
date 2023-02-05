@@ -1,22 +1,30 @@
-use super::window::Window;
+use super::{window::Window, renderer::Renderer, ui::UI};
 
 pub struct Context {
     pub surface: wgpu::Surface,
     pub window_size: winit::dpi::PhysicalSize<u32>,
+    pub scale_factor: f64,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
+
+    pub egui_context: egui::Context,
+    pub egui_renderer: egui_wgpu::Renderer,
+    pub plot_id: egui::TextureId,
+    pub ui: UI,
 }
 
 impl Context {
-    pub async fn new(window: &Window) -> Self {
-        let window_size = window.window.inner_size();
+    pub async fn new(window: &winit::window::Window) -> Self {
+        let window_size = window.inner_size();
+        let scale_factor = window.scale_factor();
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
-        });
-        let surface = unsafe { instance.create_surface(&window.window).unwrap() };
+        // let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        //     backends: wgpu::Backends::all(),
+        //     dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+        // });
+        let instance = wgpu::Instance::new(wgpu::Backends::all());
+        let surface = unsafe { instance.create_surface(&window) };
         let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -38,30 +46,44 @@ impl Context {
             None,
         ).await.unwrap();
         
-        let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter()
-            .copied()
-            .filter(|f| f.describe().srgb)
-            .next()
-            .unwrap_or(surface_caps.formats[0]);
+        // let surface_caps = surface.get_capabilities(&adapter);
+        // let surface_format = surface_caps.formats.iter()
+        //     .copied()
+        //     .filter(|f| f.describe().srgb)
+        //     .next()
+        //     .unwrap_or(surface_caps.formats[0]);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
+            format: surface.get_supported_formats(&adapter)[0],
             width: window_size.width,
             height: window_size.height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            view_formats: vec![],
+            //view_formats: vec![],
         };
         surface.configure(&device, &config);
+
+        let egui_context = egui::Context::default();
+
+        let mut egui_renderer = egui_wgpu::Renderer::new(&device, surface.get_supported_formats(&adapter)[0], None, 1);
+        let mut renderer = Renderer::new(&device, &queue, &config);
+
+        let plot_id = egui_renderer.register_native_texture(&device, &renderer.texture_view, wgpu::FilterMode::Linear);
+
+        let mut ui = UI::new(plot_id.clone());
 
         Self {
             surface,
             window_size,
+            scale_factor,
             device,
             queue,
             config,
+            egui_context,
+            egui_renderer,
+            plot_id,
+            ui,
         }
     }
 }

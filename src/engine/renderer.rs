@@ -1,3 +1,7 @@
+use std::ops::Deref;
+
+use egui::epaint::ClippedPrimitive;
+use egui_wgpu::renderer::ScreenDescriptor;
 use specs::{World, WorldExt, Join};
 use wgpu::{Surface, Device, Queue};
 
@@ -5,12 +9,12 @@ use super::{
     texture, 
     components::{mesh::{Mesh, Vert}, 
     transform::Transform, renderable::Renderable}, 
-    context::create_render_pipeline
+    context::{create_render_pipeline, Context}
 };
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,
-    pub depth_texture: texture::Texture,
+    pub texture_view: wgpu::TextureView,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
@@ -23,7 +27,21 @@ impl Renderer {
     ) -> Self {
         let clear_color = wgpu::Color::BLACK;
 
-        let depth_texture = texture::Texture::create_depth_texture(&device, &config, "depth_texture");
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Mandelbrot Texture"),
+            size: wgpu::Extent3d {
+                width: 1920,
+                height: 1080,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING
+        });
+
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -58,7 +76,7 @@ impl Renderer {
                 &device,
                 &render_pipeline_layout,
                 config.format,
-                Some(texture::Texture::DEPTH_FORMAT),
+                None,
                 &[Vert::desc()],
                 shader,
             )
@@ -66,7 +84,7 @@ impl Renderer {
 
         Self {
             clear_color,
-            depth_texture,
+            texture_view,
             transform_bind_group_layout,
             render_pipeline,
         }
@@ -79,15 +97,13 @@ pub trait Pass {
 
 impl Pass for Renderer {
     fn draw(&mut self, surface: &Surface, device: &Device, queue: &Queue, world: &World) -> Result<(), wgpu::SurfaceError> {
-        let output = surface.get_current_texture()?;
+        let output = surface.get_current_texture().unwrap();
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder")
         });
 
-
-    
         let meshes = world.read_storage::<Mesh>();
         let transforms = world.read_storage::<Transform>();
         let mut renderables = world.write_storage::<Renderable>();
@@ -108,14 +124,7 @@ impl Pass for Renderer {
                     }
                 })
             ],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &self.depth_texture.view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
-                }),
-                stencil_ops: None,
-            })
+            depth_stencil_attachment: None,
         });
 
         render_pass.set_pipeline(&self.render_pipeline);

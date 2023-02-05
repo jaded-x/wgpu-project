@@ -17,7 +17,7 @@ pub enum WindowEvents {
 }
 
 pub struct Window {
-    event_loop: EventLoop<()>,
+    pub event_loop: EventLoop<()>,
     pub window: window::Window,
 }
 

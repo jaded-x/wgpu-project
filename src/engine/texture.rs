@@ -40,9 +40,9 @@ impl Texture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
+            //view_formats: &[],
         });
 
         queue.write_texture(
@@ -94,7 +94,7 @@ impl Texture {
             dimension: wgpu::TextureDimension::D2,
             format: Self::DEPTH_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[Self::DEPTH_FORMAT]
+            //view_formats: &[Self::DEPTH_FORMAT]
         };
 
         let texture = device.create_texture(&desc);
