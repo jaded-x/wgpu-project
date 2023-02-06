@@ -10,3 +10,5 @@ pub mod window;
 pub mod context;
 pub mod renderer;
 pub mod ui;
+pub mod egui;
+pub mod input;

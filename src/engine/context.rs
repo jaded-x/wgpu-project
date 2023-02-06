@@ -7,11 +7,6 @@ pub struct Context {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
-
-    pub egui_context: egui::Context,
-    pub egui_renderer: egui_wgpu::Renderer,
-    pub plot_id: egui::TextureId,
-    pub ui: UI,
 }
 
 impl Context {
@@ -64,15 +59,6 @@ impl Context {
         };
         surface.configure(&device, &config);
 
-        let egui_context = egui::Context::default();
-
-        let mut egui_renderer = egui_wgpu::Renderer::new(&device, surface.get_supported_formats(&adapter)[0], None, 1);
-        let mut renderer = Renderer::new(&device, &queue, &config);
-
-        let plot_id = egui_renderer.register_native_texture(&device, &renderer.texture_view, wgpu::FilterMode::Linear);
-
-        let mut ui = UI::new(plot_id.clone());
-
         Self {
             surface,
             window_size,
@@ -80,10 +66,6 @@ impl Context {
             device,
             queue,
             config,
-            egui_context,
-            egui_renderer,
-            plot_id,
-            ui,
         }
     }
 }

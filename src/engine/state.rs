@@ -15,12 +15,15 @@ use super::{
     }, 
     window::{Window, WindowEvents}, 
     renderer::{Renderer, Pass},
-    context::Context
+    context::Context,
+    egui::Egui,
+    input::InputState,
 };
 
 pub struct State {
     pub context: Context,
     renderer: Renderer,
+    window: winit::window::Window,
 
     camera: Camera,
     camera_controller: CameraController,
@@ -28,11 +31,9 @@ pub struct State {
 }
 
 impl State {
-    async fn new(window: &winit::window::Window) -> Self {
-        let context = Context::new(window).await;
+    async fn new(window: winit::window::Window) -> Self {
+        let context = Context::new(&window).await;
         let renderer = Renderer::new(&context.device, &context.queue, &context.config); 
-
-        
 
         let camera_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -97,6 +98,7 @@ impl State {
 
         Self {
             context,
+            window,
             camera,
             camera_controller,
             world,
@@ -128,13 +130,111 @@ impl State {
             if transform.position.x >= 1.0 { transform.position.x = -1.0 }
             transform.position.x = transform.position.x + 0.01;
         }
+
+        // update buffers
+        let mut renderables = self.world.write_storage::<Renderable>();
+        for (transform, renderable) in (&transforms, &mut renderables).join()  {
+            renderable.update_buffer(&self.context.queue, transform.clone());
+        }
     }
 
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
 
+        // state.context.egui_context.begin_frame(egui_state.take_egui_input(&state.window));
+        // state.context.ui.ui(&state.context.egui_context);
+        // let egui_output = state.context.egui_context.end_frame();
+        // egui_state.handle_platform_output(&window, &state.context.egui_context, egui_output.platform_output);
+
+        let egui_input = egui.state.take_egui_input(&self.window);
+        let egui_output = egui.context.run(egui_input, |context| {
+            let mut style: egui::Style = (*context.style()).clone();
+            context.set_style(style);
+
+            let mut frame = egui::containers::Frame::side_top_panel(&context.style());
+
+            let mut test = 0;
+
+            egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
+                ui.add(egui::Slider::new(&mut test, 0..=120).text("hi :)"));
+            });
+            
+        });
         
+        let clipped_primitives = egui.context.tessellate(egui_output.shapes);
+        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+            size_in_pixels: self.context.window_size.into(),
+            pixels_per_point: egui_winit::native_pixels_per_point(&self.window)
+        };
 
-        self.renderer.draw(&self.context.surface, &self.context.device, &self.context.queue, &self.world)
+        let output = self.context.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("encoder")
+        });
+
+        let meshes = self.world.read_storage::<Mesh>();
+        let renderables = self.world.write_storage::<Renderable>();
+
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("render_pass"),
+            color_attachments: &[
+                Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    }
+                })
+            ],
+            depth_stencil_attachment: None,
+        });
+
+        render_pass.set_pipeline(&self.renderer.render_pipeline);
+
+        for (renderable, mesh) in (&renderables, &meshes).join()  {
+            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.set_bind_group(0, &renderable.bind_group, &[]);
+            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+        }
+
+        for (id, image) in egui_output.textures_delta.set {
+            egui.renderer.update_texture(&self.context.device, &self.context.queue, id, &image);
+        }
+
+        drop(render_pass);
+
+        egui.renderer.update_buffers(&self.context.device, &self.context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
+
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("egui_render_pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: None,
+        });
+
+        egui.renderer.render(&mut render_pass, &clipped_primitives, &screen_descriptor);
+
+        drop(render_pass);
+
+        self.context.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        for id in egui_output.textures_delta.free {
+            egui.renderer.free_texture(&id);
+        }
+
+        Ok(())
+
+        //self.renderer.draw(&self.context.surface, &self.context.device, &self.context.queue, &self.world)
     }
 
 
@@ -154,126 +254,43 @@ pub async fn run() {
         .build(&event_loop)
         .unwrap();
 
+    let mut input = InputState::default();
+    let mut state = State::new(window).await;
+
     let mut egui_state = egui_winit::State::new(&event_loop);
-    egui_state.set_pixels_per_point(window.scale_factor() as f32);
+    egui_state.set_pixels_per_point(state.window.scale_factor() as f32);
 
+    let mut egui = Egui::new(&event_loop, &state.context);
+    egui.state.set_pixels_per_point(egui_winit::native_pixels_per_point(&state.window));
 
-
-    let mut state = State::new(&window).await;
-    let mut last_render_time = instant::Instant::now();
-
-    event_loop.run(move |event, _, control_flow| {
-        control_flow.set_poll();
-
-        match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => {
-                match event {
-                    WindowEvent::CloseRequested 
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => {
-                        
-                        state.resize(*physical_size);
-                    },
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size)
-                    }
-                    _ => {}
-                }
-                if egui_state.on_event(&state.context.egui_context, &event).repaint {
-                    window.request_redraw();
-                }
+    event_loop.run(move |event, _, control_flow| match event {
+        event if input.update(&event) => {}
+        Event::WindowEvent { event, .. } => match event {
+            e if egui.state.on_event(&egui.context, &e).consumed => {}
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            WindowEvent::Resized(size) => {
+                state.resize(size);
             }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                let delta_s = last_render_time.elapsed();
-                let now = instant::Instant::now();
-                let dt = now - last_render_time;
-                last_render_time = now;
-
-                state.context.egui_context.begin_frame(egui_state.take_egui_input(&window));
-                state.context.ui.ui(&state.context.egui_context);
-                let egui_output = state.context.egui_context.end_frame();
-                egui_state.handle_platform_output(&window, &state.context.egui_context, egui_output.platform_output);
-
-                state.update();
-                //state.render();
-
-                state.context.egui_renderer.update_egui_texture_from_wgpu_texture(&state.context.device, &state.renderer.texture_view, wgpu::FilterMode::Linear, state.context.plot_id);
-
-                let clipped_primitives = state.context.egui_context.tessellate(egui_output.shapes);
-                let screen_descriptor = ScreenDescriptor {
-                    size_in_pixels: [state.context.config.width, state.context.config.height],
-                    pixels_per_point: window.scale_factor() as f32,
-                };
-
-                let output_frame = state.context.surface.get_current_texture().unwrap();
-                let output_view = output_frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
-                let mut encoder = state.context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("egui encoder")
-                });
-
-                let meshes = state.world.read_storage::<Mesh>();
-                let transforms = state.world.read_storage::<Transform>();
-                let mut renderables = state.world.write_storage::<Renderable>();
-
-                for (transform, renderable) in (&transforms, &mut renderables).join()  {
-                    renderable.update_buffer(&state.context.queue, transform.clone());
-                }
-
-                for idx in 0..egui_output.textures_delta.set.len() {
-                    state.context.egui_renderer.update_texture(&state.context.device, &state.context.queue, egui_output.textures_delta.set[idx].0, &egui_output.textures_delta.set[idx].1);
-                }
-                for idx in 0..egui_output.textures_delta.free.len() {
-                    state.context.egui_renderer.free_texture(&egui_output.textures_delta.free[idx]);
-                }
-                state.context.egui_renderer.update_buffers(&state.context.device, &state.context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
-
-                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Render Pass"),
-                    color_attachments: &[
-                        Some(wgpu::RenderPassColorAttachment {
-                            view: &output_view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                store: true,
-                            }
-                        })
-                    ],
-                    depth_stencil_attachment: None,
-                });
-
-                render_pass.set_pipeline(&state.renderer.render_pipeline);
-
-                for (renderable, mesh) in (&renderables, &meshes).join()  {
-                    render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-                    render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                    render_pass.set_bind_group(0, &renderable.bind_group, &[]);
-                    render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-                }
-
-                state.context.egui_renderer.render(&mut render_pass, &clipped_primitives, &screen_descriptor);
-
-                drop(render_pass);
-
-                state.context.queue.submit(std::iter::once(encoder.finish()));
-                output_frame.present();
-            }
-            Event::MainEventsCleared => {
-                window.request_redraw();
+            WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                state.resize(*new_inner_size);
             }
             _ => {}
         }
+        Event::RedrawRequested(_) => {
+            state.update();
+
+            input.finish_frame();
+            match state.render(&mut egui) {
+                Ok(_) => {}
+                Err(wgpu::SurfaceError::Lost) => state.resize(state.window.inner_size()),
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                Err(e) => eprintln!("{e:?}"),
+            };
+        }
+        Event::MainEventsCleared => {
+            state.window.request_redraw();
+        }
+        _ => {}
     });
 
     // window.run(move |event| match event {
