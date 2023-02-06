@@ -108,7 +108,6 @@ impl State {
 
     fn resize(&mut self, new_window_size: winit::dpi::PhysicalSize<u32>) {
         if new_window_size.width > 0 && new_window_size.height > 0 {
-            self.context.window_size = new_window_size;
             self.context.config.width = new_window_size.width;
             self.context.config.height = new_window_size.height;
             self.context.surface.configure(&self.context.device, &self.context.config);
@@ -139,102 +138,7 @@ impl State {
     }
 
     fn render(&mut self, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
-
-        // state.context.egui_context.begin_frame(egui_state.take_egui_input(&state.window));
-        // state.context.ui.ui(&state.context.egui_context);
-        // let egui_output = state.context.egui_context.end_frame();
-        // egui_state.handle_platform_output(&window, &state.context.egui_context, egui_output.platform_output);
-
-        let egui_input = egui.state.take_egui_input(&self.window);
-        let egui_output = egui.context.run(egui_input, |context| {
-            let mut style: egui::Style = (*context.style()).clone();
-            context.set_style(style);
-
-            let mut frame = egui::containers::Frame::side_top_panel(&context.style());
-
-            let mut test = 0;
-
-            egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
-                ui.add(egui::Slider::new(&mut test, 0..=120).text("hi :)"));
-            });
-            
-        });
-        
-        let clipped_primitives = egui.context.tessellate(egui_output.shapes);
-        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
-            size_in_pixels: self.context.window_size.into(),
-            pixels_per_point: egui_winit::native_pixels_per_point(&self.window)
-        };
-
-        let output = self.context.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self.context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("encoder")
-        });
-
-        let meshes = self.world.read_storage::<Mesh>();
-        let renderables = self.world.write_storage::<Renderable>();
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("render_pass"),
-            color_attachments: &[
-                Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: true,
-                    }
-                })
-            ],
-            depth_stencil_attachment: None,
-        });
-
-        render_pass.set_pipeline(&self.renderer.render_pipeline);
-
-        for (renderable, mesh) in (&renderables, &meshes).join()  {
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.set_bind_group(0, &renderable.bind_group, &[]);
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-        }
-
-        for (id, image) in egui_output.textures_delta.set {
-            egui.renderer.update_texture(&self.context.device, &self.context.queue, id, &image);
-        }
-
-        drop(render_pass);
-
-        egui.renderer.update_buffers(&self.context.device, &self.context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("egui_render_pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
-
-        egui.renderer.render(&mut render_pass, &clipped_primitives, &screen_descriptor);
-
-        drop(render_pass);
-
-        self.context.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-
-        for id in egui_output.textures_delta.free {
-            egui.renderer.free_texture(&id);
-        }
-
-        Ok(())
-
-        //self.renderer.draw(&self.context.surface, &self.context.device, &self.context.queue, &self.world)
+        self.renderer.draw(&self.context, &self.world, &self.window, egui)
     }
 
 

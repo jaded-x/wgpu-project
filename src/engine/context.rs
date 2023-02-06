@@ -1,9 +1,5 @@
-use super::{window::Window, renderer::Renderer, ui::UI};
-
 pub struct Context {
     pub surface: wgpu::Surface,
-    pub window_size: winit::dpi::PhysicalSize<u32>,
-    pub scale_factor: f64,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
@@ -61,8 +57,6 @@ impl Context {
 
         Self {
             surface,
-            window_size,
-            scale_factor,
             device,
             queue,
             config,
