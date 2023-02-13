@@ -1,14 +1,10 @@
-use std::ops::Deref;
-
-use egui::epaint::ClippedPrimitive;
-use egui_wgpu::renderer::ScreenDescriptor;
-use specs::{World, WorldExt, Join};
-use wgpu::{Surface, Device, Queue};
+use legion::*;
 
 use super::{
-    texture, 
-    components::{mesh::{Mesh, Vert}, 
-    transform::Transform, renderable::Renderable}, 
+    components::{
+        mesh::{Mesh, Vert}, 
+        renderable::Renderable
+    },
     context::{create_render_pipeline, Context}, egui::Egui
 };
 
@@ -22,7 +18,6 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
     ) -> Self {
         let clear_color = wgpu::Color::BLACK;
@@ -92,32 +87,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut legion::World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
-        let egui_input = egui.state.take_egui_input(window);
-        let egui_output = egui.context.run(egui_input, |context| {
-            let mut style: egui::Style = (*context.style()).clone();
-            context.set_style(style);
-
-            let mut frame = egui::containers::Frame::side_top_panel(&context.style());
-
-            let mut test = 0;
-
-            egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
-                ui.add(egui::Slider::new(&mut test, 0..=120).text("hi :)"));
-            });
-            
-        });
-        
-        let clipped_primitives = egui.context.tessellate(egui_output.shapes);
-        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
-            size_in_pixels: window.inner_size().into(),
-            pixels_per_point: egui_winit::native_pixels_per_point(window)
-        };
-
+    fn draw(&mut self, context: &Context, world: &mut legion::World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -125,8 +99,7 @@ impl Pass for Renderer {
             label: Some("encoder")
         });
 
-        let meshes = world.read_storage::<Mesh>();
-        let renderables = world.write_storage::<Renderable>();
+        let mut query = <(&Mesh, &Renderable)>::query();
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("render_pass"),
@@ -145,18 +118,39 @@ impl Pass for Renderer {
 
         render_pass.set_pipeline(&self.render_pipeline);
 
-        for (renderable, mesh) in (&renderables, &meshes).join()  {
+        for (mesh, renderable) in query.iter_mut(world)  {
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.set_bind_group(0, &renderable.bind_group, &[]);
             render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
         }
 
+        drop(render_pass);
+
+        // render egui
+        let egui_input = egui.state.take_egui_input(window);
+        let egui_output = egui.context.run(egui_input, |context| {
+            let style: egui::Style = (*context.style()).clone();
+            context.set_style(style);
+
+            let frame = egui::containers::Frame::side_top_panel(&context.style());
+
+            let mut test = 0;
+
+            egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
+                ui.add(egui::Slider::new(&mut test, 0..=120).text("hi :)"));
+            });
+        });
+        
+        let clipped_primitives = egui.context.tessellate(egui_output.shapes);
+        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+            size_in_pixels: window.inner_size().into(),
+            pixels_per_point: egui_winit::native_pixels_per_point(window)
+        };
+
         for (id, image) in egui_output.textures_delta.set {
             egui.renderer.update_texture(&context.device, &context.queue, id, &image);
         }
-
-        drop(render_pass);
 
         egui.renderer.update_buffers(&context.device, &context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
 

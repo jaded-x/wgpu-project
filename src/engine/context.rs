@@ -8,7 +8,6 @@ pub struct Context {
 impl Context {
     pub async fn new(window: &winit::window::Window) -> Self {
         let window_size = window.inner_size();
-        let scale_factor = window.scale_factor();
 
         // let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         //     backends: wgpu::Backends::all(),

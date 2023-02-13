@@ -1,19 +1,16 @@
-use egui_wgpu::renderer::ScreenDescriptor;
 use wgpu::util::DeviceExt;
 use winit::event::*;
-use specs::prelude::*;
+use legion::*;
 
 use crate::util::cast_slice;
 
 use super::{
-    texture::Texture,
     camera::{Camera, CameraController, Projection},
     components::{
         mesh::{Vert, Mesh},
         transform::Transform,
         renderable::Renderable,
     }, 
-    window::{Window, WindowEvents}, 
     renderer::{Renderer, Pass},
     context::Context,
     egui::Egui,
@@ -26,14 +23,14 @@ pub struct State {
     window: winit::window::Window,
 
     camera: Camera,
-    camera_controller: CameraController,
-    world: specs::World,
+    _camera_controller: CameraController,
+    world: legion::World,
 }
 
 impl State {
     async fn new(window: winit::window::Window) -> Self {
         let context = Context::new(&window).await;
-        let renderer = Renderer::new(&context.device, &context.queue, &context.config); 
+        let renderer = Renderer::new(&context.device, &context.config); 
 
         let camera_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -87,20 +84,14 @@ impl State {
 
         let index_count = INDICES.len() as u32;
 
-        let mut world = World::new();
-        world.register::<Transform>();
-        world.register::<Mesh>();
-        world.register::<Renderable>();
-        world.create_entity()
-            .with(Transform::default())
-            .with(Mesh::new(vertex_buffer, index_buffer, index_count))
-            .with(Renderable::new(&context.device)).build();
+        let mut world = World::default();
+        world.push((Transform::default(), Mesh::new(vertex_buffer, index_buffer, index_count), Renderable::new(&context.device)));
 
         Self {
             context,
             window,
             camera,
-            camera_controller,
+            _camera_controller: camera_controller,
             world,
             renderer,
         }
@@ -115,30 +106,25 @@ impl State {
         }
     }
 
-    fn input(&mut self, event: &WindowEvent) -> bool {
-        false
-    }
-
     fn update(&mut self) {
         // self.camera_controller.update_camera(&mut self.camera, dt);
         // self.camera.update_uniform();
         // self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
-        let mut transforms = self.world.write_component::<Transform>();
-        for transform in (&mut transforms).join() {
+        let mut transforms = <&mut Transform>::query();
+        for transform in transforms.iter_mut(&mut self.world) {
             if transform.position.x >= 1.0 { transform.position.x = -1.0 }
             transform.position.x = transform.position.x + 0.01;
         }
 
-        // update buffers
-        let mut renderables = self.world.write_storage::<Renderable>();
-        for (transform, renderable) in (&transforms, &mut renderables).join()  {
+        let mut renderables = <(&Transform, &mut Renderable)>::query();
+        for (transform, renderable) in renderables.iter_mut(&mut self.world) {
             renderable.update_buffer(&self.context.queue, transform.clone());
         }
     }
 
     fn render(&mut self, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &self.world, &self.window, egui)
+        self.renderer.draw(&self.context, &mut self.world, &self.window, egui)
     }
 
 
@@ -150,7 +136,6 @@ use winit::{
 
 pub async fn run() {
     env_logger::init();
-    //let window = Window::new();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_title("wgpu")
@@ -196,23 +181,4 @@ pub async fn run() {
         }
         _ => {}
     });
-
-    // window.run(move |event| match event {
-    //     WindowEvents::Resized { width, height } => {
-    //         state.resize(winit::dpi::PhysicalSize { width, height });
-    //     }
-    //     WindowEvents::Draw => {
-    //         let delta_s = last_render_time.elapsed();
-    //         let now = instant::Instant::now();
-    //         let dt = now - last_render_time;
-    //         last_render_time = now;
-
-    //         state.update();
-    //         state.render();
-    //     }
-    //     WindowEvents::Keyboard {
-    //         state,
-    //         virtual_keycode,
-    //     } => {}
-    // });
 }

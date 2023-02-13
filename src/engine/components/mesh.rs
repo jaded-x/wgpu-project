@@ -1,7 +1,3 @@
-use specs::{Component, VecStorage};
-
-#[derive(Component)]
-#[storage(VecStorage)]
 pub struct Mesh {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,

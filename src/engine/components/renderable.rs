@@ -1,11 +1,7 @@
-use specs::{Component, prelude::*};
-
 use super::transform::{Transform, TransformSize};
 
 use crate::util::cast_slice;
 
-#[derive(Component)]
-#[storage(VecStorage)]
 pub struct Renderable {
     pub transform_data: Transform,
     pub transform_buffer: wgpu::Buffer,
