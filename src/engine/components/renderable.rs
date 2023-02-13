@@ -1,7 +1,10 @@
 use super::transform::{Transform, TransformSize};
 
 use crate::util::cast_slice;
+use specs::{Component, VecStorage};
 
+#[derive(Component)]
+#[storage(VecStorage)]
 pub struct Renderable {
     pub transform_data: Transform,
     pub transform_buffer: wgpu::Buffer,
@@ -54,10 +57,8 @@ impl Renderable {
     } 
 
     pub fn update_buffer(&mut self, queue: &wgpu::Queue, data: Transform) {
-        if self.transform_data != data {
-            self.transform_data = data;
-            queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[self.transform_data.aligned()]));
-        }
+        queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[data.aligned()]));
+        self.transform_data = data.clone();
     }
 }
 

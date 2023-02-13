@@ -1,9 +1,10 @@
-use legion::*;
+use specs::prelude::*;
 
 use super::{
     components::{
         mesh::{Mesh, Vert}, 
-        renderable::Renderable, transform::Transform
+        renderable::Renderable, 
+        transform::Transform
     },
     context::{create_render_pipeline, Context}, egui::Egui
 };
@@ -87,11 +88,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut legion::World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut legion::World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -99,9 +100,8 @@ impl Pass for Renderer {
             label: Some("encoder")
         });
 
-        let mut query = <(&Mesh, &Renderable)>::query();
-        let mut transforms = <&mut Transform>::query();
-
+        let meshes = world.read_storage::<Mesh>();
+        let renderables = world.read_storage::<Renderable>();
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("render_pass"),
@@ -120,7 +120,7 @@ impl Pass for Renderer {
 
         render_pass.set_pipeline(&self.render_pipeline);
 
-        for (mesh, renderable) in query.iter_mut(world)  {
+        for (mesh, renderable) in (&meshes, &renderables).join()  {
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.set_bind_group(0, &renderable.bind_group, &[]);
@@ -135,13 +135,26 @@ impl Pass for Renderer {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
 
-            let frame = egui::containers::Frame::side_top_panel(&context.style());
+            let frame = egui::containers::Frame {
+                fill: context.style().visuals.window_fill(),
+                inner_margin: 10.0.into(),
+                rounding: 5.0.into(),
+                stroke: context.style().visuals.widgets.noninteractive.fg_stroke,
+                ..Default::default()
+            };
 
-            for transform in transforms.iter_mut(world) {
-                egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
-                    ui.add(egui::Slider::new(&mut transform.position.x, -1.0..=1.0).text("hi :)"));
+            egui::Window::new("Position") 
+                .resizable(true)
+                .constrain(true)
+                .frame(frame)
+                .show(&context, |ui| {
+                    let mut transforms = world.write_storage::<Transform>();
+                    for transform in (&mut transforms).join() {
+                        ui.add(egui::Slider::new(&mut transform.position.x, -1.0..=1.0).text("x"));
+                        ui.add(egui::Slider::new(&mut transform.position.y, -1.0..=1.0).text("y"));
+                        ui.add(egui::Slider::new(&mut transform.position.z, -1.0..=1.0).text("z"));
+                    }
                 });
-            }
         });
         
         let clipped_primitives = egui.context.tessellate(egui_output.shapes);

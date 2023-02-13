@@ -1,14 +1,12 @@
+use specs::{prelude::*, Component};
+
 use crate::util::align::Align16;
 
-#[derive(Clone, PartialEq)]
+#[derive(Component, Copy, Clone, PartialEq)]
+#[storage(DefaultVecStorage)]
 pub struct Transform {
     pub position: cgmath::Vector3<f32>,
     pub scale: cgmath::Vector3<f32>,
-}
-
-pub struct TransformSize {
-    pub position: cgmath::Vector3<f32>,
-    pub scale: Align16<cgmath::Vector3<f32>>
 }
 
 impl Transform {
@@ -36,4 +34,9 @@ impl Default for Transform {
             scale: cgmath::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
         }
     }
+}
+
+pub struct TransformSize {
+    _position: cgmath::Vector3<f32>,
+    _scale: Align16<cgmath::Vector3<f32>>
 }

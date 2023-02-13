@@ -1,6 +1,6 @@
+use specs::prelude::*;
 use wgpu::util::DeviceExt;
 use winit::event::*;
-use legion::*;
 
 use crate::util::cast_slice;
 
@@ -24,7 +24,7 @@ pub struct State {
 
     camera: Camera,
     _camera_controller: CameraController,
-    world: legion::World,
+    world: World,
 }
 
 impl State {
@@ -61,7 +61,6 @@ impl State {
             Vert { position: [-0.5, -0.5, 0.0]},
             Vert { position: [0.5, -0.5, 0.0]},
         ];
-
         let vertex_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
@@ -69,11 +68,9 @@ impl State {
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
-
         const INDICES: &[u16] = &[
             0, 1, 2
         ];
-
         let index_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Index Buffer"),
@@ -81,11 +78,26 @@ impl State {
                 usage: wgpu::BufferUsages::INDEX,
             }
         );
-
         let index_count = INDICES.len() as u32;
 
-        let mut world = World::default();
-        world.push((Transform::default(), Mesh::new(vertex_buffer, index_buffer, index_count), Renderable::new(&context.device)));
+        let mut world = specs::World::new();
+        world.register::<Transform>();
+        world.register::<Mesh>();
+        world.register::<Renderable>();
+        world.create_entity()
+            .with(Transform::default())
+            .with(Mesh::new(vertex_buffer, index_buffer, index_count))
+            .with(Renderable::new(&context.device)).build();
+
+
+        { // update buffer
+            let mut renderables = world.write_component::<Renderable>();
+            let transforms = world.read_component::<Transform>();
+            for (transform, renderable) in (&transforms, &mut renderables).join() {
+                renderable.update_buffer(&context.queue, transform.clone());
+            }
+        }
+
 
         Self {
             context,
@@ -111,15 +123,13 @@ impl State {
         // self.camera.update_uniform();
         // self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
-        // let mut transforms = <&mut Transform>::query();
-        // for transform in transforms.iter_mut(&mut self.world) {
-        //     if transform.position.x >= 1.0 { transform.position.x = -1.0 }
-        //     transform.position.x = transform.position.x + 0.01;
-        // }
-
-        let mut renderables = <(&Transform, &mut Renderable)>::query();
-        for (transform, renderable) in renderables.iter_mut(&mut self.world) {
-            renderable.update_buffer(&self.context.queue, transform.clone());
+        // update buffers
+        let mut renderables = self.world.write_component::<Renderable>();
+        let transforms = self.world.read_component::<Transform>();
+        for (transform, renderable) in (&transforms, &mut renderables).join() {
+            if renderable.transform_data != *transform {
+                renderable.update_buffer(&self.context.queue, transform.clone());
+            }
         }
     }
 
