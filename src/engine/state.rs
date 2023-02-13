@@ -111,11 +111,11 @@ impl State {
         // self.camera.update_uniform();
         // self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
-        let mut transforms = <&mut Transform>::query();
-        for transform in transforms.iter_mut(&mut self.world) {
-            if transform.position.x >= 1.0 { transform.position.x = -1.0 }
-            transform.position.x = transform.position.x + 0.01;
-        }
+        // let mut transforms = <&mut Transform>::query();
+        // for transform in transforms.iter_mut(&mut self.world) {
+        //     if transform.position.x >= 1.0 { transform.position.x = -1.0 }
+        //     transform.position.x = transform.position.x + 0.01;
+        // }
 
         let mut renderables = <(&Transform, &mut Renderable)>::query();
         for (transform, renderable) in renderables.iter_mut(&mut self.world) {

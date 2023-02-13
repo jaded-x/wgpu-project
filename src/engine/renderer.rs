@@ -3,7 +3,7 @@ use legion::*;
 use super::{
     components::{
         mesh::{Mesh, Vert}, 
-        renderable::Renderable
+        renderable::Renderable, transform::Transform
     },
     context::{create_render_pipeline, Context}, egui::Egui
 };
@@ -100,6 +100,8 @@ impl Pass for Renderer {
         });
 
         let mut query = <(&Mesh, &Renderable)>::query();
+        let mut transforms = <&mut Transform>::query();
+
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("render_pass"),
@@ -135,11 +137,11 @@ impl Pass for Renderer {
 
             let frame = egui::containers::Frame::side_top_panel(&context.style());
 
-            let mut test = 0;
-
-            egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
-                ui.add(egui::Slider::new(&mut test, 0..=120).text("hi :)"));
-            });
+            for transform in transforms.iter_mut(world) {
+                egui::SidePanel::left("top").frame(frame).show(&context, |ui| {
+                    ui.add(egui::Slider::new(&mut transform.position.x, -1.0..=1.0).text("hi :)"));
+                });
+            }
         });
         
         let clipped_primitives = egui.context.tessellate(egui_output.shapes);
