@@ -1,4 +1,4 @@
-use super::transform::{Transform, TransformSize};
+use super::transform::Transform;
 
 use crate::util::cast_slice;
 use specs::{Component, VecStorage};
@@ -33,7 +33,7 @@ impl Renderable {
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: std::mem::size_of::<TransformSize>() as u64,
+            size: Transform::size() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });

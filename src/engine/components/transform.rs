@@ -25,6 +25,15 @@ impl Transform {
     pub fn aligned(&self) -> (cgmath::Vector3<f32>, Align16<cgmath::Vector3<f32>>) {
         (self.position, Align16(self.scale))
     }
+
+    pub fn size() -> usize {
+        struct Sized {
+            _position: cgmath::Vector3<f32>,
+            _scale: Align16<cgmath::Vector3<f32>>
+        }
+
+        std::mem::size_of::<Sized>()
+    }
 }
 
 impl Default for Transform {
@@ -34,9 +43,4 @@ impl Default for Transform {
             scale: cgmath::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
         }
     }
-}
-
-pub struct TransformSize {
-    _position: cgmath::Vector3<f32>,
-    _scale: Align16<cgmath::Vector3<f32>>
 }

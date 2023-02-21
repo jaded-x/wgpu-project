@@ -6,7 +6,7 @@ use super::{
         renderable::Renderable, 
         transform::Transform
     },
-    context::{create_render_pipeline, Context}, egui::Egui
+    context::{create_render_pipeline, Context}, egui::{Egui, EguiInspect}
 };
 
 pub struct Renderer {
@@ -150,9 +150,7 @@ impl Pass for Renderer {
                 .show(&context, |ui| {
                     let mut transforms = world.write_storage::<Transform>();
                     for transform in (&mut transforms).join() {
-                        ui.add(egui::Slider::new(&mut transform.position.x, -1.0..=1.0).text("x"));
-                        ui.add(egui::Slider::new(&mut transform.position.y, -1.0..=1.0).text("y"));
-                        ui.add(egui::Slider::new(&mut transform.position.z, -1.0..=1.0).text("z"));
+                        transform.ui(ui, -1.0..=1.0);
                     }
                 });
         });
