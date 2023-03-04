@@ -9,12 +9,11 @@ impl Context {
     pub async fn new(window: &winit::window::Window) -> Self {
         let window_size = window.inner_size();
 
-        // let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        //     backends: wgpu::Backends::all(),
-        //     dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
-        // });
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
-        let surface = unsafe { instance.create_surface(&window) };
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+        });
+        let surface = unsafe { instance.create_surface(&window) }.unwrap();
         let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -36,21 +35,21 @@ impl Context {
             None,
         ).await.unwrap();
         
-        // let surface_caps = surface.get_capabilities(&adapter);
-        // let surface_format = surface_caps.formats.iter()
-        //     .copied()
-        //     .filter(|f| f.describe().srgb)
-        //     .next()
-        //     .unwrap_or(surface_caps.formats[0]);
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps.formats.iter()
+            .copied()
+            .filter(|f| f.describe().srgb)
+            .next()
+            .unwrap_or(surface_caps.formats[0]);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_supported_formats(&adapter)[0],
+            format: surface_format,
             width: window_size.width,
             height: window_size.height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            //view_formats: vec![],
+            view_formats: vec![],
         };
         surface.configure(&device, &config);
 

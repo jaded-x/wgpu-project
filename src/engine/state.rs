@@ -48,8 +48,8 @@ impl State {
             label: Some("camera_bind_group_layout"),
         });
 
-        let camera = Camera::new(&context.device, &camera_bind_group_layout, (0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0), 
-            Projection::new(context.config.width, context.config.height, cgmath::Deg(45.0), 0.1, 100.0));
+        let camera = Camera::new(&context.device, &camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
+            Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
         let camera_controller = CameraController::new(4.0, 1.0);
 
         // let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
@@ -88,7 +88,6 @@ impl State {
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
             .with(Renderable::new(&context.device)).build();
-
 
         { // update buffer
             let mut renderables = world.write_component::<Renderable>();
@@ -148,6 +147,7 @@ pub async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new()
+        .with_resizable(false)
         .with_title("wgpu")
         .with_inner_size(winit::dpi::PhysicalSize::new(800, 600))
         .build(&event_loop)

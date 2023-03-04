@@ -2,13 +2,13 @@ use wgpu::util::DeviceExt;
 
 use std::f32::consts::FRAC_PI_2;
 
-use cgmath::{SquareMatrix, Point3, Rad, Matrix4, Vector3, InnerSpace, perspective};
+use cg::{SquareMatrix, Point3, Rad, Matrix4, Vector3, InnerSpace, perspective};
 use instant::Duration;
 use winit::{event::{MouseScrollDelta, VirtualKeyCode, ElementState}, dpi::PhysicalPosition};
 
 use crate::util::cast_slice;
 
-pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
+pub const OPENGL_TO_WGPU_MATRIX: cg::Matrix4<f32> = cg::Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
@@ -131,11 +131,11 @@ impl CameraUniform {
     pub fn new() -> Self {
         Self {
             view_position: [0.0; 4],
-            view_proj: cgmath::Matrix4::identity().into(),
+            view_proj: cg::Matrix4::identity().into(),
         }
     }
 
-    pub fn update(&mut self, eye: &Point3<f32>, view_proj: cgmath::Matrix4<f32>) {
+    pub fn update(&mut self, eye: &Point3<f32>, view_proj: cg::Matrix4<f32>) {
         self.view_position = eye.to_homogeneous().into();
         self.view_proj = view_proj.into();
     }

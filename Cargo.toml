@@ -6,19 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.14.2"
-cgmath = "0.18.0"
+wgpu = "0.15.1"
+cg = { package = "cgmath", version = "0.18.0" }
 env_logger = "0.10.0"
-winit = { version = "0.27.5" }
+winit = { version = "0.28.2" }
 anyhow = "1.0.68"
 log = "0.4.17"
-pollster = "0.2.5"
+pollster = "0.3.0"
 tobj = { version = "3.2.3", features = ["async"] }
 instant = "0.1.12"
-egui =  "0.20.0"
-egui-wgpu = { version = "0.20.0", features = ["winit"] }
-egui-winit = "0.20.0"
+egui =  "0.21.0"
+egui-wgpu = { version = "0.21.0", features = ["winit"] }
+egui-winit = "0.21.0"
 specs = { version = "0.18.0", features = ["derive"]}
+
+egui_inspector = { path = "../egui_inspector" }
+egui_inspector_derive = { path = "../egui_inspector/egui_inspector_derive" }
 
 [dependencies.image]
 version = "0.24"

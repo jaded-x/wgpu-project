@@ -3,10 +3,10 @@ use specs::prelude::*;
 use super::{
     components::{
         mesh::{Mesh, Vert}, 
-        renderable::Renderable, 
-        transform::Transform
+        renderable::Renderable
     },
-    context::{create_render_pipeline, Context}, egui::{Egui, EguiInspect}
+    context::{create_render_pipeline, Context}, 
+    egui::Egui
 };
 
 pub struct Renderer {
@@ -24,7 +24,7 @@ impl Renderer {
         let clear_color = wgpu::Color::BLACK;
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Mandelbrot Texture"),
+            label: Some("texture"),
             size: wgpu::Extent3d {
                 width: 1920,
                 height: 1080,
@@ -34,7 +34,8 @@ impl Renderer {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
         });
 
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -131,29 +132,7 @@ impl Pass for Renderer {
 
         // render egui
         let egui_input = egui.state.take_egui_input(window);
-        let egui_output = egui.context.run(egui_input, |context| {
-            let style: egui::Style = (*context.style()).clone();
-            context.set_style(style);
-
-            let frame = egui::containers::Frame {
-                fill: context.style().visuals.window_fill(),
-                inner_margin: 10.0.into(),
-                rounding: 5.0.into(),
-                stroke: context.style().visuals.widgets.noninteractive.fg_stroke,
-                ..Default::default()
-            };
-
-            egui::Window::new("Position") 
-                .resizable(true)
-                .constrain(true)
-                .frame(frame)
-                .show(&context, |ui| {
-                    let mut transforms = world.write_storage::<Transform>();
-                    for transform in (&mut transforms).join() {
-                        transform.ui(ui, -1.0..=1.0);
-                    }
-                });
-        });
+        let egui_output = egui.world_inspect(egui_input, world);
         
         let clipped_primitives = egui.context.tessellate(egui_output.shapes);
         let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
