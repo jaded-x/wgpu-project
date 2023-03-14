@@ -97,7 +97,6 @@ impl State {
             }
         }
 
-
         Self {
             context,
             window,
@@ -160,7 +159,6 @@ pub async fn run() {
     egui_state.set_pixels_per_point(state.window.scale_factor() as f32);
 
     let mut egui = Egui::new(&event_loop, &state.context);
-    egui.state.set_pixels_per_point(egui_winit::native_pixels_per_point(&state.window));
 
     event_loop.run(move |event, _, control_flow| match event {
         event if input.update(&event) => {}

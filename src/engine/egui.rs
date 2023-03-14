@@ -32,7 +32,7 @@ impl Egui {
                 ..Default::default()
             };
 
-            egui::Window::new("Position") 
+            egui::Window::new("Transform") 
                 .resizable(true)
                 .constrain(true)
                 .frame(frame)
@@ -45,18 +45,3 @@ impl Egui {
         })
     }
 }
-
-// pub trait EguiInspect {
-//     fn ui(&mut self, ui: &mut egui::Ui, range: core::ops::RangeInclusive<f32>, scale_range: core::ops::RangeInclusive<f32>);
-// }
-
-// impl EguiInspect for Transform {
-//     fn ui(&mut self, ui: &mut egui::Ui, range: core::ops::RangeInclusive<f32>, scale_range: core::ops::RangeInclusive<f32>) {
-//         ui.add(egui::DragValue::new(&mut self.position.x).speed(0.02));
-//         ui.add(egui::Slider::new(&mut self.position.y, range.clone()).text("y"));
-//         ui.add(egui::Slider::new(&mut self.position.z, range.clone()).text("z"));
-//         ui.add(egui::Slider::new(&mut self.scale.x, scale_range.clone()).text("x"));
-//         ui.add(egui::Slider::new(&mut self.scale.y, scale_range.clone()).text("y"));
-//         ui.add(egui::Slider::new(&mut self.scale.z, scale_range.clone()).text("z"));
-//     }
-// }

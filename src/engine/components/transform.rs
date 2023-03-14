@@ -10,10 +10,6 @@ use egui_inspector_derive::EguiInspect;
 pub struct Transform {
     pub position: cg::Vector3<f32>,
     pub scale: cg::Vector3<f32>,
-    #[inspect(widget = "DragValue")]
-    pub test: f32,
-    #[inspect(widget = "Slider", min = -5.0, max = 15.0)]
-    pub yes: i64
 }
 
 impl Transform {
@@ -21,8 +17,6 @@ impl Transform {
         Self {
             position,
             scale,
-            test: 0.0,
-            yes: 1
         }
     }
 
@@ -50,8 +44,6 @@ impl Default for Transform {
         Self { 
             position: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
-            test: 1.0,
-            yes: 5,
         }
     }
 }
