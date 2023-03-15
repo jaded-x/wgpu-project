@@ -8,41 +8,47 @@ use egui_inspector_derive::EguiInspect;
 #[derive(Component, Copy, Clone, PartialEq, EguiInspect)]
 #[storage(DefaultVecStorage)]
 pub struct Transform {
-    pub position: cg::Vector3<f32>,
+    #[inspect(speed = 1.0)]
+    pub translation: cg::Vector3<f32>,
+    #[inspect(speed = 1.0)]
+    pub rotation: cg::Vector3<f32>,
     pub scale: cg::Vector3<f32>,
 }
 
 impl Transform {
-    pub fn new(position: cg::Vector3<f32>, scale: cg::Vector3<f32>) -> Self {
+    pub fn new(translation: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>) -> Self {
         Self {
-            position,
+            translation,
+            rotation,
             scale,
         }
     }
 
-    pub fn update(&mut self, position: cg::Vector3<f32>, scale: cg::Vector3<f32>) {
-        self.position = position;
-        self.scale = scale;
-    }
-
-    pub fn aligned(&self) -> (cg::Vector3<f32>, Align16<cg::Vector3<f32>>) {
-        (self.position, Align16(self.scale))
-    }
-
-    pub fn size() -> usize {
-        struct Sized {
-            _position: cg::Vector3<f32>,
-            _scale: Align16<cg::Vector3<f32>>
+    pub fn translation(translation: cg::Vector3<f32>) -> Self {
+        Self {
+            translation,
+            ..Default::default()
         }
+    }
 
-        std::mem::size_of::<Sized>()
+    pub fn get_transform(&self) -> cg::Matrix4<f32> {
+        let rotation = cg::Matrix4::from_angle_x(cg::Deg(self.rotation.x))
+            * cg::Matrix4::from_angle_y(cg::Deg(self.rotation.y))
+            * cg::Matrix4::from_angle_z(cg::Deg(self.rotation.z));
+        
+        cg::Matrix4::from_translation(self.translation) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
+    }
+
+    pub fn aligned(&self) -> (cg::Vector3<f32>, Align16<cg::Vector3<f32>>, Align16<cg::Vector3<f32>>) {
+        (self.translation, Align16(self.rotation), Align16(self.scale))
     }
 }
 
 impl Default for Transform {
     fn default() -> Self {
         Self { 
-            position: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+            translation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+            rotation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
         }
     }

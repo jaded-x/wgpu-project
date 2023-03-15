@@ -6,13 +6,15 @@ use super::{
         renderable::Renderable
     },
     context::{create_render_pipeline, Context}, 
-    egui::Egui
+    egui::Egui,
+    camera::Camera,
 };
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,
     pub texture_view: wgpu::TextureView,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
+    pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
 
@@ -56,10 +58,27 @@ impl Renderer {
             label: None,
         });
 
+        let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("camera_bind_group_layout"),
+        });
+
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
                 &transform_bind_group_layout,
+                &camera_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -83,17 +102,18 @@ impl Renderer {
             clear_color,
             texture_view,
             transform_bind_group_layout,
+            camera_bind_group_layout,
             render_pipeline,
         }
     }
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -120,11 +140,12 @@ impl Pass for Renderer {
         });
 
         render_pass.set_pipeline(&self.render_pipeline);
-
+        render_pass.set_bind_group(1, &camera.bind_group, &[]);
+        
         for (mesh, renderable) in (&meshes, &renderables).join()  {
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.set_bind_group(0, &renderable.bind_group, &[]);
+            render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
             render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
         }
 

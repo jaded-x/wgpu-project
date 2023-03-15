@@ -36,10 +36,12 @@ impl Camera {
     >(device: &wgpu::Device, camera_bind_group_layout: &wgpu::BindGroupLayout, position: V, yaw: Y, pitch: P, projection: Projection) -> Self {
         let camera_uniform = CameraUniform::new();
 
+        let ortho: Matrix4<f32> = cg::ortho(0.0, 800.0, 0.0, 600.0, -100.0, 100.0);
+
         let camera_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Camera Buffer"),
-                contents: cast_slice(&[camera_uniform]),
+                contents: cast_slice(&[ortho]),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }
         );

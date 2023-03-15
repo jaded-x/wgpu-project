@@ -32,23 +32,7 @@ impl State {
         let context = Context::new(&window).await;
         let renderer = Renderer::new(&context.device, &context.config); 
 
-        let camera_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }
-            ],
-            label: Some("camera_bind_group_layout"),
-        });
-
-        let camera = Camera::new(&context.device, &camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
+        let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
         let camera_controller = CameraController::new(4.0, 1.0);
 
@@ -57,9 +41,9 @@ impl State {
         // let models = vec![sphere_model, cube_model];
 
         const VERTICES: &[Vert] = &[
-            Vert { position: [0.0, 0.5, 0.0]},
-            Vert { position: [-0.5, -0.5, 0.0]},
-            Vert { position: [0.5, -0.5, 0.0]},
+            Vert { position: [0.0, 100.0, 0.0]},
+            Vert { position: [-100.0, -100.0, 0.0]},
+            Vert { position: [100.0, -100.0, 0.0]},
         ];
         let vertex_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -85,7 +69,7 @@ impl State {
         world.register::<Mesh>();
         world.register::<Renderable>();
         world.create_entity()
-            .with(Transform::default())
+            .with(Transform::translation(cg::Vector3 { x: (window.inner_size().width / 2) as f32, y: (window.inner_size().height / 2) as f32, z: 0.0 }))
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
             .with(Renderable::new(&context.device)).build();
 
@@ -132,7 +116,7 @@ impl State {
     }
 
     fn render(&mut self, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, &self.window, egui)
+        self.renderer.draw(&self.context, &mut self.world, &self.window, egui, &self.camera)
     }
 
 

@@ -8,7 +8,7 @@ use specs::{Component, VecStorage};
 pub struct Renderable {
     pub transform_data: Transform,
     pub transform_buffer: wgpu::Buffer,
-    pub bind_group: wgpu::BindGroup,
+    pub transform_bind_group: wgpu::BindGroup,
 }
 
 impl Renderable {
@@ -26,19 +26,19 @@ impl Renderable {
                         min_binding_size: None,
                     },
                     count: None,
-                }
+                },
             ],
             label: None,
         });
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: Transform::size() as u64,
+            size: std::mem::size_of::<cg::Matrix4<f32>>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &transform_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -52,12 +52,12 @@ impl Renderable {
         Self {
             transform_data: transform,
             transform_buffer: buffer,
-            bind_group,
+            transform_bind_group,
         }
     } 
 
     pub fn update_buffer(&mut self, queue: &wgpu::Queue, data: Transform) {
-        queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[data.aligned()]));
+        queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[data.get_transform()]));
         self.transform_data = data.clone();
     }
 }
