@@ -41,9 +41,9 @@ impl State {
         // let models = vec![sphere_model, cube_model];
 
         const VERTICES: &[Vert] = &[
-            Vert { position: [0.0, 100.0, 0.0]},
-            Vert { position: [-100.0, -100.0, 0.0]},
-            Vert { position: [100.0, -100.0, 0.0]},
+            Vert { position: [0.0, 0.5, 0.0]},
+            Vert { position: [-0.5, -0.5, 0.0]},
+            Vert { position: [0.5, -0.5, 0.0]},
         ];
         let vertex_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -69,7 +69,7 @@ impl State {
         world.register::<Mesh>();
         world.register::<Renderable>();
         world.create_entity()
-            .with(Transform::translation(cg::Vector3 { x: (window.inner_size().width / 2) as f32, y: (window.inner_size().height / 2) as f32, z: 0.0 }))
+            .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
             .with(Renderable::new(&context.device)).build();
 
@@ -101,9 +101,9 @@ impl State {
     }
 
     fn update(&mut self) {
-        // self.camera_controller.update_camera(&mut self.camera, dt);
-        // self.camera.update_uniform();
-        // self.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
+        //self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera.update_uniform();
+        self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
         // update buffers
         let mut renderables = self.world.write_component::<Renderable>();
