@@ -34,7 +34,7 @@ impl State {
 
         let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
-        let camera_controller = CameraController::new(4.0, 1.0);
+        let camera_controller = CameraController::new(4.0, 0.2);
 
         // let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
         // let cube_model = resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
@@ -101,8 +101,7 @@ impl State {
     }
 
     fn update(&mut self, dt: instant::Duration, input: &InputState) {
-        self.camera_controller.movement(input);
-        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_controller.update_camera(&mut self.camera, dt, input);
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
