@@ -23,7 +23,7 @@ pub struct State {
     window: winit::window::Window,
 
     camera: Camera,
-    _camera_controller: CameraController,
+    camera_controller: CameraController,
     world: World,
 }
 
@@ -85,7 +85,7 @@ impl State {
             context,
             window,
             camera,
-            _camera_controller: camera_controller,
+            camera_controller,
             world,
             renderer,
         }
@@ -100,8 +100,9 @@ impl State {
         }
     }
 
-    fn update(&mut self) {
-        //self.camera_controller.update_camera(&mut self.camera, dt);
+    fn update(&mut self, dt: instant::Duration, input: &InputState) {
+        self.camera_controller.movement(input);
+        self.camera_controller.update_camera(&mut self.camera, dt);
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
 
@@ -141,8 +142,9 @@ pub async fn run() {
 
     let mut egui_state = egui_winit::State::new(&event_loop);
     egui_state.set_pixels_per_point(state.window.scale_factor() as f32);
-
     let mut egui = Egui::new(&event_loop, &state.context);
+
+    let mut last_render_time = instant::Instant::now();
 
     event_loop.run(move |event, _, control_flow| match event {
         event if input.update(&event) => {}
@@ -158,7 +160,10 @@ pub async fn run() {
             _ => {}
         }
         Event::RedrawRequested(_) => {
-            state.update();
+            let now = instant::Instant::now();
+            let dt = now - last_render_time;
+            last_render_time = now;
+            state.update(dt, &input);
 
             input.finish_frame();
             match state.render(&mut egui) {

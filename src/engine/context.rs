@@ -35,6 +35,8 @@ impl Context {
             None,
         ).await.unwrap();
         
+        dbg!(adapter.get_info());
+
         let surface_caps = surface.get_capabilities(&adapter);
         let surface_format = surface_caps.formats.iter()
             .copied()
@@ -66,7 +68,7 @@ pub fn create_render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     color_format: wgpu::TextureFormat,
-    _depth_format: Option<wgpu::TextureFormat>,
+    depth_format: Option<wgpu::TextureFormat>,
     vertex_layouts: &[wgpu::VertexBufferLayout],
     shader: wgpu::ShaderModuleDescriptor,
 ) -> wgpu::RenderPipeline {
@@ -98,14 +100,13 @@ pub fn create_render_pipeline(
             unclipped_depth: false,
             conservative: false
         },
-        depth_stencil: None,
-        // depth_stencil: depth_format.map(|format| wgpu::DepthStencilState {
-        //     format,
-        //     depth_write_enabled: true,
-        //     depth_compare: wgpu::CompareFunction::Less,
-        //     stencil: wgpu::StencilState::default(),
-        //     bias: wgpu::DepthBiasState::default(),
-        // }),
+        depth_stencil: depth_format.map(|format| wgpu::DepthStencilState {
+            format,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState  {
             count: 1,
             mask: !0,
