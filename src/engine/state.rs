@@ -131,7 +131,7 @@ impl State {
         }
     }
 
-    fn render(&mut self, egui: &mut Egui) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self, egui: Option<&mut Egui>) -> Result<(), wgpu::SurfaceError> {
         self.renderer.draw(&self.context, &mut self.world, &self.window, egui, &self.camera)
     }
 
@@ -181,7 +181,7 @@ pub async fn run() {
             state.update(dt, &input);
 
             input.finish_frame();
-            match state.render(&mut egui) {
+            match state.render(Some(&mut egui)) {
                 Ok(_) => {}
                 Err(wgpu::SurfaceError::Lost) => state.resize(state.window.inner_size()),
                 Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,

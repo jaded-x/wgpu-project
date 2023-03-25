@@ -47,4 +47,42 @@ impl Egui {
             
         })
     }
+
+    pub fn render(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
+        let egui_input = self.state.take_egui_input(window);
+        let egui_output = self.world_inspect(egui_input, world);
+        
+        let clipped_primitives = self.context.tessellate(egui_output.shapes);
+        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+            size_in_pixels: window.inner_size().into(),
+            pixels_per_point: egui_winit::native_pixels_per_point(window)
+        };
+
+        for (id, image) in egui_output.textures_delta.set {
+            self.renderer.update_texture(&context.device, &context.queue, id, &image);
+        }
+
+        self.renderer.update_buffers(&context.device, &context.queue, encoder, &clipped_primitives, &screen_descriptor);
+
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui_render_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            self.renderer.render(&mut render_pass, &clipped_primitives, &screen_descriptor);
+        }
+
+        for id in egui_output.textures_delta.free {
+            self.renderer.free_texture(&id);
+        }
+    }
 }

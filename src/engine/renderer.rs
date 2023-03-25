@@ -109,11 +109,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -121,75 +121,43 @@ impl Pass for Renderer {
             label: Some("encoder")
         });
 
-        let meshes = world.read_storage::<Mesh>();
-        let renderables = world.read_storage::<Renderable>();
+        {
+            let meshes = world.read_storage::<Mesh>();
+            let renderables = world.read_storage::<Renderable>();
 
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("render_pass"),
-            color_attachments: &[
-                Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: true,
-                    }
-                })
-            ],
-            depth_stencil_attachment: None,
-        });
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("render_pass"),
+                color_attachments: &[
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: true,
+                        }
+                    })
+                ],
+                depth_stencil_attachment: None,
+            });
 
-        render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(1, &camera.bind_group, &[]);
-        
-        for (mesh, renderable) in (&meshes, &renderables).join()  {
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(1, &camera.bind_group, &[]);
+            
+            for (mesh, renderable) in (&meshes, &renderables).join()  {
+                render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
+                render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+            }
         }
-
-        drop(render_pass);
 
         // render egui
-        let egui_input = egui.state.take_egui_input(window);
-        let egui_output = egui.world_inspect(egui_input, world);
-        
-        let clipped_primitives = egui.context.tessellate(egui_output.shapes);
-        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
-            size_in_pixels: window.inner_size().into(),
-            pixels_per_point: egui_winit::native_pixels_per_point(window)
-        };
-
-        for (id, image) in egui_output.textures_delta.set {
-            egui.renderer.update_texture(&context.device, &context.queue, id, &image);
+        if let Some(egui) = egui {
+            egui.render(context, world, window, &view, &mut encoder);
         }
-
-        egui.renderer.update_buffers(&context.device, &context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("egui_render_pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
-
-        egui.renderer.render(&mut render_pass, &clipped_primitives, &screen_descriptor);
-
-        drop(render_pass);
 
         context.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-
-        for id in egui_output.textures_delta.free {
-            egui.renderer.free_texture(&id);
-        }
 
         Ok(())
     }

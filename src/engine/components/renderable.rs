@@ -59,19 +59,3 @@ impl Renderable {
         queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[transform.get_matrix()]));
     }
 }
-
-// struct UpdateBuffer;
-
-// impl<'a> System<'a> for UpdateBuffer {
-//     type SystemData = (ReadStorage<'a, Transform>, ReadStorage<'a, Renderable>);
-
-//     fn run(&mut self, (transforms, renderables): Self::SystemData) {
-//         for (transform, renderable) in (&transforms, &renderables).join() {
-
-//             if renderable.transform_data != *transform {
-//                 queue.write_buffer(&renderable.transform_buffer, 0, cast_slice(&[transform.aligned()]));
-//                 renderable.transform_data = *transform;
-//             }
-//         }
-//     }
-// }
