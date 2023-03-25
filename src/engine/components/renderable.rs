@@ -1,4 +1,7 @@
-use super::transform::Transform;
+use super::{
+    transform::Transform,
+    material::Material,
+};
 
 use crate::util::cast_slice;
 use specs::{Component, VecStorage};
@@ -31,7 +34,7 @@ impl Renderable {
             label: None,
         });
 
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<cg::Matrix4<f32>>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
@@ -43,7 +46,7 @@ impl Renderable {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: buffer.as_entire_binding()
+                    resource: transform_buffer.as_entire_binding()
                 }
             ],
             label: None,
@@ -51,14 +54,14 @@ impl Renderable {
 
         Self {
             transform_data: transform,
-            transform_buffer: buffer,
+            transform_buffer,
             transform_bind_group,
         }
     } 
 
-    pub fn update_buffer(&mut self, queue: &wgpu::Queue, data: Transform) {
-        queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[data.get_transform()]));
-        self.transform_data = data.clone();
+    pub fn update_buffer(&mut self, queue: &wgpu::Queue, transform: Transform) {
+        queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[transform.get_matrix()]));
+        self.transform_data = transform.clone();
     }
 }
 

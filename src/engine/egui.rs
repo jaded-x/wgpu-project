@@ -1,4 +1,5 @@
-use egui_inspector::{EguiInspect};
+use egui::Widget;
+use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
 use super::context::Context;
@@ -39,9 +40,12 @@ impl Egui {
                 .show(&context, |ui| {
                     let mut transforms = world.write_storage::<Transform>();
                     for transform in (&mut transforms).join() {
-                        transform.inspect(ui);
+                        for node in transform.inspect(ui) {
+                            if node.dragged() { transform.update_matrix(); }
+                        }
                     }
                 });
+            
         })
     }
 }

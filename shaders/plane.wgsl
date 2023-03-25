@@ -26,8 +26,6 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
 
-    
-
     out.position = camera.view_proj * transform.matrix * vec4<f32>(vertices.position, 1.0);
     out.color = vec3<f32>(0.0, 1.0, 0.0);
 

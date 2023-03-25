@@ -52,10 +52,24 @@ impl State {
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
+        let vertex_buffer2 = context.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: cast_slice(VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
         const INDICES: &[u16] = &[
             0, 1, 2
         ];
         let index_buffer = context.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Index Buffer"),
+                contents: cast_slice(INDICES),
+                usage: wgpu::BufferUsages::INDEX,
+            }
+        );
+        let index_buffer2 = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Index Buffer"),
                 contents: cast_slice(INDICES),
@@ -71,6 +85,10 @@ impl State {
         world.create_entity()
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
+            .with(Renderable::new(&context.device)).build();
+        world.create_entity()
+            .with(Transform::default())
+            .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
             .with(Renderable::new(&context.device)).build();
 
         { // update buffer
