@@ -1,4 +1,3 @@
-use egui::Widget;
 use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 

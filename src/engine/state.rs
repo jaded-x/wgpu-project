@@ -95,7 +95,7 @@ impl State {
             let mut renderables = world.write_component::<Renderable>();
             let transforms = world.read_component::<Transform>();
             for (transform, renderable) in (&transforms, &mut renderables).join() {
-                renderable.update_buffer(&context.queue, transform.clone());
+                renderable.update_buffer(&context.queue, transform);
             }
         }
 
@@ -127,9 +127,7 @@ impl State {
         let mut renderables = self.world.write_component::<Renderable>();
         let transforms = self.world.read_component::<Transform>();
         for (transform, renderable) in (&transforms, &mut renderables).join() {
-            if renderable.transform_data != *transform {
-                renderable.update_buffer(&self.context.queue, transform.clone());
-            }
+            renderable.update_buffer(&self.context.queue, transform);
         }
     }
 

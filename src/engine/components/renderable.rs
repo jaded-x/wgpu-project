@@ -9,15 +9,12 @@ use specs::{Component, VecStorage};
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct Renderable {
-    pub transform_data: Transform,
     pub transform_buffer: wgpu::Buffer,
     pub transform_bind_group: wgpu::BindGroup,
 }
 
 impl Renderable {
     pub fn new(device: &wgpu::Device) -> Self {
-        let transform = Transform::default();
-
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
@@ -53,15 +50,13 @@ impl Renderable {
         });
 
         Self {
-            transform_data: transform,
             transform_buffer,
             transform_bind_group,
         }
     } 
 
-    pub fn update_buffer(&mut self, queue: &wgpu::Queue, transform: Transform) {
+    pub fn update_buffer(&mut self, queue: &wgpu::Queue, transform: &Transform) {
         queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[transform.get_matrix()]));
-        self.transform_data = transform.clone();
     }
 }
 
