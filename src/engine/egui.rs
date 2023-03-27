@@ -1,7 +1,10 @@
 use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
-use super::context::Context;
+use super::{
+    context::Context,
+    texture::Texture,
+};
 use super::components::{
     transform::Transform,
     material::Material,
@@ -40,24 +43,24 @@ impl Egui {
                 .constrain(true)
                 .frame(frame)
                 .show(&context, |ui| {
-                    egui::CollapsingHeader::new("Transform")
-                        .default_open(true)
-                        .show(ui, |ui| {
-                            let mut transforms = world.write_storage::<Transform>();
-                            for transform in (&mut transforms).join() {
+                    let mut transforms = world.write_storage::<Transform>();
+                    let mut materials = world.write_storage::<Material>();
+                    
+                    for (transform, material) in (&mut transforms, &mut materials).join() {
+                        egui::CollapsingHeader::new("Transform")
+                            .default_open(true)
+                            .show(ui, |ui| {
                                 for value in transform.inspect(ui) {
                                     if value.dragged() { transform.update_matrix(); }
                                 }
-                            }
-                        });
-                    egui::CollapsingHeader::new("Material")
-                        .default_open(true)
-                        .show(ui, |ui| {
-                            let mut materials = world.write_storage::<Material>();
-                            for material in (&mut materials).join() {
+                            });
+                        egui::CollapsingHeader::new("Material")
+                            .default_open(true)
+                            .show(ui, |ui| {
                                 material.inspect(ui);
-                            }
-                        })
+                            });
+                        break;
+                    }
                 });
             
         })

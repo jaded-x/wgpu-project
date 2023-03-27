@@ -8,11 +8,13 @@ use super::{
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
+    texture::Texture,
 };
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,
     pub texture_view: wgpu::TextureView,
+    pub depth_texture: Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub material_bind_group_layout: wgpu::BindGroupLayout,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
@@ -42,6 +44,7 @@ impl Renderer {
         });
 
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -110,7 +113,7 @@ impl Renderer {
                 &device,
                 &render_pipeline_layout,
                 config.format,
-                None,
+                Some(wgpu::TextureFormat::Depth32Float),
                 &[Vert::desc()],
                 shader,
             )
@@ -119,6 +122,7 @@ impl Renderer {
         Self {
             clear_color,
             texture_view,
+            depth_texture,
             transform_bind_group_layout,
             material_bind_group_layout,
             camera_bind_group_layout,
@@ -156,7 +160,14 @@ impl Pass for Renderer {
                         }
                     })
                 ],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
