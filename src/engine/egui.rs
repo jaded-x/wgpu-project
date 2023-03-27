@@ -35,19 +35,29 @@ impl Egui {
                 ..Default::default()
             };
 
-            egui::Window::new("Transform") 
+            egui::Window::new("Inspector") 
                 .resizable(true)
                 .constrain(true)
                 .frame(frame)
                 .show(&context, |ui| {
-                    let mut transforms = world.write_storage::<Transform>();
-                    let mut materials = world.write_storage::<Material>();
-                    for (transform, material) in (&mut transforms, &mut materials).join() {
-                        for node in transform.inspect(ui) {
-                            if node.dragged() { transform.update_matrix(); }
-                        }
-                        material.inspect(ui);
-                    }
+                    egui::CollapsingHeader::new("Transform")
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            let mut transforms = world.write_storage::<Transform>();
+                            for transform in (&mut transforms).join() {
+                                for value in transform.inspect(ui) {
+                                    if value.dragged() { transform.update_matrix(); }
+                                }
+                            }
+                        });
+                    egui::CollapsingHeader::new("Material")
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            let mut materials = world.write_storage::<Material>();
+                            for material in (&mut materials).join() {
+                                material.inspect(ui);
+                            }
+                        })
                 });
             
         })
