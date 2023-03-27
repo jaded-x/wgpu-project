@@ -14,6 +14,7 @@ pub struct Renderer {
     pub clear_color: wgpu::Color,
     pub texture_view: wgpu::TextureView,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
+    pub material_bind_group_layout: wgpu::BindGroupLayout,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
@@ -58,11 +59,27 @@ impl Renderer {
             label: None,
         });
 
+        let material_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: None,
+        });
+
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -79,6 +96,7 @@ impl Renderer {
             bind_group_layouts: &[
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
+                &material_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -102,6 +120,7 @@ impl Renderer {
             clear_color,
             texture_view,
             transform_bind_group_layout,
+            material_bind_group_layout,
             camera_bind_group_layout,
             render_pipeline,
         }
@@ -147,6 +166,7 @@ impl Pass for Renderer {
                 render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
+                render_pass.set_bind_group(2, &renderable.material_bind_group, &[]);
                 render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
             }
         }

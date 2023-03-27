@@ -2,7 +2,10 @@ use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
 use super::context::Context;
-use super::components::transform::Transform;
+use super::components::{
+    transform::Transform,
+    material::Material,
+};
 
 pub struct Egui {
     pub renderer: egui_wgpu::renderer::Renderer,
@@ -38,10 +41,12 @@ impl Egui {
                 .frame(frame)
                 .show(&context, |ui| {
                     let mut transforms = world.write_storage::<Transform>();
-                    for transform in (&mut transforms).join() {
+                    let mut materials = world.write_storage::<Material>();
+                    for (transform, material) in (&mut transforms, &mut materials).join() {
                         for node in transform.inspect(ui) {
                             if node.dragged() { transform.update_matrix(); }
                         }
+                        material.inspect(ui);
                     }
                 });
             

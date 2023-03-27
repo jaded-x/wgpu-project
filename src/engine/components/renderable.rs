@@ -3,7 +3,9 @@ use super::{
     material::Material,
 };
 
-use crate::util::cast_slice;
+use super::super::renderer::Renderer;
+
+use crate::util::{cast_slice, align::Align16};
 use specs::{Component, VecStorage};
 
 #[derive(Component)]
@@ -11,26 +13,12 @@ use specs::{Component, VecStorage};
 pub struct Renderable {
     pub transform_buffer: wgpu::Buffer,
     pub transform_bind_group: wgpu::BindGroup,
+    pub material_buffer: wgpu::Buffer,
+    pub material_bind_group: wgpu::BindGroup,
 }
 
 impl Renderable {
-    pub fn new(device: &wgpu::Device) -> Self {
-        let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-            label: None,
-        });
-
+    pub fn new(device: &wgpu::Device, renderer: &Renderer) -> Self {
         let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<cg::Matrix4<f32>>() as u64,
@@ -39,7 +27,7 @@ impl Renderable {
         });
 
         let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &transform_bind_group_layout,
+            layout: &renderer.transform_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -49,13 +37,37 @@ impl Renderable {
             label: None,
         });
 
+        let material_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: std::mem::size_of::<Align16::<cg::Vector3<f32>>>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let material_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &renderer.material_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: material_buffer.as_entire_binding()
+                }
+            ],
+            label: None,
+        });
+
         Self {
             transform_buffer,
             transform_bind_group,
+            material_buffer,
+            material_bind_group,
         }
     } 
 
-    pub fn update_buffer(&mut self, queue: &wgpu::Queue, transform: &Transform) {
+    pub fn update_transform_buffer(&mut self, queue: &wgpu::Queue, transform: &Transform) {
         queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[transform.get_matrix()]));
+    }
+
+    pub fn update_material_buffer(&mut self, queue: &wgpu::Queue, material: &Material) {
+        queue.write_buffer(&self.material_buffer, 0, cast_slice(&[Align16(material.get_data())]));
     }
 }

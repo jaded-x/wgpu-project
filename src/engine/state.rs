@@ -9,6 +9,7 @@ use super::{
     components::{
         mesh::{Vert, Mesh},
         transform::Transform,
+        material::Material,
         renderable::Renderable,
     }, 
     renderer::{Renderer, Pass},
@@ -80,22 +81,27 @@ impl State {
 
         let mut world = specs::World::new();
         world.register::<Transform>();
+        world.register::<Material>();
         world.register::<Mesh>();
         world.register::<Renderable>();
         world.create_entity()
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
-            .with(Renderable::new(&context.device)).build();
+            .with(Material::default())
+            .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
-            .with(Renderable::new(&context.device)).build();
+            .with(Material::default())
+            .with(Renderable::new(&context.device, &renderer)).build();
 
         { // update buffer
             let mut renderables = world.write_component::<Renderable>();
             let transforms = world.read_component::<Transform>();
-            for (transform, renderable) in (&transforms, &mut renderables).join() {
-                renderable.update_buffer(&context.queue, transform);
+            let materials = world.read_component::<Material>();
+            for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
+                renderable.update_transform_buffer(&context.queue, transform);
+                renderable.update_material_buffer(&context.queue, material);
             }
         }
 
@@ -126,8 +132,10 @@ impl State {
         // update buffers
         let mut renderables = self.world.write_component::<Renderable>();
         let transforms = self.world.read_component::<Transform>();
-        for (transform, renderable) in (&transforms, &mut renderables).join() {
-            renderable.update_buffer(&self.context.queue, transform);
+        let materials = self.world.read_component::<Material>();
+        for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
+            renderable.update_transform_buffer(&self.context.queue, transform);
+            renderable.update_material_buffer(&self.context.queue, material);
         }
     }
 
@@ -155,9 +163,8 @@ pub async fn run() {
     let mut input = InputState::default();
     let mut state = State::new(window).await;
 
-    let mut egui_state = egui_winit::State::new(&event_loop);
-    egui_state.set_pixels_per_point(state.window.scale_factor() as f32);
     let mut egui = Egui::new(&event_loop, &state.context);
+    egui.state.set_pixels_per_point(state.window.scale_factor() as f32);
 
     let mut last_render_time = instant::Instant::now();
 

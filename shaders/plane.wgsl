@@ -11,6 +11,12 @@ struct Camera {
 @group(1) @binding(0)
 var<uniform> camera: Camera;
 
+struct Material {
+    color: vec3<f32>
+}
+@group(2) @binding(0)
+var<uniform> material: Material;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
 }
@@ -27,7 +33,7 @@ fn vs_main(
     var out: VertexOutput;
 
     out.position = camera.view_proj * transform.matrix * vec4<f32>(vertices.position, 1.0);
-    out.color = vec3<f32>(0.0, 1.0, 0.0);
+    out.color = material.color;
 
     return out;
 }

@@ -1,15 +1,30 @@
-use specs::{Component, VecStorage};
+use egui_inspector::*;
+use egui_inspector_derive::EguiInspect;
+use specs::{Component, DefaultVecStorage};
 
-#[derive(Component)]
-#[storage(VecStorage)]
+#[derive(Component, EguiInspect)]
+#[storage(DefaultVecStorage)]
 pub struct Material {
-    color: cg::Vector4<f32>,    
+    #[inspect(widget = "Slider", min = 0.0, max = 1.0, speed = 0.01)]
+    color: cg::Vector3<f32>,    
 }
 
 impl Default for Material {
     fn default() -> Self {
         Self {
-            color: cg::Vector4 { x: 1.0, y: 0.0, z: 1.0, w: 1.0 }
+            color: cg::Vector3 { x: 1.0, y: 0.0, z: 1.0}
         }
+    }
+}
+
+impl Material {
+    pub fn new(color: cg::Vector3<f32>) -> Self {
+        Self {
+            color
+        }
+    }
+
+    pub fn get_data(&self) -> cg::Vector3<f32> {
+        self.color
     }
 }
