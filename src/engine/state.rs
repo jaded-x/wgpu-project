@@ -11,6 +11,7 @@ use super::{
         transform::Transform,
         material::Material,
         renderable::Renderable,
+        name::Name,
     }, 
     renderer::{Renderer, Pass},
     context::Context,
@@ -84,12 +85,15 @@ impl State {
         world.register::<Material>();
         world.register::<Mesh>();
         world.register::<Renderable>();
+        world.register::<Name>();
         world.create_entity()
+            .with(Name::new("Triangle 1"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
             .with(Material::default())
             .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
+            .with(Name::new("Triangle 2"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
             .with(Material::default())

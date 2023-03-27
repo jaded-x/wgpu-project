@@ -3,7 +3,6 @@ use specs::{*, WorldExt};
 
 use super::{
     context::Context,
-    texture::Texture,
 };
 use super::components::{
     transform::Transform,
@@ -14,6 +13,7 @@ pub struct Egui {
     pub renderer: egui_wgpu::renderer::Renderer,
     pub state: egui_winit::State,
     pub context: egui::Context,
+    entity: Option<specs::Entity>,
 }
 
 impl Egui {
@@ -21,11 +21,12 @@ impl Egui {
         Self {
             renderer: egui_wgpu::renderer::Renderer::new(&context.device, context.config.format, None, 1),
             state: egui_winit::State::new(&event_loop),
-            context: egui::Context::default()
+            context: egui::Context::default(),
+            entity: None,
         }
     }
 
-    pub fn world_inspect(&self, egui_input: egui::RawInput, world: &specs::World) -> egui::FullOutput {
+    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World) -> egui::FullOutput {
         self.context.run(egui_input, |context| {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
@@ -38,15 +39,28 @@ impl Egui {
                 ..Default::default()
             };
 
+            egui::Window::new("World")
+                .resizable(true)
+                .constrain(true)
+                .show(&context, |ui| {
+                    for entity in world.entities().join() {
+                        let res = ui.add(egui::Button::new(entity.id().to_string()));
+                        if res.clicked() { self.entity = Some(entity)}
+                    }
+                });
+
             egui::Window::new("Inspector") 
                 .resizable(true)
                 .constrain(true)
                 .frame(frame)
                 .show(&context, |ui| {
-                    let mut transforms = world.write_storage::<Transform>();
-                    let mut materials = world.write_storage::<Material>();
-                    
-                    for (transform, material) in (&mut transforms, &mut materials).join() {
+                    if let Some(entity) = self.entity {
+                        let mut transforms = world.write_storage::<Transform>();
+                        let transform = transforms.get_mut(entity).unwrap();
+                        let mut materials = world.write_storage::<Material>();
+                        let material = materials.get_mut(entity).unwrap();
+
+                        ui.label(entity.id().to_string());
                         egui::CollapsingHeader::new("Transform")
                             .default_open(true)
                             .show(ui, |ui| {
@@ -59,7 +73,6 @@ impl Egui {
                             .show(ui, |ui| {
                                 material.inspect(ui);
                             });
-                        break;
                     }
                 });
             
