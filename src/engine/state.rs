@@ -39,13 +39,14 @@ impl State {
         let camera_controller = CameraController::new(4.0, 0.2);
 
         // let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
-        // let cube_model = resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
+        // let cube_model = resources::load_model("cube.obj", &context.device, &context.queue, &texture_bind_group_layout).await.unwrap();
         // let models = vec![sphere_model, cube_model];
 
         const VERTICES: &[Vert] = &[
-            Vert { position: [0.0, 0.5, 0.0]},
-            Vert { position: [-0.5, -0.5, 0.0]},
-            Vert { position: [0.5, -0.5, 0.0]},
+            Vert { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 0.0]},
+            Vert { position: [0.5, -0.5, 0.0], tex_coords: [1.0, 0.0]},
+            Vert { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 1.0]},
+            Vert { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 1.0]},
         ];
         let vertex_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -62,7 +63,8 @@ impl State {
             }
         );
         const INDICES: &[u16] = &[
-            0, 1, 2
+            0, 1, 2,
+            2, 3, 0
         ];
         let index_buffer = context.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {

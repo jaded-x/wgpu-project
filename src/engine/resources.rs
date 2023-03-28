@@ -2,7 +2,6 @@ use anyhow::Result;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
 
-
 use crate::util::cast_slice;
 
 use super::texture::Texture;

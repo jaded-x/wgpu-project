@@ -88,10 +88,7 @@ pub trait DrawModel<'a> {
     );
 }
 
-impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a>
-where
-    'b: 'a,
-{
+impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a> where 'b: 'a {
     fn draw_mesh(
         &mut self,
         mesh: &'b Mesh,

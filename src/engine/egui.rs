@@ -65,7 +65,7 @@ impl Egui {
                             .default_open(true)
                             .show(ui, |ui| {
                                 for value in transform.inspect(ui) {
-                                    if value.dragged() { transform.update_matrix(); }
+                                    if value.changed() { transform.update_matrix(); }
                                 }
                             });
                         egui::CollapsingHeader::new("Material")
