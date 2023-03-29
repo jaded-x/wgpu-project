@@ -107,7 +107,7 @@ impl Renderer {
         let render_pipeline = {
             let shader = wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/plane.wgsl").into()),
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/texture.wgsl").into()),
             };
             create_render_pipeline(
                 &device,
