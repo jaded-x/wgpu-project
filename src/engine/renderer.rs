@@ -17,6 +17,7 @@ pub struct Renderer {
     pub depth_texture: Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub material_bind_group_layout: wgpu::BindGroupLayout,
+    pub texture_bind_group_layout: wgpu::BindGroupLayout,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
@@ -75,7 +76,29 @@ impl Renderer {
                     count: None,
                 },
             ],
-            label: None,
+            label: Some("material_bind_group_layout"),
+        });
+
+        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                }
+            ],
+            label: Some("material_bind_group_layout"),
         });
 
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -100,6 +123,7 @@ impl Renderer {
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
                 &material_bind_group_layout,
+                //&texture_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -125,6 +149,7 @@ impl Renderer {
             depth_texture,
             transform_bind_group_layout,
             material_bind_group_layout,
+            texture_bind_group_layout,
             camera_bind_group_layout,
             render_pipeline,
         }

@@ -13,7 +13,7 @@ use specs::{Component, VecStorage};
 pub struct Renderable {
     pub transform_buffer: wgpu::Buffer,
     pub transform_bind_group: wgpu::BindGroup,
-    pub material_buffer: wgpu::Buffer,
+    pub color_buffer: wgpu::Buffer,
     pub material_bind_group: wgpu::BindGroup,
 }
 
@@ -37,7 +37,7 @@ impl Renderable {
             label: None,
         });
 
-        let material_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let color_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<Align16::<cg::Vector3<f32>>>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
@@ -49,8 +49,8 @@ impl Renderable {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: material_buffer.as_entire_binding()
-                }
+                    resource: color_buffer.as_entire_binding()
+                },
             ],
             label: None,
         });
@@ -58,7 +58,7 @@ impl Renderable {
         Self {
             transform_buffer,
             transform_bind_group,
-            material_buffer,
+            color_buffer,
             material_bind_group,
         }
     } 
@@ -67,7 +67,7 @@ impl Renderable {
         queue.write_buffer(&self.transform_buffer, 0, cast_slice(&[transform.get_matrix()]));
     }
 
-    pub fn update_material_buffer(&mut self, queue: &wgpu::Queue, material: &Material) {
-        queue.write_buffer(&self.material_buffer, 0, cast_slice(&[Align16(material.get_data())]));
+    pub fn update_color_buffer(&mut self, queue: &wgpu::Queue, material: &Material) {
+        queue.write_buffer(&self.color_buffer, 0, cast_slice(&[Align16(material.get_color())]));
     }
 }

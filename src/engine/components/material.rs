@@ -24,7 +24,7 @@ impl Material {
         }
     }
 
-    pub fn get_data(&self) -> cg::Vector3<f32> {
+    pub fn get_color(&self) -> cg::Vector3<f32> {
         self.color
     }
 }

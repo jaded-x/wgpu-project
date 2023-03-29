@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use super::{texture::Texture};
+use super::texture::Texture;
 
 pub trait Vertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;

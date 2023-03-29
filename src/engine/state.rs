@@ -17,6 +17,7 @@ use super::{
     context::Context,
     egui::Egui,
     input::InputState,
+    texture,
 };
 
 pub struct State {
@@ -82,6 +83,8 @@ impl State {
         );
         let index_count = INDICES.len() as u32;
 
+        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg");
+
         let mut world = specs::World::new();
         world.register::<Transform>();
         world.register::<Material>();
@@ -107,7 +110,7 @@ impl State {
             let materials = world.read_component::<Material>();
             for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
                 renderable.update_transform_buffer(&context.queue, transform);
-                renderable.update_material_buffer(&context.queue, material);
+                renderable.update_color_buffer(&context.queue, material);
             }
         }
 
@@ -141,7 +144,7 @@ impl State {
         let materials = self.world.read_component::<Material>();
         for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
             renderable.update_transform_buffer(&self.context.queue, transform);
-            renderable.update_material_buffer(&self.context.queue, material);
+            renderable.update_color_buffer(&self.context.queue, material);
         }
     }
 
