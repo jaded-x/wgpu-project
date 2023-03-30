@@ -6,7 +6,7 @@ use super::{
 };
 use super::components::{
     transform::Transform,
-    material::Material,
+    material::MaterialComponent,
 };
 
 pub struct Egui {
@@ -57,7 +57,7 @@ impl Egui {
                     if let Some(entity) = self.entity {
                         let mut transforms = world.write_storage::<Transform>();
                         let transform = transforms.get_mut(entity).unwrap();
-                        let mut materials = world.write_storage::<Material>();
+                        let mut materials = world.write_storage::<MaterialComponent>();
                         let material = materials.get_mut(entity).unwrap();
 
                         ui.label(entity.id().to_string());
@@ -68,11 +68,11 @@ impl Egui {
                                     if value.changed() { transform.update_matrix(); }
                                 }
                             });
-                        egui::CollapsingHeader::new("Material")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                material.inspect(ui);
-                            });
+                        // egui::CollapsingHeader::new("Material")
+                        //     .default_open(true)
+                        //     .show(ui, |ui| {
+                        //         material.inspect(ui);
+                        //     });
                     }
                 });
             

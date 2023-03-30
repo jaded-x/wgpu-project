@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use specs::prelude::*;
 use wgpu::util::DeviceExt;
 use winit::event::*;
@@ -9,7 +11,7 @@ use super::{
     components::{
         mesh::{Vert, Mesh},
         transform::Transform,
-        material::Material,
+        material::MaterialComponent,
         renderable::Renderable,
         name::Name,
     }, 
@@ -18,6 +20,7 @@ use super::{
     egui::Egui,
     input::InputState,
     texture,
+    material::Material,
 };
 
 pub struct State {
@@ -83,34 +86,34 @@ impl State {
         );
         let index_count = INDICES.len() as u32;
 
-        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg");
+        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
+        let material = Material::create(&context.device, &renderer);
 
         let mut world = specs::World::new();
         world.register::<Transform>();
-        world.register::<Material>();
+        world.register::<MaterialComponent>();
         world.register::<Mesh>();
         world.register::<Renderable>();
         world.register::<Name>();
         world.create_entity()
-            .with(Name::new("Triangle 1"))
+            .with(Name::new("Square 1"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
-            .with(Material::default())
+            .with(MaterialComponent::new(Arc::clone(&material)))
             .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
-            .with(Name::new("Triangle 2"))
+            .with(Name::new("Square 2"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
-            .with(Material::default())
+            .with(MaterialComponent::new(Arc::clone(&material)))
             .with(Renderable::new(&context.device, &renderer)).build();
 
         { // update buffer
             let mut renderables = world.write_component::<Renderable>();
             let transforms = world.read_component::<Transform>();
-            let materials = world.read_component::<Material>();
+            let materials = world.read_component::<MaterialComponent>();
             for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
                 renderable.update_transform_buffer(&context.queue, transform);
-                renderable.update_color_buffer(&context.queue, material);
             }
         }
 
@@ -141,10 +144,9 @@ impl State {
         // update buffers
         let mut renderables = self.world.write_component::<Renderable>();
         let transforms = self.world.read_component::<Transform>();
-        let materials = self.world.read_component::<Material>();
+        let materials = self.world.read_component::<MaterialComponent>();
         for (transform, material, renderable) in (&transforms, &materials, &mut renderables).join() {
             renderable.update_transform_buffer(&self.context.queue, transform);
-            renderable.update_color_buffer(&self.context.queue, material);
         }
     }
 

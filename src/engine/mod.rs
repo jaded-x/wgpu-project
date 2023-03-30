@@ -10,3 +10,4 @@ pub mod context;
 pub mod renderer;
 pub mod egui;
 pub mod input;
+pub mod material;

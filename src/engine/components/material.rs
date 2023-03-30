@@ -1,30 +1,18 @@
-use egui_inspector::*;
-use egui_inspector_derive::EguiInspect;
-use specs::{Component, DefaultVecStorage};
+use specs::{Component, VecStorage};
 
-#[derive(Component, EguiInspect)]
-#[storage(DefaultVecStorage)]
-pub struct Material {
-    #[inspect(widget = "Slider", min = 0.0, max = 1.0, speed = 0.01)]
-    color: cg::Vector3<f32>,    
+use crate::engine::material::Material;
+use std::sync::Arc;
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct MaterialComponent {
+    pub material: Arc<Material>,
 }
 
-impl Default for Material {
-    fn default() -> Self {
+impl MaterialComponent {
+    pub fn new(material: Arc<Material>) -> Self {
         Self {
-            color: cg::Vector3 { x: 1.0, y: 0.0, z: 1.0}
+            material
         }
-    }
-}
-
-impl Material {
-    pub fn new(color: cg::Vector3<f32>) -> Self {
-        Self {
-            color
-        }
-    }
-
-    pub fn get_color(&self) -> cg::Vector3<f32> {
-        self.color
     }
 }
