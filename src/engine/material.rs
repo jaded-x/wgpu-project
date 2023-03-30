@@ -5,7 +5,6 @@ use super::{
     renderer::Renderer,
 };
 use crate::util::{align::Align16, cast_slice};
-use std::sync::Arc;
 
 pub struct Material {
     pub color: cg::Vector3<f32>,
@@ -13,10 +12,11 @@ pub struct Material {
 
     color_buffer: wgpu::Buffer,
     pub material_bind_group: wgpu::BindGroup,
+    pub texture_bind_group: Option<wgpu::BindGroup>,
 }
 
 impl Material {
-    pub fn create(device: &wgpu::Device, renderer: &Renderer) -> Arc<Self> {
+    pub fn new(device: &wgpu::Device, renderer: &Renderer) -> Self {
         let color = cg::vec3(1.0, 1.0, 1.0);
 
         let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -36,12 +36,33 @@ impl Material {
             label: None,
         });
 
-        Arc::from(Self {
+        Self {
             color,
             texture: None,
             color_buffer,
             material_bind_group,
-        })
+            texture_bind_group: None,
+        }
+    }
+
+    pub fn set_texture(&mut self, texture: texture::Texture, device: &wgpu::Device, renderer: &Renderer) {
+        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &renderer.texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
+                },
+            ],
+            label: None,
+        });
+
+        self.texture = Some(texture);
+        self.texture_bind_group = Some(texture_bind_group);
     }
 
     pub fn update_color_buffer(&mut self, queue: &wgpu::Queue) {

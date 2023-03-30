@@ -87,7 +87,9 @@ impl State {
         let index_count = INDICES.len() as u32;
 
         let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        let material = Material::create(&context.device, &renderer);
+        let mut material = Material::new(&context.device, &renderer);
+        material.set_texture(texture, &context.device, &renderer);
+        let mat = Arc::new(material);
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -99,13 +101,13 @@ impl State {
             .with(Name::new("Square 1"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer, index_buffer, index_count))
-            .with(MaterialComponent::new(Arc::clone(&material)))
+            .with(MaterialComponent::new(Arc::clone(&mat)))
             .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
             .with(Name::new("Square 2"))
             .with(Transform::default())
             .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
-            .with(MaterialComponent::new(Arc::clone(&material)))
+            .with(MaterialComponent::new(Arc::clone(&mat)))
             .with(Renderable::new(&context.device, &renderer)).build();
 
         { // update buffer

@@ -124,7 +124,7 @@ impl Renderer {
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
                 &material_bind_group_layout,
-                //&texture_bind_group_layout,
+                &texture_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -132,7 +132,7 @@ impl Renderer {
         let render_pipeline = {
             let shader = wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/flat_color.wgsl").into()),
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/texture.wgsl").into()),
             };
             create_render_pipeline(
                 &device,
@@ -205,6 +205,7 @@ impl Pass for Renderer {
                 render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
                 render_pass.set_bind_group(2, &material.material.material_bind_group, &[]);
+                render_pass.set_bind_group(3, &material.material.texture_bind_group.as_ref().unwrap(), &[]);
                 render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
             }
         }
