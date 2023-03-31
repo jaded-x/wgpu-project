@@ -15,4 +15,12 @@ impl MaterialComponent {
             material
         }
     }
+
+    pub fn get_material_bind_group(&self) -> &wgpu::BindGroup {
+        &self.material.material_bind_group
+    }
+
+    pub fn get_texture_bind_group(&self) -> &wgpu::BindGroup {
+        &self.material.texture_bind_group.as_ref().unwrap()
+    }
 }

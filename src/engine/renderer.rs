@@ -158,11 +158,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, /*window: &winit::window::Window,*/ egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, /*window: &winit::window::Window,*/ egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -204,16 +204,16 @@ impl Pass for Renderer {
                 render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
-                render_pass.set_bind_group(2, &material.material.material_bind_group, &[]);
-                render_pass.set_bind_group(3, &material.material.texture_bind_group.as_ref().unwrap(), &[]);
+                render_pass.set_bind_group(2, material.get_material_bind_group(), &[]);
+                render_pass.set_bind_group(3, &material.get_texture_bind_group(), &[]);
                 render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
             }
         }
 
         // render egui
-        if let Some(egui) = egui {
-            egui.render(context, world, window, &view, &mut encoder);
-        }
+        // if let Some(egui) = egui {
+        //     egui.render(context, world, window, &view, &mut encoder);
+        // }
 
         context.queue.submit(std::iter::once(encoder.finish()));
         output.present();
