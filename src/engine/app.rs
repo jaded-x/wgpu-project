@@ -25,7 +25,7 @@ use super::{
     input::InputState,
     texture,
     material::Material,
-    window::{Window, WindowEvents},
+    window::{Window, Events},
 };
 
 pub struct App {
@@ -182,51 +182,35 @@ pub async fn run() {
     let mut last_render_time = instant::Instant::now();
 
     window.run(move |event| match event {
-        WindowEvents::Resized { width, height } => {}
-        WindowEvents::Draw => {
+        Events::Resized { width, height } => {
+            app.resize(winit::dpi::PhysicalSize { width, height });
+        }
+        Events::Draw => {
             let now = instant::Instant::now();
             let dt = now - last_render_time;
             last_render_time = now;
 
             app.update(dt);
-            app.render();
+
+            app.input.finish_frame();
+            match app.render() {
+                Ok(_) => {}
+                //Err(wgpu::SurfaceError::Lost) => app.resize(app.window.inner_size()),
+                //Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                Err(e) => eprintln!("{e:?}"),
+            };
         }
-        WindowEvents::KeyboardInput { state, virtual_keycode } => {
+        Events::KeyboardInput { state, virtual_keycode } => {
             app.input.update_keyboard(state, virtual_keycode);
         }
-        _ => {}
+        Events::MouseInput { state, button } => {
+            app.input.update_mouse_input(state, button);
+        }
+        Events::MouseMotion { delta } => {
+            app.input.update_mouse_motion(delta);
+        }
+        Events::MouseWheel { delta } => {
+            app.input.update_mouse_wheel(delta);
+        }
     });
-
-    // event_loop.run(move |event, _, control_flow| match event {
-    //     event if app.input.update(&event) => {}
-    //     Event::WindowEvent { event, .. } => match event {
-    //         e if app.egui.state.on_event(&app.egui.context, &e).consumed => {}
-    //         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-    //         WindowEvent::Resized(size) => {
-    //             app.resize(size);
-    //         }
-    //         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-    //             app.resize(*new_inner_size);
-    //         }
-    //         _ => {}
-    //     }
-    //     Event::RedrawRequested(_) => {
-    //         let now = instant::Instant::now();
-    //         let dt = now - app.last_render_time;
-    //         app.last_render_time = now;
-    //         app.update(dt);
-
-    //         app.input.finish_frame();
-    //         match app.render() {
-    //             Ok(_) => {}
-    //             Err(wgpu::SurfaceError::Lost) => app.resize(app.window.inner_size()),
-    //             Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-    //             Err(e) => eprintln!("{e:?}"),
-    //         };
-    //     }
-    //     Event::MainEventsCleared => {
-    //         app.window.request_redraw();
-    //     }
-    //     _ => {}
-    // });
 }

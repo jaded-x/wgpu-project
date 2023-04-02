@@ -1,10 +1,8 @@
 use winit::{
     event::*,
-    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
+    event_loop::{ControlFlow, EventLoop},
     window,
 };
-
-use super::input::{InputState, InputEvent};
 
 pub struct Window {
     pub event_loop: EventLoop<()>,
@@ -24,7 +22,7 @@ impl Window {
         Self { event_loop, window }
     }
 
-    pub fn run(self, mut callback: impl 'static + FnMut(WindowEvents) -> ()) {
+    pub fn run(self, mut callback: impl 'static + FnMut(Events) -> ()) {
         self.event_loop.run(move |event, _, control_flow| {
             match event {
                 Event::WindowEvent {
@@ -33,27 +31,43 @@ impl Window {
             } if window_id == self.window.id() => {
                     match event {
                         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                        WindowEvent::Resized(physical_size) => callback(WindowEvents::Resized {
+                        WindowEvent::Resized(physical_size) => callback(Events::Resized {
                             width: physical_size.width,
                             height: physical_size.height,
                         }),
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            callback(WindowEvents::Resized {
+                            callback(Events::Resized {
                                 width: new_inner_size.width,
                                 height: new_inner_size.height,
                             })
                         }
                         WindowEvent::KeyboardInput { input, .. } => {
-                            callback(WindowEvents::KeyboardInput {
+                            callback(Events::KeyboardInput {
                                 virtual_keycode: input.virtual_keycode,
                                 state: input.state,
                             })
                         }
+                        WindowEvent::MouseInput { state, button, .. } => {
+                            callback(Events::MouseInput { state: *state, button: *button })
+                        }
                         _ => {}
                     }
                 },
+                Event::DeviceEvent { event, .. } => match event {
+                    DeviceEvent::MouseMotion { delta } => {
+                        callback(Events::MouseMotion { delta: cg::vec2(delta.0 as f32, delta.1 as f32) })
+                    }
+                    DeviceEvent::MouseWheel { delta } => {
+                        let delta = match delta {
+                            MouseScrollDelta::PixelDelta(pos) => cg::Vector2::new(pos.x as f32, pos.y as f32),
+                            MouseScrollDelta::LineDelta(x, y) => cg::Vector2::new(x, y),
+                        };
+                        callback(Events::MouseWheel { delta })
+                    }
+                    _ => {}
+                }
                 Event::RedrawRequested(window_id) if window_id == self.window.id() => {
-                    callback(WindowEvents::Draw);
+                    callback(Events::Draw);
                 }
                 Event::RedrawEventsCleared => {
                     self.window.request_redraw();
@@ -64,7 +78,7 @@ impl Window {
     }
 }
 
-pub enum WindowEvents {
+pub enum Events {
     Resized {
         width: u32,
         height: u32,

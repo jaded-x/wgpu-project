@@ -33,8 +33,8 @@ impl Renderer {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("texture"),
             size: wgpu::Extent3d {
-                width: 1920,
-                height: 1080,
+                width: 800,
+                height: 600,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
