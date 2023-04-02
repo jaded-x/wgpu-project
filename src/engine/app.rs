@@ -191,7 +191,10 @@ pub async fn run() {
             app.update(dt);
             app.render();
         }
-        WindowEvents::Keyboard { state, virtual_keycode } => {}
+        WindowEvents::KeyboardInput { state, virtual_keycode } => {
+            app.input.update_keyboard(state, virtual_keycode);
+        }
+        _ => {}
     });
 
     // event_loop.run(move |event, _, control_flow| match event {

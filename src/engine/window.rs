@@ -4,7 +4,7 @@ use winit::{
     window,
 };
 
-use super::input::InputState;
+use super::input::{InputState, InputEvent};
 
 pub struct Window {
     pub event_loop: EventLoop<()>,
@@ -43,6 +43,12 @@ impl Window {
                                 height: new_inner_size.height,
                             })
                         }
+                        WindowEvent::KeyboardInput { input, .. } => {
+                            callback(WindowEvents::KeyboardInput {
+                                virtual_keycode: input.virtual_keycode,
+                                state: input.state,
+                            })
+                        }
                         _ => {}
                     }
                 },
@@ -63,9 +69,19 @@ pub enum WindowEvents {
         width: u32,
         height: u32,
     },
-    Keyboard {
-        state: ElementState,
-        virtual_keycode: Option<VirtualKeyCode>
-    },
     Draw,
+    KeyboardInput {
+        state: ElementState,
+        virtual_keycode: Option<VirtualKeyCode>,
+    },
+    MouseInput {
+        state: ElementState,
+        button: MouseButton,
+    },
+    MouseMotion {
+        delta: cg::Vector2<f32>,
+    },
+    MouseWheel {
+        delta: cg::Vector2<f32>,
+    }
 }
