@@ -1,9 +1,4 @@
-use std::sync::Arc;
-
-use winit::{
-    event::*,
-    event_loop::{ControlFlow, EventLoop},
-};
+use std::{sync::{Arc, Mutex}, cell::RefCell, rc::Rc};
 
 use specs::prelude::*;
 use wgpu::util::DeviceExt;
@@ -32,7 +27,6 @@ pub struct App {
     pub context: Context,
     renderer: Renderer,
     input: InputState,
-    last_render_time: instant::Instant, 
     egui: Egui,
 
     camera: Camera,
@@ -133,8 +127,6 @@ impl App {
             }
         }
 
-        let last_render_time = instant::Instant::now();
-
         Self {
             context,
             input,
@@ -143,7 +135,6 @@ impl App {
             world,
             renderer,
             egui,
-            last_render_time,
         }
     }
 
@@ -170,47 +161,81 @@ impl App {
         }
     }
 
-    fn render(&mut self, /*window: &winit::window::Window*/) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, None, &self.camera)
+    fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
+        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera)
     }
 }
+
+use winit::{
+    event::*,
+    event_loop::ControlFlow,
+};
 
 pub async fn run() {
     let window = Window::new();
     let mut app = App::new(&window).await;
 
     let mut last_render_time = instant::Instant::now();
-
-    window.run(move |event| match event {
-        Events::Resized { width, height } => {
-            app.resize(winit::dpi::PhysicalSize { width, height });
+    
+    window.event_loop.run(move |event, _, control_flow| match event {
+        event if app.input.update(&event) => {}
+        Event::WindowEvent { event, .. } => match event {
+            e if app.egui.state.on_event(&app.egui.context, &e).consumed => {}
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            WindowEvent::Resized(size) => {
+                app.resize(size);
+            }
+            WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                app.resize(*new_inner_size);
+            }
+            _ => {}
         }
-        Events::Draw => {
+        Event::RedrawRequested(_) => {
             let now = instant::Instant::now();
             let dt = now - last_render_time;
             last_render_time = now;
-
             app.update(dt);
 
             app.input.finish_frame();
-            match app.render() {
+            match app.render(&window.window) {
                 Ok(_) => {}
-                //Err(wgpu::SurfaceError::Lost) => app.resize(app.window.inner_size()),
-                //Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                Err(wgpu::SurfaceError::Lost) => app.resize(window.window.inner_size()),
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                 Err(e) => eprintln!("{e:?}"),
             };
         }
-        Events::KeyboardInput { state, virtual_keycode } => {
-            app.input.update_keyboard(state, virtual_keycode);
+        Event::MainEventsCleared => {
+            window.window.request_redraw();
         }
-        Events::MouseInput { state, button } => {
-            app.input.update_mouse_input(state, button);
-        }
-        Events::MouseMotion { delta } => {
-            app.input.update_mouse_motion(delta);
-        }
-        Events::MouseWheel { delta } => {
-            app.input.update_mouse_wheel(delta);
-        }
+        _ => {}
     });
+    
+    // window.run(move |event, window| match event {
+    //     Events::Resized { width, height } => {
+    //         app.resize(winit::dpi::PhysicalSize { width, height });
+    //     }
+    //     Events::Draw => {
+    //         let now = instant::Instant::now();
+    //         let dt = now - last_render_time;
+    //         last_render_time = now;
+
+    //         app.update(dt);
+
+    //         app.input.finish_frame();
+    //         app.render(window.unwrap());
+    //     }
+    //     Events::KeyboardInput { state, virtual_keycode } => {
+    //         app.input.update_keyboard(state, virtual_keycode);
+    //     }
+    //     Events::MouseInput { state, button } => {
+    //         app.input.update_mouse_input(state, button);
+    //     }
+    //     Events::MouseMotion { delta } => {
+    //         app.input.update_mouse_motion(delta);
+    //     }
+    //     Events::MouseWheel { delta } => {
+    //         app.input.update_mouse_wheel(delta);
+    //     }
+    // });
+
 }

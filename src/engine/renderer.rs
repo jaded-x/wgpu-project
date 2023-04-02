@@ -158,11 +158,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, /*window: &winit::window::Window,*/ egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, /*window: &winit::window::Window,*/ egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -211,9 +211,9 @@ impl Pass for Renderer {
         }
 
         // render egui
-        // if let Some(egui) = egui {
-        //     egui.render(context, world, window, &view, &mut encoder);
-        // }
+        if let Some(egui) = egui {
+            egui.render(context, world, window, &view, &mut encoder);
+        }
 
         context.queue.submit(std::iter::once(encoder.finish()));
         output.present();
