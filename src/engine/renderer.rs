@@ -9,7 +9,7 @@ use super::{
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
-    texture::Texture,
+    texture::Texture, material::Material, model::{Model, DrawModel, Vertex, ModelVertex},
 };
 
 pub struct Renderer {
@@ -123,7 +123,7 @@ impl Renderer {
             bind_group_layouts: &[
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
-                &material_bind_group_layout,
+                //&material_bind_group_layout,
                 &texture_bind_group_layout,
             ],
             push_constant_ranges: &[],
@@ -132,14 +132,14 @@ impl Renderer {
         let render_pipeline = {
             let shader = wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/texture.wgsl").into()),
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/basic.wgsl").into()),
             };
             create_render_pipeline(
                 &device,
                 &render_pipeline_layout,
                 config.format,
                 Some(wgpu::TextureFormat::Depth32Float),
-                &[Vert::desc()],
+                &[ModelVertex::desc()],
                 shader,
             )
         };
@@ -158,11 +158,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, materials: &Vec<Material>, models: &Vec<Model>) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, materials: &Vec<Material>, models: &Vec<Model>) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -173,7 +173,7 @@ impl Pass for Renderer {
         {
             let meshes = world.read_storage::<Mesh>();
             let renderables = world.read_storage::<Renderable>();
-            let materials = world.read_storage::<MaterialComponent>();
+            let materials_c = world.read_storage::<MaterialComponent>();
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
@@ -200,13 +200,9 @@ impl Pass for Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);
             
-            for (mesh, renderable, material) in (&meshes, &renderables, &materials).join()  {
-                render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-                render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            for (mesh, renderable, material) in (&meshes, &renderables, &materials_c).join()  {
                 render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
-                render_pass.set_bind_group(2, material.get_material_bind_group(), &[]);
-                render_pass.set_bind_group(3, &material.get_texture_bind_group(), &[]);
-                render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &models[mesh.mesh_id].materials[0]);
             }
         }
 

@@ -3,17 +3,13 @@ use specs::{Component, VecStorage};
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct Mesh {
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    pub index_count: u32,
+    pub mesh_id: usize,
 }
 
 impl Mesh {
-    pub fn new(vertex_buffer: wgpu::Buffer, index_buffer: wgpu::Buffer, index_count: u32) -> Self {
+    pub fn new(mesh_id: usize) -> Self {
         Self {
-            vertex_buffer,
-            index_buffer,
-            index_count,
+            mesh_id
         }
     }
 }

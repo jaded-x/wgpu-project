@@ -1,11 +1,10 @@
 use super::{
     transform::Transform,
-    material::MaterialComponent,
 };
 
 use super::super::renderer::Renderer;
 
-use crate::util::{cast_slice, align::Align16};
+use crate::util::cast_slice;
 use specs::{Component, VecStorage};
 
 #[derive(Component)]

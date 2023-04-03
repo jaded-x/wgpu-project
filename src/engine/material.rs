@@ -16,9 +16,7 @@ pub struct Material {
 }
 
 impl Material {
-    pub fn new(device: &wgpu::Device, renderer: &Renderer) -> Self {
-        let color = cg::vec3(1.0, 1.0, 1.0);
-
+    pub fn new(color: cg::Vector3<f32>, device: &wgpu::Device, renderer: &Renderer) -> Self {
         let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: cast_slice(&[Align16(color)]),

@@ -1,5 +1,3 @@
-use std::{sync::{Arc, Mutex}, cell::RefCell, rc::Rc};
-
 use specs::prelude::*;
 use wgpu::util::DeviceExt;
 
@@ -18,9 +16,10 @@ use super::{
     context::Context,
     egui::Egui,
     input::InputState,
+    resources,
     texture,
     material::Material,
-    window::{Window, Events},
+    window::*, model::Model,
 };
 
 pub struct App {
@@ -32,6 +31,9 @@ pub struct App {
     camera: Camera,
     camera_controller: CameraController,
     world: World,
+
+    materials: Vec<Material>,
+    models: Vec<Model>,
 }
 
 impl App {
@@ -51,8 +53,8 @@ impl App {
         let input = InputState::default();
 
         // let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
-        // let cube_model = resources::load_model("cube.obj", &context.device, &context.queue, &texture_bind_group_layout).await.unwrap();
-        // let models = vec![sphere_model, cube_model];
+        let cube_model = resources::load_model("cube.obj", &context.device, &context.queue, &renderer.texture_bind_group_layout).await.unwrap();
+        let models = vec![cube_model];
 
         const VERTICES: &[Vert] = &[
             Vert { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0]},
@@ -95,10 +97,14 @@ impl App {
         let index_count = INDICES.len() as u32;
         
         let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        let mut material = Material::new(&context.device, &renderer);
-        material.set_texture(texture, &context.device, &renderer);
-        let material = Arc::new(material);
-        
+        let mut stone_material = Material::new(cg::vec3(1.0, 1.0, 1.0), &context.device, &renderer);
+        stone_material.set_texture(texture, &context.device, &renderer);
+
+        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
+        let mut red_material = Material::new(cg::vec3(1.0, 0.0, 0.0), &context.device, &renderer);
+        red_material.set_texture(texture, &context.device, &renderer);
+
+        let materials = vec![stone_material, red_material];
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -109,14 +115,14 @@ impl App {
         world.create_entity()
             .with(Name::new("Square 1"))
             .with(Transform::default())
-            .with(Mesh::new(vertex_buffer, index_buffer, index_count))
-            .with(MaterialComponent::new(Arc::clone(&material)))
+            .with(Mesh::new(0))
+            .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
             .with(Name::new("Square 2"))
             .with(Transform::default())
-            .with(Mesh::new(vertex_buffer2, index_buffer2, index_count))
-            .with(MaterialComponent::new(Arc::clone(&material)))
+            .with(Mesh::new(0))
+            .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
 
         { // update buffer
@@ -135,6 +141,8 @@ impl App {
             world,
             renderer,
             egui,
+            materials,
+            models,
         }
     }
 
@@ -162,7 +170,7 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera)
+        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.materials, &self.models)
     }
 }
 
@@ -209,7 +217,7 @@ pub async fn run() {
         }
         _ => {}
     });
-    
+
     // window.run(move |event, window| match event {
     //     Events::Resized { width, height } => {
     //         app.resize(winit::dpi::PhysicalSize { width, height });

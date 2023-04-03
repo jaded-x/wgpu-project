@@ -68,11 +68,11 @@ impl Egui {
                                     if value.changed() { transform.update_matrix(); }
                                 }
                             });
-                        // egui::CollapsingHeader::new("Material")
-                        //     .default_open(true)
-                        //     .show(ui, |ui| {
-                        //         material.inspect(ui);
-                        //     });
+                        egui::CollapsingHeader::new("Material")
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                material.inspect(ui);
+                            });
                     }
                 });
             
