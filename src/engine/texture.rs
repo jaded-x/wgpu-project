@@ -1,6 +1,8 @@
 use image::GenericImageView;
 use anyhow::*;
 
+use crate::util::align::Align16;
+
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,

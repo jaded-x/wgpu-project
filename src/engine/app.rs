@@ -32,7 +32,7 @@ pub struct App {
     camera_controller: CameraController,
     world: World,
 
-    materials: Vec<Material>,
+    //materials: Vec<Material>,
     models: Vec<Model>,
 }
 
@@ -52,9 +52,9 @@ impl App {
 
         let input = InputState::default();
 
-        // let sphere_model = resources::load_model("sphere.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
+        let sphere_model = resources::load_model("sphere.obj", &context.device, &context.queue, &renderer.texture_bind_group_layout).await.unwrap();
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue, &renderer.texture_bind_group_layout).await.unwrap();
-        let models = vec![cube_model];
+        let models = vec![cube_model, sphere_model];
 
         const VERTICES: &[Vert] = &[
             Vert { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0]},
@@ -62,49 +62,16 @@ impl App {
             Vert { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 0.0]},
             Vert { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 0.0]},
         ];
-        let vertex_buffer = context.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: cast_slice(VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-        let vertex_buffer2 = context.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: cast_slice(VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-        const INDICES: &[u16] = &[
-            0, 1, 2,
-            2, 3, 0
-        ];
-        let index_buffer = context.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: cast_slice(INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
-        let index_buffer2 = context.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: cast_slice(INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
-        let index_count = INDICES.len() as u32;
         
-        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        let mut stone_material = Material::new(cg::vec3(1.0, 1.0, 1.0), &context.device, &renderer);
-        stone_material.set_texture(texture, &context.device, &renderer);
+        // let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
+        // let mut stone_material = Material::new(cg::vec3(1.0, 1.0, 1.0), &context.device, &renderer);
+        // stone_material.set_texture(texture, &context.device, &renderer);
 
-        let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        let mut red_material = Material::new(cg::vec3(1.0, 0.0, 0.0), &context.device, &renderer);
-        red_material.set_texture(texture, &context.device, &renderer);
+        // let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
+        // let mut red_material = Material::new(cg::vec3(1.0, 0.0, 0.0), &context.device, &renderer);
+        // red_material.set_texture(texture, &context.device, &renderer);
 
-        let materials = vec![stone_material, red_material];
+        // let materials = vec![stone_material, red_material];
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -121,7 +88,7 @@ impl App {
         world.create_entity()
             .with(Name::new("Square 2"))
             .with(Transform::default())
-            .with(Mesh::new(0))
+            .with(Mesh::new(1))
             .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
 
@@ -141,7 +108,7 @@ impl App {
             world,
             renderer,
             egui,
-            materials,
+            //materials,
             models,
         }
     }
@@ -170,7 +137,7 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.materials, &self.models)
+        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.models)
     }
 }
 

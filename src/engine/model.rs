@@ -46,8 +46,10 @@ pub struct Model {
 }
 
 pub struct Material {
-    pub name: String,
-    pub diffuse_texture: Texture,
+    pub name: Option<String>,
+    pub diffuse: cg::Vector3<f32>,
+    pub diffuse_texture: Option<Texture>,
+    pub diffuse_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
 }
 
