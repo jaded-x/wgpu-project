@@ -2,9 +2,9 @@ use anyhow::Result;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
 
-use crate::util::align::Align16;
 use crate::util::cast_slice;
 
+use super::handle::Handle;
 use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
@@ -55,40 +55,10 @@ pub async fn load_model(
     for material in obj_materials? {
         let diffuse_texture = load_texture(&material.diffuse_texture, device, queue).await?;
 
-        let diffuse_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: cast_slice(&[material.diffuse]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        }); 
+        let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture);
+        let material_asset = Handle::new(mat, device, layout);
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: diffuse_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-                
-            ],
-            label: Some("material_bind_group"),
-        });
-
-
-        materials.push(Material {
-            name: Some(material.name),
-            diffuse: material.diffuse.into(),
-            diffuse_texture: Some(diffuse_texture),
-            diffuse_buffer,
-            bind_group,
-        })
+        materials.push(material_asset)
     }
 
     let meshes = models

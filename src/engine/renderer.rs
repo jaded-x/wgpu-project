@@ -10,7 +10,7 @@ use super::{
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
-    texture::Texture, material::Material, model::{Model, DrawModel, Vertex, ModelVertex},
+    texture::Texture, model::{Model, DrawModel, Vertex, ModelVertex},
 };
 
 pub struct Renderer {

@@ -18,7 +18,6 @@ use super::{
     input::InputState,
     resources,
     texture,
-    material::Material,
     window::*, model::Model,
 };
 
@@ -51,6 +50,8 @@ impl App {
         let camera_controller = CameraController::new(4.0, 0.2);
 
         let input = InputState::default();
+
+        let default_diffuse_texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_diffuse_texture.jpg"), "default_diffuse_texture.jpg").unwrap();
 
         let sphere_model = resources::load_model("sphere.obj", &context.device, &context.queue, &renderer.texture_bind_group_layout).await.unwrap();
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue, &renderer.texture_bind_group_layout).await.unwrap();
