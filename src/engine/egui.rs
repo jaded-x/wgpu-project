@@ -1,6 +1,10 @@
 use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
+use crate::util::cast_slice;
+
+use super::model::Material;
+use super::render::Render;
 use super::{
     context::Context,
 };
@@ -14,6 +18,8 @@ pub struct Egui {
     pub state: egui_winit::State,
     pub context: egui::Context,
     entity: Option<specs::Entity>,
+    material_id: Option<usize>,
+    material: Option<Material>,
 }
 
 impl Egui {
@@ -23,10 +29,12 @@ impl Egui {
             state: egui_winit::State::new(&event_loop),
             context: egui::Context::default(),
             entity: None,
+            material: None,
+            material_id: None,
         }
     }
 
-    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World) -> egui::FullOutput {
+    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Render<Material>>) -> egui::FullOutput {
         self.context.run(egui_input, |context| {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
@@ -45,7 +53,25 @@ impl Egui {
                 .show(&context, |ui| {
                     for entity in world.entities().join() {
                         let res = ui.add(egui::Button::new(entity.id().to_string()));
-                        if res.clicked() { self.entity = Some(entity)}
+                        if res.clicked() { 
+                            self.material = None;
+                            self.material_id = None;
+                            self.entity = Some(entity)
+                        }
+                    }
+                });
+
+            egui::Window::new("Materials")
+                .resizable(true)
+                .constrain(true)
+                .show(&context, |ui| {
+                    for (i, material) in materials.iter().enumerate() {
+                        let res = ui.add(egui::Button::new(i.to_string()));
+                        if res.clicked() { 
+                            self.entity = None;
+                            self.material_id = Some(i);
+                            self.material = Some(material.asset.borrow().clone());
+                        }
                     }
                 });
 
@@ -64,8 +90,8 @@ impl Egui {
                         egui::CollapsingHeader::new("Transform")
                             .default_open(true)
                             .show(ui, |ui| {
-                                for value in transform.inspect(ui) {
-                                    if value.changed() { transform.update_matrix(); }
+                                for field in transform.inspect(ui) {
+                                    if field.changed() { transform.update_matrix(); }
                                 }
                             });
                         egui::CollapsingHeader::new("Material")
@@ -73,15 +99,18 @@ impl Egui {
                             .show(ui, |ui| {
                                 material.inspect(ui);
                             });
+                    } else if let Some(material) = &mut self.material {
+                        for field in material.inspect(ui) {
+                            if field.changed() { materials[self.material_id.unwrap()].update_buffer(0, cast_slice(&[material.diffuse]))}
+                        }
                     }
                 });
-            
         })
     }
 
-    pub fn render(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
+    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Render<Material>>, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
         let egui_input = self.state.take_egui_input(window);
-        let egui_output = self.world_inspect(egui_input, world);
+        let egui_output = self.world_inspect(egui_input, world, materials);
         
         let clipped_primitives = self.context.tessellate(egui_output.shapes);
         let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {

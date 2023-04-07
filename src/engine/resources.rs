@@ -31,9 +31,9 @@ pub async fn load_texture(file_name: &str, device: &wgpu::Device, queue: &wgpu::
 
 pub async fn load_model(
     file_name: &str,
-    device: &wgpu::Device,
+    device: &Rc<wgpu::Device>,
     queue: &Rc<wgpu::Queue>,
-    layout: &wgpu::BindGroupLayout,
+    layout: &Rc<wgpu::BindGroupLayout>,
 ) -> Result<Model> {
     let obj_text = load_string(file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
@@ -55,10 +55,10 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for material in obj_materials? {
-        let diffuse_texture = load_texture(&material.diffuse_texture, device, queue).await?;
+        let diffuse_texture = Rc::new(load_texture(&material.diffuse_texture, device, queue).await?);
 
         let mat = Rc::new(RefCell::new(Material::new(Some(material.name), material.diffuse.into(), diffuse_texture)));
-        let material_asset = Render::new(mat.clone(), device, layout, queue.clone());
+        let material_asset = Render::new(mat.clone(), device.clone(), layout.clone(), queue.clone());
 
         materials.push(material_asset)
     }

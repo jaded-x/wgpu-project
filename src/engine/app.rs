@@ -1,14 +1,13 @@
 use std::{rc::Rc, cell::RefCell};
 
 use specs::prelude::*;
-use wgpu::util::DeviceExt;
 
 use crate::{util::cast_slice, engine::{model::Material, render::Render}};
 
 use super::{
     camera::{Camera, CameraController, Projection},
     components::{
-        mesh::{Vert, Mesh},
+        mesh::Mesh,
         transform::Transform,
         material::MaterialComponent,
         renderable::Renderable,
@@ -53,40 +52,22 @@ impl App {
 
         let input = InputState::default();
 
-        let default_diffuse_texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_diffuse_texture.jpg"), "default_diffuse_texture.jpg").unwrap();
-        let stone_tex = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube-diffuse.jpg").unwrap();
+        // 
 
-        let sphere_model = resources::load_model("sphere.obj", &context.device, &context.queue.clone(), &renderer.texture_bind_group_layout).await.unwrap();
-        let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.texture_bind_group_layout).await.unwrap();
+        let default_diffuse_texture = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_diffuse_texture.jpg"), "default_diffuse_texture.jpg").unwrap());
+        let stone_tex = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube-diffuse.jpg").unwrap());
+
+        let sphere_model = resources::load_model("sphere.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
+        let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, sphere_model];
 
-        const VERTICES: &[Vert] = &[
-            Vert { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0]},
-            Vert { position: [0.5, -0.5, 0.0], tex_coords: [1.0, 1.0]},
-            Vert { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 0.0]},
-            Vert { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 0.0]},
-        ];
-        
-        let mater = Rc::new(RefCell::new(Material::new(None, cg::vec3(0.0, 1.0, 0.0), default_diffuse_texture)));
+        let green_material = Render::new(Rc::new(RefCell::new(Material::new(None, cg::vec3(0.0, 1.0, 0.0), stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(None, cg::vec3(1.0, 0.0, 1.0), stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
-        let mut mat = Render::new(mater.clone(), &context.device, &renderer.texture_bind_group_layout, context.queue.clone());
+        let mut materials = vec![green_material, purple_stone];
 
-        mat.set_diffuse(cg::vec3(1.0, 0.0, 0.0));
-        let mut materials = vec![mat];
-
-        materials[0].set_diffuse(cg::vec3(1.0, 0.5, 0.4));
-
-        //mat.asset.set_diffuse(cg::vec3(0.5, 0.2, 0.2), &mut mat.clone());
-
-        // let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        // let mut stone_material = Material::new(cg::vec3(1.0, 1.0, 1.0), &context.device, &renderer);
-        // stone_material.set_texture(texture, &context.device, &renderer);
-
-        // let texture = texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube_diffuse.jpg").unwrap();
-        // let mut red_material = Material::new(cg::vec3(1.0, 0.0, 0.0), &context.device, &renderer);
-        // red_material.set_texture(texture, &context.device, &renderer);
-
-        // let materials = vec![stone_material, red_material];
+        materials[0].set_diffuse(cg::vec3(0.6, 0.5, 0.4));
+        models[0].materials[0].set_diffuse(cg::vec3(0.4, 0.4, 9.0));
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -107,7 +88,7 @@ impl App {
             .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
 
-        { // update buffer
+        { // update buffers
             let mut renderables = world.write_component::<Renderable>();
             let transforms = world.read_component::<Transform>();
             for (transform, renderable) in (&transforms, &mut renderables).join() {
@@ -152,7 +133,7 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.models, &self.materials)
+        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.models, &mut self.materials)
     }
 }
 

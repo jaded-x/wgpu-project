@@ -4,18 +4,22 @@ pub struct Render<T: Asset> {
     pub asset: Rc<RefCell<T>>,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
+    layout: Rc<wgpu::BindGroupLayout>,
+    device: Rc<wgpu::Device>,
     queue: Rc<wgpu::Queue>,
 }
 
 impl<T: Asset> Render<T> {
-    pub fn new(asset: Rc<RefCell<T>>, device: &wgpu::Device, layout: &wgpu::BindGroupLayout, queue: Rc<wgpu::Queue>) -> Self {
-        let (buffers, bind_group) = asset.borrow().load(device, layout);
+    pub fn new(asset: Rc<RefCell<T>>, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>, queue: Rc<wgpu::Queue>) -> Self {
+        let (buffers, bind_group) = asset.borrow().load(device.clone(), layout.clone());
 
         Self {
             asset,
             buffers,
             bind_group,
             queue,
+            device,
+            layout,
         }
     }
 
@@ -27,5 +31,5 @@ impl<T: Asset> Render<T> {
 
 
 pub trait Asset {
-    fn load(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
+    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
 }

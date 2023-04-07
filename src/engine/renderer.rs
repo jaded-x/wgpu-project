@@ -20,8 +20,7 @@ pub struct Renderer {
     pub texture_view: wgpu::TextureView,
     pub depth_texture: Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
-    pub material_bind_group_layout: wgpu::BindGroupLayout,
-    pub texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub material_bind_group_layout: Rc<wgpu::BindGroupLayout>,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
@@ -67,23 +66,7 @@ impl Renderer {
             label: None,
         });
 
-        let material_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-            label: Some("material_bind_group_layout"),
-        });
-
-        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let material_bind_group_layout = Rc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -112,8 +95,8 @@ impl Renderer {
                     count: None,
                 },
             ],
-            label: Some("texture_bind_group_layout"),
-        });
+            label: Some("material_bind_group_layout"),
+        }));
 
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -137,7 +120,7 @@ impl Renderer {
             bind_group_layouts: &[
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
-                &texture_bind_group_layout,
+                &material_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -163,7 +146,6 @@ impl Renderer {
             depth_texture,
             transform_bind_group_layout,
             material_bind_group_layout,
-            texture_bind_group_layout,
             camera_bind_group_layout,
             render_pipeline,
         }
@@ -171,11 +153,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -221,7 +203,7 @@ impl Pass for Renderer {
 
         // render egui
         if let Some(egui) = egui {
-            egui.render(context, world, window, &view, &mut encoder);
+            egui.render(context, world, materials, window, &view, &mut encoder);
         }
 
         context.queue.submit(std::iter::once(encoder.finish()));

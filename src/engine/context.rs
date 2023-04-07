@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 pub struct Context {
     pub surface: wgpu::Surface,
-    pub device: wgpu::Device,
+    pub device: Rc<wgpu::Device>,
     pub queue: Rc<wgpu::Queue>,
     pub config: wgpu::SurfaceConfiguration,
 }
@@ -38,6 +38,7 @@ impl Context {
         ).await.unwrap();
 
         let queue = Rc::new(queue);
+        let device = Rc::new(device);
         
         dbg!(adapter.get_info());
 

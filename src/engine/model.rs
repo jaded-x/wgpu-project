@@ -51,28 +51,26 @@ pub struct Model {
     pub materials: Vec<Render<Material>>,
 }
 
+use egui_inspector::*;
+use egui_inspector_derive::EguiInspect;
+
+#[derive(Clone, EguiInspect)]
 pub struct Material {
-    _name: Option<String>,
-    diffuse: cg::Vector3<f32>,
-    diffuse_texture: Texture,
+    #[inspect(hide = true)]
+    pub name: Option<String>,
+    #[inspect(widget = "Slider", min = 0.0, max = 1.0, speed = 0.01)]
+    pub diffuse: cg::Vector3<f32>,
+    #[inspect(hide = true)]
+    diffuse_texture: Rc<Texture>,
 }
 
 impl Material {
-    pub fn new(name: Option<String>, diffuse: cg::Vector3<f32>, diffuse_texture: Texture) -> Self {
+    pub fn new(name: Option<String>, diffuse: cg::Vector3<f32>, diffuse_texture: Rc<Texture>) -> Self {
         Self {
-            _name: name,
+            name,
             diffuse,
             diffuse_texture,
         }
-    }
-
-    pub fn set_diffuse(&mut self, diffuse: cg::Vector3<f32>) {
-        self.diffuse = diffuse;
-        //handle.update_buffer(0, cast_slice(&[diffuse]));
-    }
-
-    pub fn get_diffuse(&self) -> cg::Vector3<f32> {
-        self.diffuse
     }
 }
 
@@ -81,10 +79,14 @@ impl Render<Material> {
         self.asset.borrow_mut().diffuse = diffuse;
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
+
+    pub fn set_diffuse_texture(&mut self, texture: Rc<Texture>) {
+        self.asset.borrow_mut().diffuse_texture = texture;
+    }
 } 
 
 impl Asset for Material {
-    fn load(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
+    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
         let diffuse_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: cast_slice(&[self.diffuse]),
@@ -92,7 +94,7 @@ impl Asset for Material {
         });
         
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
+            layout: layout.as_ref(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
