@@ -1,10 +1,12 @@
 use anyhow::Result;
 use wgpu::util::DeviceExt;
+use std::cell::RefCell;
 use std::io::{BufReader, Cursor};
+use std::rc::Rc;
 
 use crate::util::cast_slice;
 
-use super::handle::Handle;
+use super::render::Render;
 use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
@@ -30,7 +32,7 @@ pub async fn load_texture(file_name: &str, device: &wgpu::Device, queue: &wgpu::
 pub async fn load_model(
     file_name: &str,
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    queue: &Rc<wgpu::Queue>,
     layout: &wgpu::BindGroupLayout,
 ) -> Result<Model> {
     let obj_text = load_string(file_name).await?;
@@ -55,8 +57,8 @@ pub async fn load_model(
     for material in obj_materials? {
         let diffuse_texture = load_texture(&material.diffuse_texture, device, queue).await?;
 
-        let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture);
-        let material_asset = Handle::new(mat, device, layout);
+        let mat = Rc::new(RefCell::new(Material::new(Some(material.name), material.diffuse.into(), diffuse_texture)));
+        let material_asset = Render::new(mat.clone(), device, layout, queue.clone());
 
         materials.push(material_asset)
     }

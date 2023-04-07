@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use specs::prelude::*;
 use wgpu::BindGroupLayoutEntry;
 
@@ -10,7 +12,7 @@ use super::{
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
-    texture::Texture, model::{Model, DrawModel, Vertex, ModelVertex},
+    texture::Texture, model::{Model, DrawModel, Vertex, ModelVertex, Material}, render::Render,
 };
 
 pub struct Renderer {
@@ -169,11 +171,11 @@ impl Renderer {
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -213,7 +215,7 @@ impl Pass for Renderer {
             
             for (mesh, renderable, material) in (&meshes, &renderables, &materials_c).join()  {
                 render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
-                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &models[mesh.mesh_id].materials[0]);
+                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &materials[material.material_id]);
             }
         }
 

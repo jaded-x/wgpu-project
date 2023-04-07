@@ -1,9 +1,10 @@
 use std::ops::Range;
+use std::rc::Rc;
 use wgpu::util::DeviceExt;
 
 use crate::util::cast_slice;
 
-use super::handle::{Asset, Handle};
+use super::render::{Asset, Render};
 
 use super::texture::Texture;
 
@@ -47,24 +48,40 @@ impl Vertex for ModelVertex {
 
 pub struct Model {
     pub meshes: Vec<Mesh>,
-    pub materials: Vec<Handle<Material>>,
+    pub materials: Vec<Render<Material>>,
 }
 
 pub struct Material {
-    pub name: Option<String>,
-    pub diffuse: cg::Vector3<f32>,
-    pub diffuse_texture: Texture,
+    _name: Option<String>,
+    diffuse: cg::Vector3<f32>,
+    diffuse_texture: Texture,
 }
 
 impl Material {
     pub fn new(name: Option<String>, diffuse: cg::Vector3<f32>, diffuse_texture: Texture) -> Self {
         Self {
-            name,
+            _name: name,
             diffuse,
             diffuse_texture,
         }
     }
+
+    pub fn set_diffuse(&mut self, diffuse: cg::Vector3<f32>) {
+        self.diffuse = diffuse;
+        //handle.update_buffer(0, cast_slice(&[diffuse]));
+    }
+
+    pub fn get_diffuse(&self) -> cg::Vector3<f32> {
+        self.diffuse
+    }
 }
+
+impl Render<Material> {
+    pub fn set_diffuse(&mut self, diffuse: cg::Vector3<f32>) {
+        self.asset.borrow_mut().diffuse = diffuse;
+        self.update_buffer(0, cast_slice(&[diffuse]));
+    }
+} 
 
 impl Asset for Material {
     fn load(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
@@ -110,12 +127,12 @@ pub trait DrawModel<'a> {
     fn draw_mesh(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Handle<Material>,
+        material: &'a Render<Material>,
     );
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Handle<Material>,
+        material: &'a Render<Material>,
         instances: Range<u32>,
     );
 
@@ -134,7 +151,7 @@ impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a> where 'b: 'a {
     fn draw_mesh(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Handle<Material>,
+        material: &'b Render<Material>,
     ) {
         self.draw_mesh_instanced(mesh, material, 0..1);
     }
@@ -142,7 +159,7 @@ impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a> where 'b: 'a {
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Handle<Material>,
+        material: &'b Render<Material>,
         instances: Range<u32>,
     ) {
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
