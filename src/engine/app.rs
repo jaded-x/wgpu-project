@@ -61,13 +61,13 @@ impl App {
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, sphere_model];
 
-        let green_material = Render::new(Rc::new(RefCell::new(Material::new(None, cg::vec3(0.0, 1.0, 0.0), stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
-        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(None, cg::vec3(1.0, 0.0, 1.0), stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let green_material = Render::new(Rc::new(RefCell::new(Material::new(None, [0.0, 1.0, 0.0], default_diffuse_texture.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(None, [1.0, 0.0, 1.0], stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
         let mut materials = vec![green_material, purple_stone];
 
-        materials[0].set_diffuse(cg::vec3(0.6, 0.5, 0.4));
-        models[0].materials[0].set_diffuse(cg::vec3(0.4, 0.4, 9.0));
+        materials[0].set_diffuse([0.6, 0.5, 0.4]);
+        models[0].materials[0].set_diffuse([0.4, 0.4, 9.0]);
 
         let mut world = specs::World::new();
         world.register::<Transform>();

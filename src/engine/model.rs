@@ -58,14 +58,14 @@ use egui_inspector_derive::EguiInspect;
 pub struct Material {
     #[inspect(hide = true)]
     pub name: Option<String>,
-    #[inspect(widget = "Slider", min = 0.0, max = 1.0, speed = 0.01)]
-    pub diffuse: cg::Vector3<f32>,
+    #[inspect(widget = "Color")]
+    pub diffuse: [f32; 3],
     #[inspect(hide = true)]
     diffuse_texture: Rc<Texture>,
 }
 
 impl Material {
-    pub fn new(name: Option<String>, diffuse: cg::Vector3<f32>, diffuse_texture: Rc<Texture>) -> Self {
+    pub fn new(name: Option<String>, diffuse: [f32; 3], diffuse_texture: Rc<Texture>) -> Self {
         Self {
             name,
             diffuse,
@@ -75,7 +75,7 @@ impl Material {
 }
 
 impl Render<Material> {
-    pub fn set_diffuse(&mut self, diffuse: cg::Vector3<f32>) {
+    pub fn set_diffuse(&mut self, diffuse: [f32; 3]) {
         self.asset.borrow_mut().diffuse = diffuse;
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
