@@ -11,6 +11,8 @@ use super::{
 use super::components::{
     transform::Transform,
     material::MaterialComponent,
+    name::Name,
+    mesh::Mesh,
 };
 
 pub struct Egui {
@@ -47,20 +49,6 @@ impl Egui {
                 ..Default::default()
             };
 
-            egui::Window::new("World")
-                .resizable(true)
-                .constrain(true)
-                .show(&context, |ui| {
-                    for entity in world.entities().join() {
-                        let res = ui.add(egui::Button::new(entity.id().to_string()));
-                        if res.clicked() { 
-                            self.material = None;
-                            self.material_id = None;
-                            self.entity = Some(entity)
-                        }
-                    }
-                });
-
             egui::Window::new("Materials")
                 .resizable(true)
                 .constrain(true)
@@ -75,33 +63,86 @@ impl Egui {
                     }
                 });
 
-            egui::Window::new("Inspector") 
+            egui::SidePanel::right("Inspector")
+                .default_width(200.0)
                 .resizable(true)
-                .constrain(true)
                 .frame(frame)
                 .show(&context, |ui| {
-                    if let Some(entity) = self.entity {
-                        let mut transforms = world.write_storage::<Transform>();
-                        let transform = transforms.get_mut(entity).unwrap();
-                        let mut materials = world.write_storage::<MaterialComponent>();
-                        let material = materials.get_mut(entity).unwrap();
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        ui.label("Inspector");
+                        ui.separator();
+                        if let Some(entity) = self.entity {
+                            let mut transforms = world.write_component::<Transform>();
+                            let transform = transforms.get_mut(entity).unwrap();
+                            let mut materials_component = world.write_component::<MaterialComponent>();
+                            let material_component = materials_component.get_mut(entity).unwrap();
+                            let mut names = world.write_component::<Name>();
+                            let name = names.get_mut(entity).unwrap();
+                            let mut meshes = world.write_component::<Mesh>();
+                            let mesh = meshes.get_mut(entity).unwrap();
 
-                        ui.label(entity.id().to_string());
-                        egui::CollapsingHeader::new("Transform")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                for field in transform.inspect(ui) {
-                                    if field.changed() { transform.update_matrix(); }
+                            ui.text_edit_singleline(&mut name.0);
+                            egui::CollapsingHeader::new("Transform")
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    for field in transform.inspect(ui) {
+                                        if field.changed() { 
+                                            transform.update_matrix();
+                                        }
+                                    }
+                                });
+
+                            egui::CollapsingHeader::new("Material")
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    for field in material_component.inspect(ui) {
+                                        if field.changed() {
+                                            self.material = Some(materials[material_component.material_id].asset.borrow().clone());
+                                            self.material_id = Some(material_component.material_id);
+                                        }
+                                    }
+                                    
+                                    if let Some(material) = &mut self.material {
+                                        for field in material.inspect(ui) {
+                                            if field.changed() { 
+                                                materials[self.material_id.unwrap()].set_diffuse(material.diffuse);
+                                                materials[self.material_id.unwrap()].update_buffer(0, cast_slice(&[material.diffuse]))
+                                            }
+                                        }
+                                    }
+                                });
+                            egui::CollapsingHeader::new("Mesh")
+                                .default_open(true)
+                                .show(ui, |ui| {
+                                    mesh.inspect(ui);
+                                });
+                        } else if let Some(material) = &mut self.material {
+                            for field in material.inspect(ui) {
+                                if field.changed() { 
+                                    materials[self.material_id.unwrap()].update_buffer(0, cast_slice(&[material.diffuse]))
                                 }
-                            });
-                        egui::CollapsingHeader::new("Material")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                material.inspect(ui);
-                            });
-                    } else if let Some(material) = &mut self.material {
-                        for field in material.inspect(ui) {
-                            if field.changed() { materials[self.material_id.unwrap()].update_buffer(0, cast_slice(&[material.diffuse]))}
+                            }
+                        }
+                    });
+                });
+
+            egui::SidePanel::right("World")
+                .default_width(75.0)
+                .resizable(true)
+                .frame(frame)
+                .show(&context, |ui| {
+                    ui.label("World");
+                    ui.separator();
+                    let names = world.read_component::<Name>();
+                    let materials_component = world.read_component::<MaterialComponent>();
+                    for entity in world.entities().join() {
+                        let name = names.get(entity).unwrap();
+                        let material = materials_component.get(entity).unwrap();
+                        let res = ui.add(egui::Button::new(name.0.to_string()));
+                        if res.clicked() { 
+                            self.material = Some(materials[material.material_id].asset.borrow().clone());
+                            self.material_id = Some(material.material_id);
+                            self.entity = Some(entity)
                         }
                     }
                 });

@@ -32,6 +32,7 @@ pub struct App {
     camera_controller: CameraController,
     world: World,
 
+    textures: Vec<Rc<texture::Texture>>,
     materials: Vec<Render<Material>>,
     models: Vec<Model>,
 }
@@ -57,12 +58,14 @@ impl App {
         let default_diffuse_texture = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_diffuse_texture.jpg"), "default_diffuse_texture.jpg").unwrap());
         let stone_tex = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/cube-diffuse.jpg"), "cube-diffuse.jpg").unwrap());
 
+        let textures = vec![default_diffuse_texture, stone_tex];
+
         let sphere_model = resources::load_model("sphere.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, sphere_model];
 
-        let green_material = Render::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], default_diffuse_texture.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
-        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 0.0, 1.0], stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let green_material = Render::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], textures[0].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 0.0, 1.0], textures[1].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
         let mut materials = vec![green_material, purple_stone];
 
@@ -76,13 +79,13 @@ impl App {
         world.register::<Renderable>();
         world.register::<Name>();
         world.create_entity()
-            .with(Name::new("Square 1"))
+            .with(Name::new("Cube"))
             .with(Transform::default())
             .with(Mesh::new(0))
             .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
         world.create_entity()
-            .with(Name::new("Square 2"))
+            .with(Name::new("Sphere"))
             .with(Transform::default())
             .with(Mesh::new(1))
             .with(MaterialComponent::new(0))
@@ -104,6 +107,7 @@ impl App {
             world,
             renderer,
             egui,
+            textures,
             materials,
             models,
         }
