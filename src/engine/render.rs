@@ -4,8 +4,8 @@ pub struct Render<T: Asset> {
     pub asset: Rc<RefCell<T>>,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
-    layout: Rc<wgpu::BindGroupLayout>,
-    device: Rc<wgpu::Device>,
+    _layout: Rc<wgpu::BindGroupLayout>,
+    _device: Rc<wgpu::Device>,
     queue: Rc<wgpu::Queue>,
 }
 
@@ -18,8 +18,8 @@ impl<T: Asset> Render<T> {
             buffers,
             bind_group,
             queue,
-            device,
-            layout,
+            _device: device,
+            _layout: layout,
         }
     }
 

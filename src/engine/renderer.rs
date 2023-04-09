@@ -1,18 +1,17 @@
 use std::rc::Rc;
 
 use specs::prelude::*;
-use wgpu::BindGroupLayoutEntry;
 
 use super::{
     components::{
-        mesh::{Mesh, Vert}, 
+        mesh::Mesh, 
         renderable::Renderable,
         material::MaterialComponent,
     },
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
-    texture::Texture, model::{Model, DrawModel, Vertex, ModelVertex, Material}, render::Render,
+    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex, Material}, render::Render,
 };
 
 pub struct Renderer {
@@ -32,23 +31,7 @@ impl Renderer {
     ) -> Self {
         let clear_color = wgpu::Color::BLACK;
 
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("texture"),
-            size: wgpu::Extent3d {
-                width: 800,
-                height: 600,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+        let (texture_view, depth_texture) = create_depth_texture(device, config);
 
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -150,6 +133,32 @@ impl Renderer {
             render_pipeline,
         }
     }
+
+    pub fn resize(&mut self, device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) {
+        (self.texture_view, self.depth_texture) = create_depth_texture(device, config);
+    }
+}
+
+pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> (wgpu::TextureView, texture::Texture){
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("texture"),
+        size: wgpu::Extent3d {
+            width: config.width,
+            height: config.height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba16Float,
+        usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+
+    let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+
+    (texture_view, depth_texture)
 }
 
 pub trait Pass {
@@ -177,7 +186,7 @@ impl Pass for Renderer {
                         view: &view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            load: wgpu::LoadOp::Clear(self.clear_color),
                             store: true,
                         }
                     })

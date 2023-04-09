@@ -61,8 +61,8 @@ impl App {
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, sphere_model];
 
-        let green_material = Render::new(Rc::new(RefCell::new(Material::new(None, [0.0, 1.0, 0.0], default_diffuse_texture.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
-        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(None, [1.0, 0.0, 1.0], stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let green_material = Render::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], default_diffuse_texture.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 0.0, 1.0], stone_tex.clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
         let mut materials = vec![green_material, purple_stone];
 
@@ -114,6 +114,7 @@ impl App {
             self.context.config.width = new_window_size.width;
             self.context.config.height = new_window_size.height;
             self.context.surface.configure(&self.context.device, &self.context.config);
+            self.renderer.resize(&self.context.device, &self.context.config);
             self.camera.projection.resize(new_window_size.width, new_window_size.height);
         }
     }
