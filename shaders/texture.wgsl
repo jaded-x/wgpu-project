@@ -17,6 +17,13 @@ struct Material {
 @group(2) @binding(0)
 var<uniform> material: Material;
 
+struct Light {
+    position: vec3<f32>,
+    color: vec3<f32>,
+}
+@group(4) @binding(0)
+var<uniform> light: Light;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -49,5 +56,9 @@ var s_diffuse: sampler;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let color: vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords) * vec4<f32>(in.color, 1.0);
+    
+    let ambient_strength = 0.1;
+    let ambient_color = 
+    
     return color;
 }

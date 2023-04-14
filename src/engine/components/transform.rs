@@ -27,9 +27,20 @@ impl Transform {
         }
     }
 
+    pub fn from_position(position: cg::Vector3<f32>) -> Self {
+        Self {
+            position,
+            ..Default::default()
+        }
+    }
+
     pub fn position(&mut self, position: cg::Vector3<f32>) {
         self.position = position;
         self.update_matrix();
+    }
+
+    pub fn get_position(&self) -> cg::Vector3<f32> {
+        self.position
     }
 
     pub fn update_matrix(&mut self) {

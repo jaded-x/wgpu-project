@@ -19,7 +19,7 @@ use super::{
     input::InputState,
     resources,
     texture,
-    window::*, model::Model,
+    window::*, model::Model, light::Light,
 };
 
 pub struct App {
@@ -78,6 +78,7 @@ impl App {
         world.register::<Mesh>();
         world.register::<Renderable>();
         world.register::<Name>();
+        world.register::<Light>();
         world.create_entity()
             .with(Name::new("Cube"))
             .with(Transform::default())
@@ -90,6 +91,11 @@ impl App {
             .with(Mesh::new(1))
             .with(MaterialComponent::new(0))
             .with(Renderable::new(&context.device, &renderer)).build();
+        world.create_entity()
+            .with(Name::new("Light"))
+            .with(Transform::from_position(cg::vec3(0.0, 5.0, 0.0)))
+            .with(Light::new([1.0, 1.0, 1.0]))
+            .build();
 
         { // update buffers
             let mut renderables = world.write_component::<Renderable>();

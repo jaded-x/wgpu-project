@@ -21,6 +21,7 @@ pub struct Renderer {
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub material_bind_group_layout: Rc<wgpu::BindGroupLayout>,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
+    pub light_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
 
@@ -97,6 +98,21 @@ impl Renderer {
             label: Some("camera_bind_group_layout"),
         });
         
+        let light_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility:wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: None,
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("light_bind_group_layout")
+        });
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -130,6 +146,7 @@ impl Renderer {
             transform_bind_group_layout,
             material_bind_group_layout,
             camera_bind_group_layout,
+            light_bind_group_layout,
             render_pipeline,
         }
     }
