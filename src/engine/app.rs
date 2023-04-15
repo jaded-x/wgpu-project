@@ -2,7 +2,7 @@ use std::{rc::Rc, cell::RefCell};
 
 use specs::prelude::*;
 
-use crate::{util::cast_slice, engine::{model::Material, render::Render}};
+use crate::{util::cast_slice, engine::{model::Material, gpu::Gpu}};
 
 use super::{
     camera::{Camera, CameraController, Projection},
@@ -33,7 +33,7 @@ pub struct App {
     world: World,
 
     textures: Vec<Rc<texture::Texture>>,
-    materials: Vec<Render<Material>>,
+    materials: Vec<Gpu<Material>>,
     models: Vec<Model>,
 }
 
@@ -64,8 +64,8 @@ impl App {
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, sphere_model];
 
-        let green_material = Render::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], textures[0].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
-        let purple_stone = Render::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 0.0, 1.0], textures[1].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let green_material = Gpu::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], textures[0].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let purple_stone = Gpu::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 0.0, 1.0], textures[1].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
         let mut materials = vec![green_material, purple_stone];
 

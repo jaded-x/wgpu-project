@@ -11,7 +11,7 @@ use super::{
     context::{create_render_pipeline, Context}, 
     egui::Egui,
     camera::Camera,
-    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex, Material}, render::Render,
+    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex, Material}, gpu::Gpu,
 };
 
 pub struct Renderer {
@@ -179,11 +179,11 @@ pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfigu
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Render<Material>>) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: Option<&mut Egui>, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError> {
         let output = context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 

@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::util::cast_slice;
 
-use super::render::Render;
+use super::gpu::Gpu;
 use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
@@ -58,7 +58,7 @@ pub async fn load_model(
         let diffuse_texture = Rc::new(load_texture(&material.diffuse_texture, device, queue).await?);
 
         let mat = Rc::new(RefCell::new(Material::new(Some(material.name), material.diffuse.into(), diffuse_texture)));
-        let material_asset = Render::new(mat.clone(), device.clone(), layout.clone(), queue.clone());
+        let material_asset = Gpu::new(mat.clone(), device.clone(), layout.clone(), queue.clone());
 
         materials.push(material_asset)
     }

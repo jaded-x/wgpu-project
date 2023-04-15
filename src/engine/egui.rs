@@ -1,10 +1,8 @@
 use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
-use crate::util::cast_slice;
-
 use super::model::Material;
-use super::render::Render;
+use super::gpu::Gpu;
 use super::{
     context::Context,
 };
@@ -36,7 +34,7 @@ impl Egui {
         }
     }
 
-    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Render<Material>>) -> egui::FullOutput {
+    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Gpu<Material>>) -> egui::FullOutput {
         self.context.run(egui_input, |context| {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
@@ -161,7 +159,7 @@ impl Egui {
         })
     }
 
-    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Render<Material>>, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
+    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
         let egui_input = self.state.take_egui_input(window);
         let egui_output = self.world_inspect(egui_input, world, materials);
         

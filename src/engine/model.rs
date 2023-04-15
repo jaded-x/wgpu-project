@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::util::cast_slice;
 
-use super::render::{Asset, Render};
+use super::gpu::{Asset, Gpu};
 
 use super::texture::Texture;
 
@@ -48,7 +48,7 @@ impl Vertex for ModelVertex {
 
 pub struct Model {
     pub meshes: Vec<Mesh>,
-    pub materials: Vec<Render<Material>>,
+    pub materials: Vec<Gpu<Material>>,
 }
 
 use egui_inspector::*;
@@ -74,7 +74,7 @@ impl Material {
     }
 }
 
-impl Render<Material> {
+impl Gpu<Material> {
     pub fn set_diffuse(&mut self, diffuse: [f32; 3]) {
         self.asset.borrow_mut().diffuse = diffuse;
         self.update_buffer(0, cast_slice(&[diffuse]));
@@ -129,12 +129,12 @@ pub trait DrawModel<'a> {
     fn draw_mesh(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Render<Material>,
+        material: &'a Gpu<Material>,
     );
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Render<Material>,
+        material: &'a Gpu<Material>,
         instances: Range<u32>,
     );
 
@@ -153,7 +153,7 @@ impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a> where 'b: 'a {
     fn draw_mesh(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Render<Material>,
+        material: &'b Gpu<Material>,
     ) {
         self.draw_mesh_instanced(mesh, material, 0..1);
     }
@@ -161,7 +161,7 @@ impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a> where 'b: 'a {
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Render<Material>,
+        material: &'b Gpu<Material>,
         instances: Range<u32>,
     ) {
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));

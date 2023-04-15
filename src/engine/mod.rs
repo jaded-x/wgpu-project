@@ -10,7 +10,7 @@ pub mod renderer;
 pub mod egui;
 pub mod input;
 pub mod window;
-pub mod render;
+pub mod gpu;
 
 pub mod components;
 pub mod primitives;

@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::util::{align::*, cast_slice};
 
-use super::{render::{Render, Asset}, components::transform::Transform};
+use super::{gpu::{Gpu, Asset}, components::transform::Transform};
 
 #[derive(Component)]
 #[storage(VecStorage)]
