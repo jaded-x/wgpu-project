@@ -179,14 +179,11 @@ pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfigu
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<wgpu::CommandBuffer, wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError> {
-        let output = context.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, window: &winit::window::Window, egui: &mut Egui, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<wgpu::CommandBuffer, wgpu::SurfaceError> {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("encoder")
         });
@@ -227,12 +224,6 @@ impl Pass for Renderer {
             }
         }
 
-        // render egui
-        let egui_buffer = egui.render(context, world, materials, window, &view);
-
-        context.queue.submit([encoder.finish(), egui_buffer].into_iter());
-        output.present();
-
-        Ok(())
+        Ok(encoder.finish())
     }
 }

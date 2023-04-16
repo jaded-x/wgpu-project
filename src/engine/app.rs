@@ -144,7 +144,15 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, window, &mut self.egui, &self.camera, &self.models, &mut self.materials)
+        let output = self.context.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let scene_buffer = self.renderer.draw(&self.context, &view, &mut self.world, window, &mut self.egui, &self.camera, &self.models, &mut self.materials).unwrap();
+        let egui_buffer = self.egui.render(&self.context, &mut self.world, &mut self.materials, window, &view);
+
+        self.context.queue.submit([scene_buffer, egui_buffer]);
+        output.present();
+        Ok(())
     }
 }
 
