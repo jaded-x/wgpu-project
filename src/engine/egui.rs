@@ -159,7 +159,7 @@ impl Egui {
         })
     }
 
-    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> wgpu::CommandBuffer {
+    pub fn draw(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError> {
         let egui_input = self.state.take_egui_input(window);
         let egui_output = self.world_inspect(egui_input, world, materials);
         
@@ -200,6 +200,7 @@ impl Egui {
             self.renderer.free_texture(&id);
         }
 
-        encoder.finish()
+        context.queue.submit([encoder.finish()]);
+        Ok(())
     }
 }
