@@ -3,6 +3,10 @@ use specs::{prelude::*, Component};
 use egui_inspector::*;
 use egui_inspector_derive::EguiInspect;
 
+use crate::engine::gpu::Asset;
+
+use std::rc::Rc;
+
 #[derive(Component, Clone, PartialEq, EguiInspect)]
 #[storage(DefaultVecStorage)]
 pub struct Transform {
@@ -73,4 +77,28 @@ fn calculate_transform_matrix(position: cg::Vector3<f32>, rotation: cg::Vector3<
         * cg::Matrix4::from_angle_z(cg::Deg(rotation.z));
     
     cg::Matrix4::from_translation(position) * rotation * cg::Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z)
+}
+
+impl Asset for Transform {
+    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
+        let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: std::mem::size_of::<cg::Matrix4<f32>>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: transform_buffer.as_entire_binding()
+                }
+            ],
+            label: None,
+        });
+
+        (vec![transform_buffer], transform_bind_group)
+    }
 }

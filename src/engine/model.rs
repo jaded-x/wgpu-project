@@ -94,7 +94,7 @@ impl Asset for Material {
         });
         
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: layout.as_ref(),
+            layout: &layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,

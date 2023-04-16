@@ -159,10 +159,14 @@ impl Egui {
         })
     }
 
-    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
+    pub fn render(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> wgpu::CommandBuffer {
         let egui_input = self.state.take_egui_input(window);
         let egui_output = self.world_inspect(egui_input, world, materials);
         
+        let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("encoder")
+        });
+
         let clipped_primitives = self.context.tessellate(egui_output.shapes);
         let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
             size_in_pixels: window.inner_size().into(),
@@ -173,7 +177,7 @@ impl Egui {
             self.renderer.update_texture(&context.device, &context.queue, id, &image);
         }
 
-        self.renderer.update_buffers(&context.device, &context.queue, encoder, &clipped_primitives, &screen_descriptor);
+        self.renderer.update_buffers(&context.device, &context.queue, &mut encoder, &clipped_primitives, &screen_descriptor);
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -195,5 +199,7 @@ impl Egui {
         for id in egui_output.textures_delta.free {
             self.renderer.free_texture(&id);
         }
+
+        encoder.finish()
     }
 }

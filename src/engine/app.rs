@@ -144,7 +144,7 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        self.renderer.draw(&self.context, &mut self.world, window, Some(&mut self.egui), &self.camera, &self.models, &mut self.materials)
+        self.renderer.draw(&self.context, &mut self.world, window, &mut self.egui, &self.camera, &self.models, &mut self.materials)
     }
 }
 

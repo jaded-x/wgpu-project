@@ -28,8 +28,6 @@ impl<T: Asset> Gpu<T> {
     }
 }
 
-
-
 pub trait Asset {
     fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
 }
