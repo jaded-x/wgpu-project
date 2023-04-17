@@ -8,7 +8,7 @@ use super::{
     camera::{Camera, CameraController, Projection},
     components::{
         mesh::Mesh,
-        transform::Transform,
+        transform::{Transform, TransformData},
         material::MaterialComponent,
         name::Name,
     }, 
@@ -18,7 +18,7 @@ use super::{
     input::InputState,
     resources,
     texture,
-    window::*, model::Model, light::Light,
+    window::*, model::Model, light::PointLight,
 };
 
 pub struct App {
@@ -75,23 +75,23 @@ impl App {
         world.register::<MaterialComponent>();
         world.register::<Mesh>();
         world.register::<Name>();
-        world.register::<Light>();
+        world.register::<PointLight>();
         world.create_entity()
             .with(Name::new("Cube"))
-            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::default(), &context.device, &renderer.transform_bind_group_layout))
             .with(Mesh::new(0))
             .with(MaterialComponent::new(0))
             .build();
         world.create_entity()
             .with(Name::new("Sphere"))
-            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::default(), &context.device, &renderer.transform_bind_group_layout))
             .with(Mesh::new(1))
             .with(MaterialComponent::new(0))
             .build();
         world.create_entity()
             .with(Name::new("Light"))
-            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
-            .with(Light::new([1.0, 1.0, 1.0]))
+            .with(Transform::new(TransformData::default(), &context.device, &renderer.transform_bind_group_layout))
+            .with(PointLight::new([1.0, 1.0, 1.0], &context.device, &renderer.light_bind_group_layout))
             .build();
 
         Self {

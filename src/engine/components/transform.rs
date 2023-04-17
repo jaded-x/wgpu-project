@@ -5,9 +5,7 @@ use wgpu::util::DeviceExt;
 use egui_inspector::*;
 use egui_inspector_derive::EguiInspect;
 
-use crate::{engine::gpu::Asset, util::cast_slice};
-
-use std::rc::Rc;
+use crate::util::cast_slice;
 
 #[derive(EguiInspect)]
 pub struct TransformData {
@@ -32,12 +30,10 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
-        let data = TransformData::default();
-        
+    pub fn new(transform: TransformData, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("transform_buffer"),
-            contents: cast_slice::<cg::Matrix4<f32>>(&[cg::SquareMatrix::identity()]),
+            contents: cast_slice(&[transform.matrix]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -53,7 +49,7 @@ impl Transform {
         });
 
         Self {
-            data,
+            data: transform,
             buffer,
             bind_group,
         }
