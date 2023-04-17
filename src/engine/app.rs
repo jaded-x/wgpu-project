@@ -10,7 +10,6 @@ use super::{
         mesh::Mesh,
         transform::Transform,
         material::MaterialComponent,
-        renderable::Renderable,
         name::Name,
     }, 
     renderer::{Renderer, Pass},
@@ -32,7 +31,6 @@ pub struct App {
     camera_controller: CameraController,
     world: World,
 
-    textures: Vec<Rc<texture::Texture>>,
     materials: Vec<Gpu<Material>>,
     models: Vec<Model>,
 }
@@ -76,34 +74,25 @@ impl App {
         world.register::<Transform>();
         world.register::<MaterialComponent>();
         world.register::<Mesh>();
-        world.register::<Renderable>();
         world.register::<Name>();
         world.register::<Light>();
         world.create_entity()
             .with(Name::new("Cube"))
-            .with(Transform::default())
+            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
             .with(Mesh::new(0))
             .with(MaterialComponent::new(0))
-            .with(Renderable::new(&context.device, &renderer)).build();
+            .build();
         world.create_entity()
             .with(Name::new("Sphere"))
-            .with(Transform::default())
+            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
             .with(Mesh::new(1))
             .with(MaterialComponent::new(0))
-            .with(Renderable::new(&context.device, &renderer)).build();
+            .build();
         world.create_entity()
             .with(Name::new("Light"))
-            .with(Transform::from_position(cg::vec3(0.0, 5.0, 0.0)))
+            .with(Transform::new(&context.device, &renderer.transform_bind_group_layout))
             .with(Light::new([1.0, 1.0, 1.0]))
             .build();
-
-        { // update buffers
-            let mut renderables = world.write_component::<Renderable>();
-            let transforms = world.read_component::<Transform>();
-            for (transform, renderable) in (&transforms, &mut renderables).join() {
-                renderable.update_transform_buffer(&context.queue, transform);
-            }
-        }
 
         Self {
             context,
@@ -113,7 +102,6 @@ impl App {
             world,
             renderer,
             egui,
-            textures,
             materials,
             models,
         }
@@ -133,21 +121,13 @@ impl App {
         self.camera_controller.update_camera(&mut self.camera, dt, &self.input);
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
-
-        // update buffers
-        let mut renderables = self.world.write_component::<Renderable>();
-        let transforms = self.world.read_component::<Transform>();
-
-        for (transform, renderable) in (&transforms, &mut renderables).join() {
-            renderable.update_transform_buffer(&self.context.queue, transform);
-        }
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
         let output = self.context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.renderer.draw(&self.context, &view, &mut self.world, window, &self.camera, &self.models, &mut self.materials)?;
+        self.renderer.draw(&self.context, &view, &mut self.world, &self.camera, &self.models, &mut self.materials)?;
         self.egui.draw(&self.context, &mut self.world, &mut self.materials, window, &view)?;
 
         output.present();
@@ -211,7 +191,11 @@ pub async fn run() {
     //         app.update(dt);
 
     //         app.input.finish_frame();
-    //         app.render(window.unwrap());
+    //         match app.render(window.unwrap()) {
+    //             Ok(_) => {}
+    //             Err(wgpu::SurfaceError::Lost) => app.resize(window.unwrap().inner_size()),
+    //             Err(e) => eprintln!("{e:?}"),
+    //         }
     //     }
     //     Events::KeyboardInput { state, virtual_keycode } => {
     //         app.input.update_keyboard(state, virtual_keycode);

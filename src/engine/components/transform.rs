@@ -1,15 +1,16 @@
 use specs::{prelude::*, Component};
 
+use wgpu::util::DeviceExt;
+
 use egui_inspector::*;
 use egui_inspector_derive::EguiInspect;
 
-use crate::engine::gpu::Asset;
+use crate::{engine::gpu::Asset, util::cast_slice};
 
 use std::rc::Rc;
 
-#[derive(Component, Clone, PartialEq, EguiInspect)]
-#[storage(DefaultVecStorage)]
-pub struct Transform {
+#[derive(EguiInspect)]
+pub struct TransformData {
     #[inspect(speed = 0.01)]
     position: cg::Vector3<f32>,
     #[inspect(widget = "Slider", min = 0.0, max = 360.0)]
@@ -21,7 +22,56 @@ pub struct Transform {
     matrix: cg::Matrix4<f32>,
 }
 
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Transform {
+    pub data: TransformData,
+
+    buffer: wgpu::Buffer,
+    pub bind_group: wgpu::BindGroup,
+}
+
 impl Transform {
+    pub fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
+        let data = TransformData::default();
+        
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("transform_buffer"),
+            contents: cast_slice::<cg::Matrix4<f32>>(&[cg::SquareMatrix::identity()]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding()
+                }
+            ],
+            label: None,
+        });
+
+        Self {
+            data,
+            buffer,
+            bind_group,
+        }
+    }
+
+    pub fn set_position(&mut self, position: cg::Vector3<f32>, queue: &wgpu::Queue) {
+        self.data.position = position;
+        self.data.update_matrix();
+        self.update_buffer(queue);
+    }
+
+    pub fn update_buffer(&self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.buffer, 0, cast_slice(&[self.data.matrix]));
+    }
+}
+
+
+impl TransformData {
     pub fn new(position: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>) -> Self {
         Self {
             position,
@@ -29,22 +79,6 @@ impl Transform {
             scale,
             matrix: calculate_transform_matrix(position, rotation, scale),
         }
-    }
-
-    pub fn from_position(position: cg::Vector3<f32>) -> Self {
-        Self {
-            position,
-            ..Default::default()
-        }
-    }
-
-    pub fn position(&mut self, position: cg::Vector3<f32>) {
-        self.position = position;
-        self.update_matrix();
-    }
-
-    pub fn get_position(&self) -> cg::Vector3<f32> {
-        self.position
     }
 
     pub fn update_matrix(&mut self) {
@@ -55,12 +89,9 @@ impl Transform {
         self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
     }
 
-    pub fn get_matrix(&self) -> cg::Matrix4<f32> {
-        self.matrix
-    }
 }
 
-impl Default for Transform {
+impl Default for TransformData {
     fn default() -> Self {
         Self { 
             position: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
@@ -77,28 +108,4 @@ fn calculate_transform_matrix(position: cg::Vector3<f32>, rotation: cg::Vector3<
         * cg::Matrix4::from_angle_z(cg::Deg(rotation.z));
     
     cg::Matrix4::from_translation(position) * rotation * cg::Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z)
-}
-
-impl Asset for Transform {
-    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
-        let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: std::mem::size_of::<cg::Matrix4<f32>>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: transform_buffer.as_entire_binding()
-                }
-            ],
-            label: None,
-        });
-
-        (vec![transform_buffer], transform_bind_group)
-    }
 }

@@ -34,7 +34,7 @@ impl Egui {
         }
     }
 
-    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Gpu<Material>>) -> egui::FullOutput {
+    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Gpu<Material>>, queue: &wgpu::Queue) -> egui::FullOutput {
         self.context.run(egui_input, |context| {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
@@ -79,9 +79,10 @@ impl Egui {
                                 egui::CollapsingHeader::new("Transform")
                                 .default_open(true)
                                 .show(ui, |ui| {
-                                    for field in transform.inspect(ui) {
-                                        if field.changed() { 
-                                            transform.update_matrix();
+                                    for field in transform.data.inspect(ui) {
+                                        if field.changed() {
+                                            transform.data.update_matrix();
+                                            transform.update_buffer(queue);
                                         }
                                     }
                                 });
@@ -161,7 +162,7 @@ impl Egui {
 
     pub fn draw(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError> {
         let egui_input = self.state.take_egui_input(window);
-        let egui_output = self.world_inspect(egui_input, world, materials);
+        let egui_output = self.world_inspect(egui_input, world, materials, &context.queue);
         
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("encoder")

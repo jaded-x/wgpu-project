@@ -5,11 +5,9 @@ use specs::prelude::*;
 use super::{
     components::{
         mesh::Mesh, 
-        renderable::Renderable,
-        material::MaterialComponent,
+        material::MaterialComponent, transform::Transform,
     },
     context::{create_render_pipeline, Context}, 
-    egui::Egui,
     camera::Camera,
     texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex, Material}, gpu::Gpu,
 };
@@ -179,18 +177,18 @@ pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfigu
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, window: &winit::window::Window, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, window: &winit::window::Window, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>) -> Result<(), wgpu::SurfaceError> {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("encoder")
         });
 
         {
             let meshes = world.read_storage::<Mesh>();
-            let renderables = world.read_storage::<Renderable>();
+            let transforms = world.read_storage::<Transform>();
             let materials_c = world.read_storage::<MaterialComponent>();
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -218,8 +216,8 @@ impl Pass for Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);
             
-            for (mesh, renderable, material) in (&meshes, &renderables, &materials_c).join()  {
-                render_pass.set_bind_group(0, &renderable.transform_bind_group, &[]);
+            for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
+                render_pass.set_bind_group(0, &transform.bind_group, &[]);
                 render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &materials[material.material_id]);
             }
         }
