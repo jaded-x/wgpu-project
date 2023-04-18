@@ -37,7 +37,7 @@ fn vs_main (
     out.position = camera.view_proj * transform.matrix * vec4<f32>(model.position, 1.0);
     out.tex_coords = model.tex_coords;
 
-    out.world_normal = model.normal;
+    out.world_normal = (transform.matrix * vec4<f32>(model.normal, 0.0)).xyz;
     var world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
     out.world_position = world_position.xyz;
 

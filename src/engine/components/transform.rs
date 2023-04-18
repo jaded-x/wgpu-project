@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use cg::num_traits::cast;
 use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
