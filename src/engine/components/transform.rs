@@ -29,7 +29,7 @@ pub struct TransformData {
 pub struct Transform {
     pub data: TransformData,
 
-    buffers: HashMap<&'static str, wgpu::Buffer>,
+    pub buffers: HashMap<&'static str, wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
 }
 

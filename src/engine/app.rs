@@ -18,7 +18,7 @@ use super::{
     input::InputState,
     resources,
     texture,
-    window::*, model::Model, light::PointLight,
+    window::*, model::Model, light::PointLight, light_manager::LightManager,
 };
 
 pub struct App {
@@ -33,6 +33,8 @@ pub struct App {
 
     materials: Vec<Gpu<Material>>,
     models: Vec<Model>,
+
+    light_manager: LightManager,
 }
 
 impl App {
@@ -91,8 +93,10 @@ impl App {
         world.create_entity()
             .with(Name::new("Light"))
             .with(Transform::new(TransformData::default(), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([1.0, 1.0, 1.0], &context.device, &renderer.light_bind_group_layout))
+            .with(PointLight::new([1.0, 1.0, 1.0], &context.device))
             .build();
+
+        let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
 
 
         Self {
@@ -105,6 +109,7 @@ impl App {
             egui,
             materials,
             models,
+            light_manager
         }
     }
 
@@ -128,7 +133,7 @@ impl App {
         let output = self.context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.renderer.draw(&self.context, &view, &mut self.world, &self.camera, &self.models, &mut self.materials)?;
+        self.renderer.draw(&self.context, &view, &mut self.world, &self.camera, &self.models, &mut self.materials, &self.light_manager)?;
         self.egui.draw(&self.context, &mut self.world, &mut self.materials, window, &view)?;
 
         output.present();
