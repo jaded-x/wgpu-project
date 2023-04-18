@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use cg::num_traits::cast;
 use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
@@ -6,6 +9,7 @@ use egui_inspector::*;
 use egui_inspector_derive::EguiInspect;
 
 use crate::util::cast_slice;
+
 
 #[derive(EguiInspect)]
 pub struct TransformData {
@@ -25,15 +29,21 @@ pub struct TransformData {
 pub struct Transform {
     pub data: TransformData,
 
-    buffer: wgpu::Buffer,
+    buffers: HashMap<&'static str, wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
 }
 
 impl Transform {
     pub fn new(transform: TransformData, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("transform_buffer"),
+        let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("matrix_buffer"),
             contents: cast_slice(&[transform.matrix]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let position_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("position_buffer"),
+            contents: cast_slice(&[transform.position]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -42,7 +52,7 @@ impl Transform {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: buffer.as_entire_binding()
+                    resource: matrix_buffer.as_entire_binding()
                 }
             ],
             label: None,
@@ -50,7 +60,7 @@ impl Transform {
 
         Self {
             data: transform,
-            buffer,
+            buffers: HashMap::from([("matrix", matrix_buffer), ("position", position_buffer)]),
             bind_group,
         }
     }
@@ -58,11 +68,12 @@ impl Transform {
     pub fn set_position(&mut self, position: cg::Vector3<f32>, queue: &wgpu::Queue) {
         self.data.position = position;
         self.data.update_matrix();
-        self.update_buffer(queue);
+        self.update_buffers(queue);
     }
 
-    pub fn update_buffer(&self, queue: &wgpu::Queue) {
-        queue.write_buffer(&self.buffer, 0, cast_slice(&[self.data.matrix]));
+    pub fn update_buffers(&self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.buffers.get("matrix").unwrap(), 0, cast_slice(&[self.data.matrix]));
+        queue.write_buffer(&self.buffers.get("position").unwrap(), 0, cast_slice(&[self.data.position]));
     }
 }
 

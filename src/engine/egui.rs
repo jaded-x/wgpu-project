@@ -82,7 +82,7 @@ impl Egui {
                                     for field in transform.data.inspect(ui) {
                                         if field.changed() {
                                             transform.data.update_matrix();
-                                            transform.update_buffer(queue);
+                                            transform.update_buffers(queue);
                                         }
                                     }
                                 });

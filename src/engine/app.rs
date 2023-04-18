@@ -94,6 +94,7 @@ impl App {
             .with(PointLight::new([1.0, 1.0, 1.0], &context.device, &renderer.light_bind_group_layout))
             .build();
 
+
         Self {
             context,
             input,
