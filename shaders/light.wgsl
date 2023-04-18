@@ -25,6 +25,8 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) world_normal: vec3<f32>,
+    @location(2) world_position: vec3<f32>,
 };
 
 @vertex
@@ -34,6 +36,10 @@ fn vs_main (
     var out: VertexOutput;
     out.position = camera.view_proj * transform.matrix * vec4<f32>(model.position, 1.0);
     out.tex_coords = model.tex_coords;
+
+    out.world_normal = model.normal;
+    var world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
+    out.world_position = world_position.xyz;
 
     return out;
 }
@@ -52,7 +58,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let ambient_strength = 0.1;
     let ambient_color = light_color * ambient_strength;
 
-    let result = ambient_color * object_color.xyz;
+    let light_dir = normalize(light_position - in.world_position);
+
+    let diffuse_strength = max(dot(in.world_normal, light_dir), 0.0);
+    let diffuse_color = light_color * diffuse_strength;
+
+    let result = (ambient_color + diffuse_color) * object_color.xyz;
 
     return vec4<f32>(result, object_color.a);
 }
