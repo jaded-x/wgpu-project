@@ -1,5 +1,6 @@
 struct Transform {
     matrix: mat4x4<f32>,
+    ti_matrix: mat4x4<f32>,
 }
 @group(0) @binding(0)
 var<uniform> transform: Transform;
@@ -37,7 +38,7 @@ fn vs_main (
     out.position = camera.view_proj * transform.matrix * vec4<f32>(model.position, 1.0);
     out.tex_coords = model.tex_coords;
 
-    out.world_normal = (transform.matrix * vec4<f32>(model.normal, 0.0)).xyz;
+    out.world_normal = (transform.ti_matrix * vec4<f32>(model.normal, 1.0)).xyz;
     var world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
     out.world_position = world_position.xyz;
 

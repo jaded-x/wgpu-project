@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use cg::Matrix;
+use cg::Transform as CGTransform;
 use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
@@ -21,6 +23,8 @@ pub struct TransformData {
 
     #[inspect(hide = true)]
     matrix: cg::Matrix4<f32>,
+    #[inspect(hide = true)]
+    ti_matrix: cg::Matrix4<f32>,
 }
 
 #[derive(Component)]
@@ -36,7 +40,7 @@ impl Transform {
     pub fn new(transform: TransformData, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("matrix_buffer"),
-            contents: cast_slice(&[transform.matrix]),
+            contents: cast_slice(&[transform.matrix, transform.ti_matrix]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -71,7 +75,7 @@ impl Transform {
     }
 
     pub fn update_buffers(&self, queue: &wgpu::Queue) {
-        queue.write_buffer(&self.buffers.get("matrix").unwrap(), 0, cast_slice(&[self.data.matrix]));
+        queue.write_buffer(&self.buffers.get("matrix").unwrap(), 0, cast_slice(&[self.data.matrix, self.data.ti_matrix]));
         queue.write_buffer(&self.buffers.get("position").unwrap(), 0, cast_slice(&[self.data.position]));
     }
 }
@@ -79,11 +83,15 @@ impl Transform {
 
 impl TransformData {
     pub fn new(position: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>) -> Self {
+        
+        let matrix = calculate_transform_matrix(position, rotation, scale);
+
         Self {
             position,
             rotation,
             scale,
-            matrix: calculate_transform_matrix(position, rotation, scale),
+            matrix,
+            ti_matrix: matrix.transpose().inverse_transform().unwrap()
         }
     }
 
@@ -92,18 +100,23 @@ impl TransformData {
             * cg::Matrix4::from_angle_y(cg::Deg(self.rotation.y))
             * cg::Matrix4::from_angle_z(cg::Deg(self.rotation.z));
         
-        self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
+        self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
+
+        self.ti_matrix = self.matrix.transpose().inverse_transform().unwrap();
     }
 
 }
 
 impl Default for TransformData {
     fn default() -> Self {
+        let matrix: cg::Matrix4<f32> = cg::SquareMatrix::identity();
+
         Self { 
             position: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
             matrix: cg::SquareMatrix::identity(),
+            ti_matrix: matrix.transpose().inverse_transform().unwrap(),
         }
     }
 }
