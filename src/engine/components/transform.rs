@@ -18,7 +18,7 @@ pub struct TransformData {
     position: cg::Vector3<f32>,
     #[inspect(widget = "Slider", min = 0.0, max = 360.0)]
     rotation: cg::Vector3<f32>,
-    #[inspect(speed = 0.01)]
+    #[inspect(speed = 0.01, min = 0.0001, max = 100.0)]
     scale: cg::Vector3<f32>,
 
     #[inspect(hide = true)]
