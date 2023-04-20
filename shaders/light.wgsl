@@ -38,7 +38,7 @@ fn vs_main (
     out.position = camera.view_proj * transform.matrix * vec4<f32>(model.position, 1.0);
     out.tex_coords = model.tex_coords;
 
-    out.world_normal = (transform.ti_matrix * vec4<f32>(model.normal, 1.0)).xyz;
+    out.world_normal = normalize(transform.ti_matrix * vec4<f32>(model.normal, 0.0)).xyz;
     var world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
     out.world_position = world_position.xyz;
 
@@ -61,12 +61,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let light_dir = normalize(light_position - in.world_position);
     let view_dir = normalize(camera.view_pos.xyz - in.world_position);
-    let reflect_dir = reflect(-light_dir, in.world_normal);
+    let half_dir = normalize(view_dir + light_dir);
 
     let diffuse_strength = max(dot(in.world_normal, light_dir), 0.0);
     let diffuse_color = light_color * diffuse_strength;
 
-    let specular_strength = pow(max(dot(view_dir, reflect_dir), 0.0), 32.0);
+    let specular_strength = pow(max(dot(in.world_normal, half_dir), 0.0), 32.0);
     let specular_color = specular_strength * light_color;
 
     let result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;

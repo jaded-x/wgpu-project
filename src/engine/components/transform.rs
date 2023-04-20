@@ -14,7 +14,7 @@ use crate::util::cast_slice;
 
 #[derive(EguiInspect)]
 pub struct TransformData {
-    #[inspect(speed = 0.01)]
+    #[inspect(speed = 0.01, min = -1000.0, max = 1000.0)]
     position: cg::Vector3<f32>,
     #[inspect(widget = "Slider", min = 0.0, max = 360.0)]
     rotation: cg::Vector3<f32>,
@@ -91,7 +91,7 @@ impl TransformData {
             rotation,
             scale,
             matrix,
-            ti_matrix: matrix.transpose().inverse_transform().unwrap()
+            ti_matrix: matrix.inverse_transform().unwrap().transpose(),
         }
     }
 
@@ -102,7 +102,7 @@ impl TransformData {
         
         self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
 
-        self.ti_matrix = self.matrix.transpose().inverse_transform().unwrap();
+        self.ti_matrix = self.matrix.inverse_transform().unwrap().transpose();
     }
 
 }
@@ -116,7 +116,7 @@ impl Default for TransformData {
             rotation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
             matrix: cg::SquareMatrix::identity(),
-            ti_matrix: matrix.transpose().inverse_transform().unwrap(),
+            ti_matrix: matrix.inverse_transform().unwrap().transpose(),
         }
     }
 }
