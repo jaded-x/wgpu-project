@@ -1,13 +1,17 @@
+use egui_inspector_derive::EguiInspect;
+use egui_inspector::*;
 use specs::{prelude::*, Component};
 use wgpu::util::DeviceExt;
 
 use crate::util::{cast_slice, align::Align16};
 
-#[derive(Component)]
+#[derive(Component, EguiInspect)]
 #[storage(VecStorage)]
 pub struct PointLight {
+    #[inspect(widget = "Color")]
     diffuse_color: [f32; 3],
 
+    #[inspect(hide = true)]
     pub color_buffer: wgpu::Buffer,
 }
 
@@ -23,5 +27,9 @@ impl PointLight {
             diffuse_color,
             color_buffer,
         }
+    }
+
+    pub fn update_buffer(&self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.color_buffer, 0, cast_slice(&[Align16(self.diffuse_color)]));
     }
 }

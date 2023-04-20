@@ -1,6 +1,7 @@
 use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
+use super::light::PointLight;
 use super::model::Material;
 use super::gpu::Gpu;
 use super::{
@@ -115,6 +116,19 @@ impl Egui {
                                     .default_open(true)
                                     .show(ui, |ui| {
                                         mesh.inspect(ui);
+                                    });
+                            }
+
+                            let mut lights = world.write_component::<PointLight>();
+                            if let Some(light) = lights.get_mut(entity) {
+                                egui::CollapsingHeader::new("Point Light")
+                                    .default_open(true)
+                                    .show(ui, |ui| {
+                                        for field in light.inspect(ui) {
+                                            if field.changed() {
+                                                light.update_buffer(queue);
+                                            }
+                                        }
                                     });
                             }
                         } else if let Some(material) = &mut self.material {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use cg::Matrix;
-use cg::Transform as CGTransform;
+use cg::SquareMatrix;
 use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
@@ -91,7 +91,7 @@ impl TransformData {
             rotation,
             scale,
             matrix,
-            ti_matrix: matrix.inverse_transform().unwrap().transpose(),
+            ti_matrix: matrix.invert().unwrap().transpose(),
         }
     }
 
@@ -102,7 +102,7 @@ impl TransformData {
         
         self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
 
-        self.ti_matrix = self.matrix.inverse_transform().unwrap().transpose();
+        self.ti_matrix = self.matrix.invert().unwrap().transpose();
     }
 
 }
@@ -116,7 +116,7 @@ impl Default for TransformData {
             rotation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
             matrix: cg::SquareMatrix::identity(),
-            ti_matrix: matrix.inverse_transform().unwrap().transpose(),
+            ti_matrix: matrix.invert().unwrap().transpose(),
         }
     }
 }
