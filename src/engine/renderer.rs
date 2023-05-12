@@ -102,7 +102,7 @@ impl Renderer {
                     binding: 0,
                     visibility:wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
                         min_binding_size: None,
                         has_dynamic_offset: false,
                     },
@@ -226,7 +226,7 @@ impl Pass for Renderer {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);
-            render_pass.set_bind_group(3, &lights.bind_groups[0], &[]);
+            render_pass.set_bind_group(3, &lights.bind_group, &[]);
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);

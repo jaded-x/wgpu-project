@@ -92,7 +92,12 @@ impl App {
             .build();
         world.create_entity()
             .with(Name::new("Light"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(-5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(PointLight::new([1.0, 1.0, 1.0], &context.device))
+            .build();
+        world.create_entity()
+            .with(Name::new("Light 2"))
+            .with(Transform::new(TransformData::new(cg::vec3(5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
             .with(PointLight::new([1.0, 1.0, 1.0], &context.device))
             .build();
 

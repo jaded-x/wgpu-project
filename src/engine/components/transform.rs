@@ -9,6 +9,7 @@ use wgpu::util::DeviceExt;
 use egui_inspector::*;
 use egui_inspector_derive::EguiInspect;
 
+use crate::util::align::Align16;
 use crate::util::cast_slice;
 
 
@@ -46,7 +47,7 @@ impl Transform {
 
         let position_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("position_buffer"),
-            contents: cast_slice(&[transform.position]),
+            contents: cast_slice(&[Align16(transform.position)]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -72,6 +73,10 @@ impl Transform {
         self.data.position = position;
         self.data.update_matrix();
         self.update_buffers(queue);
+    }
+
+    pub fn get_position(&self) -> cg::Vector3<f32> {
+        self.data.position
     }
 
     pub fn update_buffers(&self, queue: &wgpu::Queue) {

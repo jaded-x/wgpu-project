@@ -26,7 +26,7 @@ impl Context {
 
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
-                features:wgpu::Features::empty(),
+                features: wgpu::Features::BUFFER_BINDING_ARRAY,
                 limits: if cfg!(target_arch = "wasm32") {
                     wgpu::Limits::downlevel_webgl2_defaults()
                 } else {
@@ -36,6 +36,7 @@ impl Context {
             },
             None,
         ).await.unwrap();
+
 
         let queue = Rc::new(queue);
         let device = Rc::new(device);

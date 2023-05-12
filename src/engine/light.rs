@@ -29,6 +29,10 @@ impl PointLight {
         }
     }
 
+    pub fn get_color(&self) -> cg::Vector3<f32> {
+        cg::vec3(self.diffuse_color[0], self.diffuse_color[1], self.diffuse_color[2])
+    }
+
     pub fn update_buffer(&self, queue: &wgpu::Queue) {
         queue.write_buffer(&self.color_buffer, 0, cast_slice(&[Align16(self.diffuse_color)]));
     }
