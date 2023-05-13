@@ -91,14 +91,19 @@ impl App {
             .with(MaterialComponent::new(0))
             .build();
         world.create_entity()
-            .with(Name::new("Light"))
+            .with(Name::new("Light 1"))
             .with(Transform::new(TransformData::new(cg::vec3(-5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([1.0, 1.0, 1.0], &context.device))
+            .with(PointLight::new([1.0, 1.0, 1.0]))
             .build();
         world.create_entity()
             .with(Name::new("Light 2"))
             .with(Transform::new(TransformData::new(cg::vec3(5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([1.0, 1.0, 1.0], &context.device))
+            .with(PointLight::new([1.0, 0.0, 0.0]))
+            .build();
+        world.create_entity()
+            .with(Name::new("Light 3"))
+            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 3.5), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(PointLight::new([0.0, 1.0, 0.0]))
             .build();
 
         let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
@@ -139,7 +144,7 @@ impl App {
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         self.renderer.draw(&self.context, &view, &mut self.world, &self.camera, &self.models, &mut self.materials, &self.light_manager)?;
-        self.egui.draw(&self.context, &mut self.world, &mut self.materials, window, &view)?;
+        self.egui.draw(&self.context, &mut self.world, &self.light_manager, &mut self.materials, window, &view)?;
 
         output.present();
         Ok(())

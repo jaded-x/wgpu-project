@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, num::NonZeroU32};
 
 use specs::prelude::*;
 
@@ -106,7 +106,7 @@ impl Renderer {
                         min_binding_size: None,
                         has_dynamic_offset: false,
                     },
-                    count: None,
+                    count: Some(NonZeroU32::new(2).unwrap()),
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,

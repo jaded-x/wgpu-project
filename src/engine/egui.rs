@@ -2,6 +2,7 @@ use egui_inspector::EguiInspect;
 use specs::{*, WorldExt};
 
 use super::light::PointLight;
+use super::light_manager::LightManager;
 use super::model::Material;
 use super::gpu::Gpu;
 use super::{
@@ -21,6 +22,7 @@ pub struct Egui {
     entity: Option<specs::Entity>,
     material_id: Option<usize>,
     material: Option<Material>,
+    light_index: Option<u64>,
 }
 
 impl Egui {
@@ -32,10 +34,11 @@ impl Egui {
             entity: None,
             material: None,
             material_id: None,
+            light_index: None,
         }
     }
 
-    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, materials: &mut Vec<Gpu<Material>>, queue: &wgpu::Queue) -> egui::FullOutput {
+    pub fn world_inspect(&mut self, egui_input: egui::RawInput, world: &specs::World, light_manager: &LightManager, materials: &mut Vec<Gpu<Material>>, queue: &wgpu::Queue) -> egui::FullOutput {
         self.context.run(egui_input, |context| {
             let style: egui::Style = (*context.style()).clone();
             context.set_style(style);
@@ -84,6 +87,9 @@ impl Egui {
                                         if field.changed() {
                                             transform.data.update_matrix();
                                             transform.update_buffers(queue);
+                                            if self.light_index.is_some() {
+                                                light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position())
+                                            }
                                         }
                                     }
                                 });
@@ -126,7 +132,7 @@ impl Egui {
                                     .show(ui, |ui| {
                                         for field in light.inspect(ui) {
                                             if field.changed() {
-                                                light.update_buffer(queue);
+                                                light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color())
                                             }
                                         }
                                     });
@@ -151,6 +157,10 @@ impl Egui {
                         ui.separator();
                         let names = world.read_component::<Name>();
                         let materials_component = world.read_component::<MaterialComponent>();
+
+                        let point_light_component = world.read_component::<PointLight>();
+                        let mut light_index = 0;
+
                         for entity in world.entities().join() {
                             let name = names.get(entity).unwrap();
                             let res = ui.add(egui::Button::new(name.0.to_string()));
@@ -162,7 +172,16 @@ impl Egui {
                                     self.material = None;
                                     self.material_id = None;
                                 }
+
+                                if point_light_component.get(entity).is_some() {
+                                    self.light_index = Some(light_index);
+                                } else {
+                                    self.light_index = None;
+                                }
                                 self.entity = Some(entity)
+                            }
+                            if point_light_component.get(entity).is_some() {
+                                light_index += 1;
                             }
                         }
                     });
@@ -174,9 +193,9 @@ impl Egui {
         })
     }
 
-    pub fn draw(&mut self, context: &Context, world: &mut World, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError> {
+    pub fn draw(&mut self, context: &Context, world: &mut World, lights: &LightManager, materials: &mut Vec<Gpu<Material>>, window: &winit::window::Window, view: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError> {
         let egui_input = self.state.take_egui_input(window);
-        let egui_output = self.world_inspect(egui_input, world, materials, &context.queue);
+        let egui_output = self.world_inspect(egui_input, world, lights, materials, &context.queue);
         
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("encoder")

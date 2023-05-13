@@ -5,6 +5,7 @@ use crate::util::{cast_slice, align::Align16};
 
 use super::{light::PointLight, components::transform::Transform};
 
+#[derive(Clone)]
 struct LightData {
     _position: Align16<cg::Vector3<f32>>,
     _color: Align16<cg::Vector3<f32>>
@@ -19,10 +20,11 @@ pub struct LightManager {
 impl LightManager {
     pub fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout, world: &World) -> Self {
         let mut lights = Vec::new();
-        let mut light_count: i32 = 0;
 
         let transform_components = world.read_component::<Transform>();
         let light_components = world.read_component::<PointLight>();
+
+        let light_count = light_components.count() as i32;
 
         for (transform, light) in (&transform_components, &light_components).join() {
             let transform_data = transform.get_position();
@@ -32,18 +34,18 @@ impl LightManager {
                 _position: Align16(transform_data),
                 _color: Align16(light_data)
             });
-
-            light_count += 1;
         }
 
+        let lights_data = lights.clone();
+
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("position_buffer"),
-            contents: cast_slice(&lights.into_boxed_slice()),
+            label: Some("light_data_buffer"),
+            contents: cast_slice(&lights_data.into_boxed_slice()),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         });
 
         let count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("position_buffer"),
+            label: Some("light_count_buffer"),
             contents: cast_slice(&[light_count]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
@@ -68,5 +70,13 @@ impl LightManager {
             buffer,
             count_buffer
         }
+    }
+
+    pub fn update_light_position(&self, queue: &wgpu::Queue, index: u64, data: cg::Vector3<f32>) {
+        queue.write_buffer(&self.buffer, std::mem::size_of::<LightData>() as u64 * index, cast_slice(&[data]));
+    }
+
+    pub fn update_light_data(&self, queue: &wgpu::Queue, index: u64, data: cg::Vector3<f32>) {
+        queue.write_buffer(&self.buffer, std::mem::size_of::<LightData>() as u64 * index + 16, cast_slice(&[data]));
     }
 }
