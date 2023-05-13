@@ -62,6 +62,7 @@ pub struct Material {
     pub diffuse: [f32; 3],
     #[inspect(hide = true)]
     diffuse_texture: Rc<Texture>,
+    
 }
 
 impl Material {

@@ -51,20 +51,6 @@ impl Egui {
                 ..Default::default()
             };
 
-            egui::Window::new("Materials")
-                .resizable(true)
-                .constrain(true)
-                .show(&context, |ui| {
-                    for (i, material) in materials.iter().enumerate() {
-                        let res = ui.add(egui::Button::new(i.to_string()));
-                        if res.clicked() { 
-                            self.entity = None;
-                            self.material_id = Some(i);
-                            self.material = Some(material.asset.borrow().clone());
-                        }
-                    }
-                });
-
             egui::SidePanel::right("Inspector")
                 .default_width(200.0)
                 .resizable(true)

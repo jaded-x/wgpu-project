@@ -87,23 +87,11 @@ impl App {
         world.create_entity()
             .with(Name::new("Sphere"))
             .with(Transform::new(TransformData::default(), &context.device, &renderer.transform_bind_group_layout))
-            .with(Mesh::new(1))
-            .with(MaterialComponent::new(0))
             .build();
         world.create_entity()
             .with(Name::new("Light 1"))
-            .with(Transform::new(TransformData::new(cg::vec3(-5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(-5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.2, 0.2, 0.2)), &context.device, &renderer.transform_bind_group_layout))
             .with(PointLight::new([1.0, 1.0, 1.0]))
-            .build();
-        world.create_entity()
-            .with(Name::new("Light 2"))
-            .with(Transform::new(TransformData::new(cg::vec3(5.0, 3.0, 0.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([1.0, 0.0, 0.0]))
-            .build();
-        world.create_entity()
-            .with(Name::new("Light 3"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 3.5), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([0.0, 1.0, 0.0]))
             .build();
 
         let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
