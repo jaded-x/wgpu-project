@@ -1726,6 +1726,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
 
 [[package]]
+name = "reverie_engine"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cgmath",
+ "egui",
+ "egui-wgpu",
+ "egui-winit",
+ "egui_inspector",
+ "egui_inspector_derive",
+ "env_logger",
+ "fs_extra",
+ "glob",
+ "image",
+ "instant",
+ "log",
+ "pollster",
+ "specs",
+ "tobj",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2444,30 +2468,6 @@ dependencies = [
  "web-sys",
  "wgpu-types",
  "winapi",
-]
-
-[[package]]
-name = "wgpu-project"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cgmath",
- "egui",
- "egui-wgpu",
- "egui-winit",
- "egui_inspector",
- "egui_inspector_derive",
- "env_logger",
- "fs_extra",
- "glob",
- "image",
- "instant",
- "log",
- "pollster",
- "specs",
- "tobj",
- "wgpu",
- "winit",
 ]
 
 [[package]]

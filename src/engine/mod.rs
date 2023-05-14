@@ -1,4 +1,3 @@
-pub mod app;
 pub mod texture;
 pub mod camera;
 pub mod instance;
@@ -7,7 +6,6 @@ pub mod resources;
 pub mod light;
 pub mod context;
 pub mod renderer;
-pub mod egui;
 pub mod input;
 pub mod window;
 pub mod gpu;
