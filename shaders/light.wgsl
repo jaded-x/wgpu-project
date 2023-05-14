@@ -34,8 +34,10 @@ struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
     @location(1) tangent_position: vec3<f32>,
-    @location(2) tangent_light_position: vec3<f32>,
-    @location(3) tangent_view_position: vec3<f32>,
+    @location(2) tangent_view_position: vec3<f32>,
+    @location(3) tangent_matrix_0: vec3<f32>,
+    @location(4) tangent_matrix_1: vec3<f32>,
+    @location(5) tangent_matrix_2: vec3<f32>,
 };
 
 @vertex
@@ -66,7 +68,9 @@ fn vs_main (
     out.tex_coords = model.tex_coords;
     out.tangent_position = tangent_matrix * world_position.xyz;
     out.tangent_view_position = tangent_matrix * camera.view_pos.xyz;
-    out.tangent_light_position = tangent_matrix * lights[0].position;
+    out.tangent_matrix_0 = vec3<f32>(tangent_matrix[0]);
+    out.tangent_matrix_1 = vec3<f32>(tangent_matrix[1]);
+    out.tangent_matrix_2 = vec3<f32>(tangent_matrix[2]);
 
     return out;
 }
@@ -85,19 +89,21 @@ var s_normal: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let tangent_matrix = mat3x3<f32>(in.tangent_matrix_0, in.tangent_matrix_1, in.tangent_matrix_2);
+
     let object_color: vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords)* vec4<f32>(diffuse_color, 1.0);
     let object_normal: vec4<f32> = textureSample(t_normal, s_normal, in.tex_coords);
 
     let tangent_normal = normalize(object_normal.xyz * 2.0 - 1.0);
-    let light_dir = normalize(in.tangent_light_position - in.tangent_position);
+    var light_dir = normalize((tangent_matrix * lights[0].position) - in.tangent_position);
     let view_dir = normalize(in.tangent_view_position - in.tangent_position);
-
 
     var result = calculate_point_light(lights[0], in.tangent_position, tangent_normal, view_dir, light_dir);
 
-    // for (var i: i32 = 1; i < light_count; i++) {
-    //     result += calculate_point_light(lights[i], in.tangent_position, tangent_normal, view_dir, light_dir);
-    // }
+    for (var i = 1; i < light_count; i = i + 1) {
+        var light_dir = normalize((tangent_matrix * lights[i].position) - in.tangent_position);
+        result += calculate_point_light(lights[i], in.tangent_position, tangent_normal, view_dir, light_dir);
+    }
 
     result *= object_color.xyz;
 

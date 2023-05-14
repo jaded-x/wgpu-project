@@ -56,14 +56,15 @@ impl App {
         let default_diffuse_texture = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_diffuse_texture.jpg"), "default_diffuse_texture.jpg", false).unwrap());
         let stone_tex = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/brickwall.jpg"), "brickwall.jpg", false).unwrap());
         let stone_normal = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/brickwall_normal.jpg"), "brickwall_normal.jpg", true).unwrap());
+        let default_normal = Rc::new(texture::Texture::from_bytes(&context.device, &context.queue, include_bytes!("../../res/default_normal_texture.jpg"), "default_normal_texture.jpg", true).unwrap());
 
-        let textures = vec![default_diffuse_texture, stone_tex, stone_normal];
+        let textures = vec![default_diffuse_texture, stone_tex, stone_normal, default_normal];
 
         let plane_model = resources::load_model("plane.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let cube_model = resources::load_model("cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let mut models = vec![cube_model, plane_model];
 
-        let green_material = Gpu::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], textures[0].clone(), textures[2].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
+        let green_material = Gpu::new(Rc::new(RefCell::new(Material::new(Some("Flat Color".to_string()), [0.0, 1.0, 0.0], textures[0].clone(), textures[3].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
         let purple_stone = Gpu::new(Rc::new(RefCell::new(Material::new(Some("Stone".to_string()), [1.0, 1.0, 1.0], textures[1].clone(), textures[2].clone()))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone());
 
         let mut materials = vec![green_material, purple_stone];
@@ -91,8 +92,17 @@ impl App {
             .build();
         world.create_entity()
             .with(Name::new("Light 1"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.2, 0.2, 0.2)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
             .with(PointLight::new([1.0, 1.0, 1.0]))
+            .with(Mesh::new(0))
+            .with(MaterialComponent::new(0))
+            .build();
+        world.create_entity()
+            .with(Name::new("Light 2"))
+            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
+            .with(PointLight::new([1.0, 1.0, 1.0]))
+            .with(Mesh::new(0))
+            .with(MaterialComponent::new(0))
             .build();
 
         let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
