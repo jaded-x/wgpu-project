@@ -1,4 +1,4 @@
-use std::{rc::Rc, num::NonZeroU32};
+use std::rc::Rc;
 
 use specs::prelude::*;
 
@@ -76,6 +76,22 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
             ],
             label: Some("material_bind_group_layout"),
         }));
@@ -100,13 +116,13 @@ impl Renderer {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
                         min_binding_size: None,
                         has_dynamic_offset: false,
                     },
-                    count: Some(NonZeroU32::new(2).unwrap()),
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
