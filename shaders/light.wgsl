@@ -91,7 +91,7 @@ var s_normal: sampler;
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let tangent_matrix = mat3x3<f32>(in.tangent_matrix_0, in.tangent_matrix_1, in.tangent_matrix_2);
 
-    let object_color: vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords)* vec4<f32>(diffuse_color, 1.0);
+    let object_color: vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords) * vec4<f32>(diffuse_color, 1.0);
     let object_normal: vec4<f32> = textureSample(t_normal, s_normal, in.tex_coords);
 
     let tangent_normal = normalize(object_normal.xyz * 2.0 - 1.0);
@@ -107,14 +107,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     result *= object_color.xyz;
 
-    return vec4<f32>(result, object_color.a);
+    let gamma = 2.2;
+
+    return vec4<f32>(pow(result, vec3(1.0 / gamma)), object_color.a);
 }
 
 fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
     let distance = length(light.position - tangent_position);
     let attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
 
-    let ambient_strength = 0.1;
+    let ambient_strength = 0.005;
     let ambient_color = light.color * ambient_strength * attenuation;
 
     let half_dir = normalize(view_dir + light_dir);
