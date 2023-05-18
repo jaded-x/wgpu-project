@@ -6,20 +6,17 @@ use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
 
-use egui_inspector::*;
-use egui_inspector_derive::EguiInspect;
-
 use crate::util::align::Align16;
 use crate::util::cast_slice;
 
+use imgui_inspector_derive::ImguiInspect;
+use imgui_inspector::*;
 
-#[derive(EguiInspect)]
+#[derive(ImguiInspect)]
 pub struct TransformData {
-    #[inspect(speed = 0.01, min = -1000.0, max = 1000.0)]
     position: cg::Vector3<f32>,
-    #[inspect(widget = "Slider", min = 0.0, max = 360.0)]
     rotation: cg::Vector3<f32>,
-    #[inspect(speed = 0.01, min = 0.0001, max = 100.0)]
+    #[inspect(min = 0.001, max = 100.0)]
     scale: cg::Vector3<f32>,
 
     #[inspect(hide = true)]

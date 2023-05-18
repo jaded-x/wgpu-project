@@ -63,18 +63,11 @@ pub struct Model {
     pub materials: Vec<Gpu<Material>>,
 }
 
-use egui_inspector::*;
-use egui_inspector_derive::EguiInspect;
-
-#[derive(Clone, EguiInspect)]
+#[derive(Clone)]
 pub struct Material {
-    #[inspect(hide = true)]
     pub name: Option<String>,
-    #[inspect(widget = "Color")]
     pub diffuse: [f32; 3],
-    #[inspect(hide = true)]
     diffuse_texture: Rc<Texture>,
-    #[inspect(hide = true)]
     normal_texture: Rc<Texture>,
 }
 

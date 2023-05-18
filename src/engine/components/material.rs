@@ -1,8 +1,6 @@
-use egui_inspector::*;
-use egui_inspector_derive::EguiInspect;
 use specs::{Component, VecStorage};
 
-#[derive(Component, EguiInspect)]
+#[derive(Component)]
 #[storage(VecStorage)]
 pub struct MaterialComponent {
     pub material_id: usize,

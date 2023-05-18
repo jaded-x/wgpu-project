@@ -1,8 +1,6 @@
-use egui_inspector_derive::EguiInspect;
-use egui_inspector::*;
 use specs::{Component, VecStorage};
 
-#[derive(Component, EguiInspect)]
+#[derive(Component)]
 #[storage(VecStorage)]
 pub struct Mesh {
     pub mesh_id: usize,

@@ -1,11 +1,8 @@
-use egui_inspector_derive::EguiInspect;
-use egui_inspector::*;
 use specs::{prelude::*, Component};
 
-#[derive(Component, EguiInspect)]
+#[derive(Component)]
 #[storage(VecStorage)]
 pub struct PointLight {
-    #[inspect(widget = "Color")]
     diffuse_color: [f32; 3],
 }
 
