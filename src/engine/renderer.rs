@@ -27,10 +27,11 @@ impl Renderer {
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
+        extent: &wgpu::Extent3d,
     ) -> Self {
         let clear_color = wgpu::Color::BLACK;
 
-        let (texture_view, depth_texture) = create_depth_texture(device, config);
+        let (texture_view, depth_texture) = create_depth_texture(device, extent);
 
         let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -176,19 +177,15 @@ impl Renderer {
         }
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) {
-        (self.texture_view, self.depth_texture) = create_depth_texture(device, config);
+    pub fn resize(&mut self, device: &wgpu::Device, extent: &wgpu::Extent3d) {
+        (self.texture_view, self.depth_texture) = create_depth_texture(device, extent);
     }
 }
 
-pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> (wgpu::TextureView, texture::Texture){
+pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (wgpu::TextureView, texture::Texture){
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("texture"),
-        size: wgpu::Extent3d {
-            width: 800,
-            height: 600,
-            depth_or_array_layers: 1,
-        },
+        size: *extent,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -198,7 +195,7 @@ pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfigu
     });
 
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+    let depth_texture = Texture::create_depth_texture(&device, extent, "depth_texture");
 
     (texture_view, depth_texture)
 }

@@ -89,7 +89,7 @@ impl Camera {
 }
 
 pub struct Projection {
-    aspect: f32,
+    pub aspect: f32,
     fovy: cg::Rad<f32>,
     znear: f32,
     zfar: f32,

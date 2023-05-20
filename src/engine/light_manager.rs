@@ -72,11 +72,11 @@ impl LightManager {
         }
     }
 
-    pub fn update_light_position(&self, queue: &wgpu::Queue, index: u64, data: cg::Vector3<f32>) {
-        queue.write_buffer(&self.buffer, std::mem::size_of::<LightData>() as u64 * index, cast_slice(&[data]));
+    pub fn update_light_position(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
+        queue.write_buffer(&self.buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[data]));
     }
 
-    pub fn update_light_data(&self, queue: &wgpu::Queue, index: u64, data: cg::Vector3<f32>) {
-        queue.write_buffer(&self.buffer, std::mem::size_of::<LightData>() as u64 * index + 16, cast_slice(&[data]));
+    pub fn update_light_data(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
+        queue.write_buffer(&self.buffer, (std::mem::size_of::<LightData>()  * index  + 16) as u64, cast_slice(&[data]));
     }
 }
