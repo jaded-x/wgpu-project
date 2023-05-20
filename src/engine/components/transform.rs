@@ -16,7 +16,7 @@ use imgui_inspector::*;
 pub struct TransformData {
     #[inspect(widget = "custom", speed = 0.01)]
     position: cg::Vector3<f32>,
-    #[inspect(widget = "custom", speed = 0.01)]
+    #[inspect(widget = "custom")]
     rotation: cg::Vector3<f32>,
     #[inspect(widget = "custom", min = 0.001, max = 100.0, speed = 0.01)]
     scale: cg::Vector3<f32>,

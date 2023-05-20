@@ -16,7 +16,7 @@ pollster = "0.3.0"
 tobj = { version = "3.2.3", features = ["async"] }
 instant = "0.1.12"
 specs = { version = "0.18.0", features = ["derive"]}
-imgui = "0.10.0"
+imgui = { version = "0.11.0", features = ["docking"] }
 
 imgui_inspector = { path = "../imgui_inspector"}
 imgui_inspector_derive = { path = "../imgui_inspector/imgui_inspector_derive"}
