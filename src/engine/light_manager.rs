@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::util::{cast_slice, align::Align16};
 
-use super::{light::PointLight, components::transform::Transform};
+use super::components::{light::PointLight, transform::Transform};
 
 #[derive(Clone)]
 struct LightData {

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use specs::prelude::*;
 
@@ -9,7 +9,7 @@ use super::{
     },
     context::{create_render_pipeline, Context}, 
     camera::Camera,
-    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex, Material}, gpu::Gpu, light_manager::LightManager,
+    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex}, light_manager::LightManager,
 };
 
 pub struct Renderer {
@@ -17,7 +17,7 @@ pub struct Renderer {
     pub texture_view: wgpu::TextureView,
     pub depth_texture: Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
-    pub material_bind_group_layout: Rc<wgpu::BindGroupLayout>,
+    pub material_bind_group_layout: Arc<wgpu::BindGroupLayout>,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub light_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
@@ -49,7 +49,7 @@ impl Renderer {
             label: None,
         });
 
-        let material_bind_group_layout = Rc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let material_bind_group_layout = Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -201,11 +201,11 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>, lights: &LightManager) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, lights: &LightManager) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, materials: &mut Vec<Gpu<Material>>, lights: &LightManager) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, lights: &LightManager) -> Result<(), wgpu::SurfaceError> {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("encoder")
         });
@@ -243,7 +243,7 @@ impl Pass for Renderer {
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);
-                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &materials[material.material_id]);
+                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &material.material);
             }
         }
 

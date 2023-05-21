@@ -3,7 +3,6 @@ pub mod camera;
 pub mod instance;
 pub mod model;
 pub mod resources;
-pub mod light;
 pub mod context;
 pub mod renderer;
 pub mod input;

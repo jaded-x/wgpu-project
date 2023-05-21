@@ -1,8 +1,7 @@
 use anyhow::Result;
 use wgpu::util::DeviceExt;
-use std::cell::RefCell;
 use std::io::{BufReader, Cursor};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::util::cast_slice;
 
@@ -31,9 +30,9 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
 
 pub async fn load_model(
     file_name: &str,
-    device: &Rc<wgpu::Device>,
-    queue: &Rc<wgpu::Queue>,
-    layout: &Rc<wgpu::BindGroupLayout>,
+    device: &Arc<wgpu::Device>,
+    queue: &Arc<wgpu::Queue>,
+    layout: &Arc<wgpu::BindGroupLayout>,
 ) -> Result<Model> {
     let obj_text = load_string(file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
@@ -55,10 +54,10 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for material in obj_materials? {
-        let diffuse_texture = Rc::new(load_texture(&material.diffuse_texture, false, device, queue).await?);
-        let normal_texture = Rc::new(load_texture(&material.normal_texture, true, device, queue).await?);
+        let diffuse_texture = Arc::new(load_texture(&material.diffuse_texture, false, device, queue).await?);
+        let normal_texture = Arc::new(load_texture(&material.normal_texture, true, device, queue).await?);
 
-        let mat = Rc::new(RefCell::new(Material::new(Some(material.name), material.diffuse.into(), diffuse_texture, normal_texture)));
+        let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture, normal_texture);
         let material_asset = Gpu::new(mat.clone(), device.clone(), layout.clone(), queue.clone());
 
         materials.push(material_asset)

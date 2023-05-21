@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
 use specs::{Component, VecStorage};
+
+use crate::engine::{model::Material, gpu::Gpu};
 
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct MaterialComponent {
-    pub material_id: usize,
+    pub material: Arc<Gpu<Material>>,
 }
 
 impl MaterialComponent {
-    pub fn new(material_id: usize) -> Self {
+    pub fn new(material: Arc<Gpu<Material>>) -> Self {
         Self {
-            material_id
+            material
         }
     }
 }

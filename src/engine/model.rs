@@ -1,5 +1,5 @@
 use std::ops::Range;
-use std::rc::Rc;
+use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::util::cast_slice;
@@ -67,12 +67,12 @@ pub struct Model {
 pub struct Material {
     pub name: Option<String>,
     pub diffuse: [f32; 3],
-    diffuse_texture: Rc<Texture>,
-    normal_texture: Rc<Texture>,
+    diffuse_texture: Arc<Texture>,
+    normal_texture: Arc<Texture>,
 }
 
 impl Material {
-    pub fn new(name: Option<String>, diffuse: [f32; 3], diffuse_texture: Rc<Texture>, normal_texture: Rc<Texture>) -> Self {
+    pub fn new(name: Option<String>, diffuse: [f32; 3], diffuse_texture: Arc<Texture>, normal_texture: Arc<Texture>) -> Self {
         Self {
             name,
             diffuse,
@@ -84,17 +84,17 @@ impl Material {
 
 impl Gpu<Material> {
     pub fn set_diffuse(&mut self, diffuse: [f32; 3]) {
-        self.asset.borrow_mut().diffuse = diffuse;
+        self.asset.diffuse = diffuse;
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
 
-    pub fn set_diffuse_texture(&mut self, texture: Rc<Texture>) {
-        self.asset.borrow_mut().diffuse_texture = texture;
+    pub fn set_diffuse_texture(&mut self, texture: Arc<Texture>) {
+        self.asset.diffuse_texture = texture;
     }
 } 
 
 impl Asset for Material {
-    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
+    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
         let diffuse_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: cast_slice(&[self.diffuse]),

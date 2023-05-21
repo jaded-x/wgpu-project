@@ -114,7 +114,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
     let distance = length(light.position - tangent_position);
-    let attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+    let attenuation = 1.0 / distance;
 
     let ambient_strength = 0.005;
     let ambient_color = light.color * ambient_strength * attenuation;

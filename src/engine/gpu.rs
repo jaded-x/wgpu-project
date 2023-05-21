@@ -1,17 +1,17 @@
-use std::{rc::Rc, cell::RefCell};
+use std::sync::Arc;
 
 pub struct Gpu<T: Asset> {
-    pub asset: Rc<RefCell<T>>,
+    pub asset: T,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
-    _layout: Rc<wgpu::BindGroupLayout>,
-    _device: Rc<wgpu::Device>,
-    queue: Rc<wgpu::Queue>,
+    _layout: Arc<wgpu::BindGroupLayout>,
+    _device: Arc<wgpu::Device>,
+    queue: Arc<wgpu::Queue>,
 }
 
 impl<T: Asset> Gpu<T> {
-    pub fn new(asset: Rc<RefCell<T>>, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>, queue: Rc<wgpu::Queue>) -> Self {
-        let (buffers, bind_group) = asset.borrow().load(device.clone(), layout.clone());
+    pub fn new(asset: T, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, queue: Arc<wgpu::Queue>) -> Self {
+        let (buffers, bind_group) = asset.load(device.clone(), layout.clone());
 
         Self {
             asset,
@@ -29,5 +29,5 @@ impl<T: Asset> Gpu<T> {
 }
 
 pub trait Asset {
-    fn load(&self, device: Rc<wgpu::Device>, layout: Rc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
+    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
 }

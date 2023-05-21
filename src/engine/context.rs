@@ -1,9 +1,9 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Context {
     pub surface: wgpu::Surface,
-    pub device: Rc<wgpu::Device>,
-    pub queue: Rc<wgpu::Queue>,
+    pub device: Arc<wgpu::Device>,
+    pub queue: Arc<wgpu::Queue>,
     pub config: wgpu::SurfaceConfiguration,
 }
 
@@ -38,8 +38,8 @@ impl Context {
         ).await.unwrap();
 
 
-        let queue = Rc::new(queue);
-        let device = Rc::new(device);
+        let queue = Arc::new(queue);
+        let device = Arc::new(device);
         
         dbg!(adapter.get_info());
 
