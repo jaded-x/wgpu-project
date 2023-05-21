@@ -90,8 +90,7 @@ impl Material {
 }
 
 impl Gpu<Material> {
-    pub fn set_diffuse(&mut self, diffuse: [f32; 3]) {
-        self.asset.lock().unwrap().diffuse = diffuse;
+    pub fn update_diffuse_buffer(&self, diffuse: [f32; 3]) {
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
 

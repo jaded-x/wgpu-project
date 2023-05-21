@@ -5,7 +5,6 @@ pub struct Gpu<T: Asset> {
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
     queue: Arc<wgpu::Queue>,
-    manager_index: Option<usize>,
 }
 
 impl<T: Asset> Gpu<T> {
@@ -17,20 +16,11 @@ impl<T: Asset> Gpu<T> {
             buffers,
             bind_group,
             queue,
-            manager_index: None,
         }
     }
 
-    pub fn update_buffer(&mut self, index: usize, data: &[u8]) {
+    pub fn update_buffer(&self, index: usize, data: &[u8]) {
         self.queue.write_buffer(&self.buffers[index], 0, data)
-    }
-
-    pub fn set_manager_index(&mut self, index: usize) {
-        self.manager_index = Some(index);
-    }
-
-    pub fn get_manager_index(&self) -> Option<usize> {
-        self.manager_index
     }
 }
 
