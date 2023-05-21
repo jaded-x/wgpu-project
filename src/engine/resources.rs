@@ -1,7 +1,7 @@
 use anyhow::Result;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::util::cast_slice;
 
@@ -58,7 +58,7 @@ pub async fn load_model(
         let normal_texture = Arc::new(load_texture(&material.normal_texture, true, device, queue).await?);
 
         let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture, normal_texture);
-        let material_asset = Gpu::new(mat.clone(), device.clone(), layout.clone(), queue.clone());
+        let material_asset = Gpu::new(Arc::new(Mutex::new(mat.clone())), device.clone(), layout.clone(), queue.clone());
 
         materials.push(material_asset)
     }
@@ -147,13 +147,13 @@ pub async fn load_model(
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-            Mesh {
+            Arc::new(Mesh {
                 name: file_name.to_string(),
                 vertex_buffer,
                 index_buffer,
                 element_count: material.mesh.indices.len() as u32,
                 material: material.mesh.material_id.unwrap_or(0),
-            }
+            })
         })
         .collect::<Vec<_>>();
 

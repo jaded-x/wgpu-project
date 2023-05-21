@@ -2,6 +2,9 @@ use std::ops::Range;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
+use imgui_inspector_derive::ImguiInspect;
+use imgui_inspector::*;
+
 use crate::util::cast_slice;
 
 use super::gpu::{Asset, Gpu};
@@ -59,15 +62,19 @@ impl Vertex for ModelVertex {
 }
 
 pub struct Model {
-    pub meshes: Vec<Mesh>,
+    pub meshes: Vec<Arc<Mesh>>,
     pub materials: Vec<Gpu<Material>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, ImguiInspect)]
 pub struct Material {
+    #[inspect(hide = true)]
     pub name: Option<String>,
+    #[inspect(widget = "color")]
     pub diffuse: [f32; 3],
+    #[inspect(hide = true)]
     diffuse_texture: Arc<Texture>,
+    #[inspect(hide = true)]
     normal_texture: Arc<Texture>,
 }
 
@@ -84,12 +91,12 @@ impl Material {
 
 impl Gpu<Material> {
     pub fn set_diffuse(&mut self, diffuse: [f32; 3]) {
-        self.asset.diffuse = diffuse;
+        self.asset.lock().unwrap().diffuse = diffuse;
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
 
     pub fn set_diffuse_texture(&mut self, texture: Arc<Texture>) {
-        self.asset.diffuse_texture = texture;
+        self.asset.lock().unwrap().diffuse_texture = texture;
     }
 } 
 

@@ -7,9 +7,11 @@ use super::{
         mesh::Mesh, 
         material::MaterialComponent, transform::Transform,
     },
-    context::{create_render_pipeline, Context}, 
+    context::create_render_pipeline, 
     camera::Camera,
-    texture::{Texture, self}, model::{Model, DrawModel, Vertex, ModelVertex}, light_manager::LightManager,
+    texture::{Texture, self}, 
+    model::{DrawModel, Vertex, ModelVertex}, 
+    light_manager::LightManager,
 };
 
 pub struct Renderer {
@@ -201,20 +203,16 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
 }
 
 pub trait Pass {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, lights: &LightManager) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, view: &wgpu::TextureView, world: &mut World, camera: &Camera, lights: &LightManager, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, context: &Context, view: &wgpu::TextureView, world: &mut World, camera: &Camera, models: &Vec<Model>, lights: &LightManager) -> Result<(), wgpu::SurfaceError> {
-        let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("encoder")
-        });
+    fn draw(&mut self, view: &wgpu::TextureView, world: &mut World, camera: &Camera, lights: &LightManager, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+        let meshes = world.read_storage::<Mesh>();
+        let transforms = world.read_storage::<Transform>();
+        let materials_c = world.read_storage::<MaterialComponent>();
 
         {
-            let meshes = world.read_storage::<Mesh>();
-            let transforms = world.read_storage::<Transform>();
-            let materials_c = world.read_storage::<MaterialComponent>();
-
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
                 color_attachments: &[
@@ -243,11 +241,10 @@ impl Pass for Renderer {
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);
-                render_pass.draw_mesh(&models[mesh.mesh_id].meshes[0], &material.material);
+                render_pass.draw_mesh(&mesh.mesh, &material.material);
             }
         }
 
-        context.queue.submit([encoder.finish()]);
         Ok(())
     }
 }
