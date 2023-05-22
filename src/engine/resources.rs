@@ -10,14 +10,20 @@ use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
 pub async fn load_string(file_name: &str) -> Result<String> {
-    let path = std::path::Path::new(env!("OUT_DIR")).join("res").join(file_name);
+    let mut path = std::env::current_dir().unwrap().join("res");
+    for dir in file_name.split("/") {
+        path = path.join(dir);
+    }
     let txt = std::fs::read_to_string(path)?;
 
     Ok(txt)
 }
 
 pub async fn load_binary(file_name: &str) -> Result<Vec<u8>> {
-    let path = std::path::Path::new(env!("OUT_DIR")).join("res").join(file_name);
+    let mut path = std::env::current_dir().unwrap().join("res");
+    for dir in file_name.split("/") {
+        path = path.join(dir);
+    }
     let data = std::fs::read(path)?;
 
     Ok(data)
@@ -46,7 +52,14 @@ pub async fn load_model(
             ..Default::default()
         },
         |p| async move {
-            let mat_text = load_string(&p).await.unwrap();
+            let mut path = std::env::current_dir().unwrap().join("res");
+            let split: Vec<&str> = file_name.split('/').collect();
+            for i in split[..split.len() - 1].iter() {
+                path = path.join(i);
+            }
+            path = path.join(p);
+            
+            let mat_text = load_string(&path.as_path().as_os_str().to_str().unwrap()).await.unwrap();
             tobj::load_mtl_buf(&mut BufReader::new(Cursor::new(mat_text)))
         },
     )
