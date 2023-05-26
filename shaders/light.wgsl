@@ -117,15 +117,22 @@ fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent
     let attenuation = 1.0 / distance;
 
     let ambient_strength = 0.005;
-    let ambient_color = light.color * ambient_strength * attenuation;
+    let ambient_color = light.color * ambient_strength;
 
     let half_dir = normalize(view_dir + light_dir);
 
-    let diffuse_strength = max(dot(tangent_normal, light_dir), 0.0);
-    let diffuse_color = light.color * diffuse_strength * attenuation;
+    let is_light_in_front = dot(tangent_normal, light_dir) > 0.0;
 
-    let specular_strength = pow(max(dot(tangent_normal, half_dir), 0.0), 32.0);
-    let specular_color = specular_strength * light.color * attenuation;
+    var diffuse_strength = 0.0;
+    var specular_strength = 0.0;
 
-    return (ambient_color + diffuse_color + specular_color);
+    if is_light_in_front {
+        diffuse_strength = max(dot(tangent_normal, light_dir), 0.0);
+        specular_strength = pow(max(dot(tangent_normal, half_dir), 0.0), 32.0);
+    } 
+
+    let diffuse_color = light.color * diffuse_strength;
+    let specular_color = specular_strength * light.color;
+
+    return (ambient_color + (diffuse_color + specular_color));
 }

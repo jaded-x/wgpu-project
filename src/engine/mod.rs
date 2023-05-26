@@ -9,6 +9,7 @@ pub mod input;
 pub mod window;
 pub mod gpu;
 pub mod light_manager;
+pub mod texture_manager;
 
 pub mod components;
 pub mod primitives;
