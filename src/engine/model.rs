@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -73,9 +74,9 @@ pub struct Material {
     #[inspect(widget = "color")]
     pub diffuse: [f32; 3],
     #[inspect(hide = true)]
-    diffuse_texture: Arc<Texture>,
+    pub diffuse_texture: Arc<Texture>,
     #[inspect(hide = true)]
-    normal_texture: Arc<Texture>,
+    pub normal_texture: Arc<Texture>,
 }
 
 impl Material {
@@ -85,6 +86,18 @@ impl Material {
             diffuse,
             diffuse_texture,
             normal_texture,
+        }
+    }
+
+    pub fn create(path: PathBuf) -> Self {
+
+
+        
+        Self {
+            name: Some(path.to_string_lossy().to_string()),
+            diffuse: [1.0, 1.0, 1.0],
+            diffuse_texture: Texture::default(),
+            normal_texture: Texture::default_normal(),
         }
     }
 }

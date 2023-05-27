@@ -1,10 +1,14 @@
 use std::sync::{Arc, Mutex};
 
+use super::model::Material;
+
 pub struct Gpu<T: Asset> {
     pub asset: Arc<Mutex<T>>,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
+    device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
+    layout:  Arc<wgpu::BindGroupLayout>,
 }
 
 impl<T: Asset> Gpu<T> {
@@ -15,13 +19,16 @@ impl<T: Asset> Gpu<T> {
             asset,
             buffers,
             bind_group,
+            device,
             queue,
+            layout
         }
     }
 
     pub fn update_buffer(&self, index: usize, data: &[u8]) {
         self.queue.write_buffer(&self.buffers[index], 0, data)
     }
+
 }
 
 pub trait Asset {
