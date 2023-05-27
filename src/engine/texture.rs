@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, path::{PathBuf, Path}, rc::Rc};
 
-use image::{GenericImageView, ImageBuffer, Rgb, codecs::png::PngEncoder, ImageEncoder};
+use image::{GenericImageView, ImageBuffer, Rgb, codecs::png::PngEncoder, ImageEncoder, Rgba};
 use anyhow::*;
 use once_cell::sync::Lazy;
 
@@ -95,15 +95,19 @@ impl Texture {
     }
 
     pub fn load_default(device: &wgpu::Device, queue: &wgpu::Queue, normal: bool) {
-        let mut default_texture = DEFAULT_TEXTURE.lock().unwrap();
+        let mut default_texture = if normal {
+            DEFAULT_NORMAL.lock().unwrap()
+        } else {
+            DEFAULT_TEXTURE.lock().unwrap()
+        };
 
         let img = if normal {
             ImageBuffer::from_fn(1, 1, |_x, _y| {
-                Rgb([128, 128, 255])
+                Rgba([128, 128, 255, 255])
             })
         } else {
             ImageBuffer::from_fn(1, 1, |_x, _y| {
-                Rgb([255, 255, 255])
+                Rgba([255, 255, 255, 255])
             })
         };
 
@@ -121,12 +125,7 @@ impl Texture {
             depth_or_array_layers: 1,
         };
 
-        let mut buffer: Vec<u8> = Vec::new();
-        {
-            let encoder = PngEncoder::new(&mut buffer);
-            encoder.write_image(&img.into_raw(), dimensions.0, dimensions.1, image::ColorType::Rgb8).expect("Failed to encode image");
-        }
-        let rgba: &[u8] = &buffer[..];
+        let rgba: Vec<u8> = img.into_raw();
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Default"),
@@ -179,6 +178,11 @@ impl Texture {
 
     pub fn default_normal() -> Arc<Self> {
         DEFAULT_NORMAL.lock().unwrap().as_ref().unwrap().clone()
+    }
+
+    pub fn load_defaults(device: &wgpu::Device, queue: &wgpu::Queue) {
+        Texture::load_default(device, queue, false);
+        Texture::load_default(device, queue, true);
     }
 
     pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d, label: &str) -> Self {
