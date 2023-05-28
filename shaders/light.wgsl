@@ -1,6 +1,6 @@
 struct Transform {
     matrix: mat4x4<f32>,
-    ti_matrix: mat4x4<f32>,
+    ti_matrix: mat3x3<f32>,
 }
 @group(0) @binding(0)
 var<uniform> transform: Transform;
@@ -68,9 +68,9 @@ fn vs_main (
     out.tex_coords = model.tex_coords;
     out.tangent_position = tangent_matrix * world_position.xyz;
     out.tangent_view_position = tangent_matrix * camera.view_pos.xyz;
-    out.tangent_matrix_0 = vec3<f32>(tangent_matrix[0]);
-    out.tangent_matrix_1 = vec3<f32>(tangent_matrix[1]);
-    out.tangent_matrix_2 = vec3<f32>(tangent_matrix[2]);
+    out.tangent_matrix_0 = vec3<f32>(tangent_matrix[0].xyz);
+    out.tangent_matrix_1 = vec3<f32>(tangent_matrix[1].xyz);
+    out.tangent_matrix_2 = vec3<f32>(tangent_matrix[2].xyz);
 
     return out;
 }
@@ -114,10 +114,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
     let distance = length(light.position - tangent_position);
-    let attenuation = 1.0 / distance;
+    let attenuation = 1.0 / (distance * distance);
 
     let ambient_strength = 0.005;
-    let ambient_color = light.color * ambient_strength;
+    let ambient_color = light.color * ambient_strength * attenuation;
 
     let half_dir = normalize(view_dir + light_dir);
 
@@ -131,8 +131,8 @@ fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent
         specular_strength = pow(max(dot(tangent_normal, half_dir), 0.0), 32.0);
     } 
 
-    let diffuse_color = light.color * diffuse_strength;
-    let specular_color = specular_strength * light.color;
+    let diffuse_color = light.color * diffuse_strength * attenuation;
+    let specular_color = specular_strength * light.color * attenuation;
 
-    return (ambient_color + (diffuse_color + specular_color));
+    return (ambient_color + diffuse_color + specular_color);
 }

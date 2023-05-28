@@ -1,27 +1,23 @@
 use std::sync::{Arc, Mutex};
 
-use super::model::Material;
+use super::registry::Registry;
 
 pub struct Gpu<T: Asset> {
-    pub asset: Arc<Mutex<T>>,
+    pub asset: Arc<T>,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
-    device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    layout:  Arc<wgpu::BindGroupLayout>,
 }
 
 impl<T: Asset> Gpu<T> {
-    pub fn new(asset: Arc<Mutex<T>>, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, queue: Arc<wgpu::Queue>) -> Self {
-        let (buffers, bind_group) = asset.lock().unwrap().load(device.clone(), layout.clone());
+    pub fn new(asset: Arc<T>, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, queue: Arc<wgpu::Queue>, registry: &Registry) -> Self {
+        let (buffers, bind_group) = asset.load(device.clone(), layout.clone(), registry);
 
         Self {
             asset,
             buffers,
             bind_group,
-            device,
             queue,
-            layout
         }
     }
 
@@ -32,5 +28,5 @@ impl<T: Asset> Gpu<T> {
 }
 
 pub trait Asset {
-    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
+    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
 }

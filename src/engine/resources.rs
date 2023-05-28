@@ -34,12 +34,12 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
     Texture::from_bytes(device, queue, &data, file_name, is_normal_map)
 }
 
-pub async fn load_model(
+pub async fn load_mesh(
     file_name: &str,
     device: &Arc<wgpu::Device>,
     queue: &Arc<wgpu::Queue>,
     layout: &Arc<wgpu::BindGroupLayout>,
-) -> Result<Model> {
+) -> Result<Vec<Arc<Mesh>>> {
     let obj_text = load_string(file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
@@ -65,16 +65,16 @@ pub async fn load_model(
     )
     .await?;
 
-    let mut materials = Vec::new();
-    for material in obj_materials? {
-        let diffuse_texture = Arc::new(load_texture(&material.diffuse_texture, false, device, queue).await?);
-        let normal_texture = Arc::new(load_texture(&material.normal_texture, true, device, queue).await?);
+    // let mut materials = Vec::new();
+    // for material in obj_materials? {
+    //     let diffuse_texture = Arc::new(load_texture(&material.diffuse_texture, false, device, queue).await?);
+    //     let normal_texture = Arc::new(load_texture(&material.normal_texture, true, device, queue).await?);
 
-        let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture, normal_texture);
-        let material_asset = Gpu::new(Arc::new(Mutex::new(mat.clone())), device.clone(), layout.clone(), queue.clone());
+    //     let mat = Material::new(Some(material.name), material.diffuse.into(), diffuse_texture, normal_texture);
+    //     let material_asset = Gpu::new(Arc::new(mat.clone()), device.clone(), layout.clone(), queue.clone());
 
-        materials.push(material_asset)
-    }
+    //     materials.push(material_asset)
+    // }
 
     let meshes = models
         .into_iter()
@@ -170,8 +170,5 @@ pub async fn load_model(
         })
         .collect::<Vec<_>>();
 
-    Ok(Model {
-        meshes,
-        materials
-    })
+    Ok(meshes)
 }
