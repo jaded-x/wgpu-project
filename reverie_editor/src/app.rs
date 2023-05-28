@@ -1,10 +1,9 @@
 use std::sync::{Arc, Mutex};
-use reverie::engine::{registry::Registry};
+use registry::Registry;
+use registry::texture::Texture;
 use specs::prelude::*;
 
 use reverie::util::{cast_slice, res};
-
-use std::path::Path;
 
 use reverie::engine::{
     camera::{Camera, CameraController, Projection},
@@ -23,7 +22,6 @@ use reverie::engine::{
     light_manager::LightManager,
     model::Material, 
     gpu::Gpu,
-    texture::Texture,
 };
 
 pub struct App {
@@ -68,7 +66,7 @@ impl App {
         let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
 
         let green_material = Arc::new(Gpu::new(Arc::new(Material::new([0.0, 1.0, 0.0], None, None)), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
-        let purple_stone = Arc::new(Gpu::new(Arc::new(Material::new([1.0, 1.0, 1.0], None, None)), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
+        let purple_stone = Arc::new(Gpu::new(Arc::new(Material::new([1.0, 1.0, 1.0], Some(registry.get_id(res("textures/brickwall.jpg"))), Some(registry.get_id(res("textures/brickwall_normal.jpg"))))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
 
         let mut world = specs::World::new();
         world.register::<Transform>();

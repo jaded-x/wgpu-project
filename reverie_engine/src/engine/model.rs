@@ -10,8 +10,8 @@ use crate::util::cast_slice;
 
 use super::gpu::{Asset, Gpu};
 
-use super::registry::Registry;
-use super::texture::Texture;
+use registry::Registry;
+use registry::texture::Texture;
 
 pub trait Vertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;

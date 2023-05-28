@@ -1,0 +1,13 @@
+C:\dev\reverie\registry\target\debug\deps\cc-2c754c12709180ea.rmeta: C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\lib.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\registry.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\winapi.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\com.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\setup_config.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\vs_instances.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\windows_registry.rs
+
+C:\dev\reverie\registry\target\debug\deps\libcc-2c754c12709180ea.rlib: C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\lib.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\registry.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\winapi.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\com.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\setup_config.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\vs_instances.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\windows_registry.rs
+
+C:\dev\reverie\registry\target\debug\deps\cc-2c754c12709180ea.d: C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\lib.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\registry.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\winapi.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\com.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\setup_config.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\vs_instances.rs C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\windows_registry.rs
+
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\lib.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\registry.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\winapi.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\com.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\setup_config.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\vs_instances.rs:
+C:\Users\jjbay\.cargo\registry\src\github.com-1ecc6299db9ec823\cc-1.0.79\src\windows_registry.rs:

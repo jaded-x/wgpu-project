@@ -9,10 +9,11 @@ use super::{
     },
     context::create_render_pipeline, 
     camera::Camera,
-    texture::{Texture, self}, 
     model::{DrawModel, Vertex, ModelVertex}, 
     light_manager::LightManager,
 };
+
+use registry::texture::Texture;
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,
@@ -184,7 +185,7 @@ impl Renderer {
     }
 }
 
-pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (wgpu::TextureView, texture::Texture){
+pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (wgpu::TextureView, Texture){
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("texture"),
         size: *extent,

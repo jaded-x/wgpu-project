@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::registry::Registry;
+use registry::Registry;
 
 pub struct Gpu<T: Asset> {
     pub asset: Arc<T>,

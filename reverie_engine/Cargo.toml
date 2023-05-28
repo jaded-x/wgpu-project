@@ -25,6 +25,8 @@ serde_yaml = "0.9.21"
 imgui_inspector = { path = "../../imgui_inspector"}
 imgui_inspector_derive = { path = "../../imgui_inspector/imgui_inspector_derive"}
 
+registry = { path = "../registry" }
+
 [dependencies.image]
 version = "0.24"
 features = ["png", "jpeg"]
