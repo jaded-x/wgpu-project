@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use super::registry::Registry;
 
@@ -10,7 +10,7 @@ pub struct Gpu<T: Asset> {
 }
 
 impl<T: Asset> Gpu<T> {
-    pub fn new(asset: Arc<T>, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, queue: Arc<wgpu::Queue>, registry: &Registry) -> Self {
+    pub fn new(asset: Arc<T>, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, queue: Arc<wgpu::Queue>, registry: &mut Registry) -> Self {
         let (buffers, bind_group) = asset.load(device.clone(), layout.clone(), registry);
 
         Self {
@@ -28,5 +28,5 @@ impl<T: Asset> Gpu<T> {
 }
 
 pub trait Asset {
-    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
+    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &mut Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup);
 }
