@@ -21,7 +21,7 @@ struct AssetMetadata {
 pub struct Registry {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    textures: HashMap<usize, Texture>,
+    textures: HashMap<usize, Arc<Texture>>,
     metadata: HashMap<usize, AssetMetadata>,
 }
 
@@ -36,6 +36,10 @@ impl Registry {
     }
 
     pub fn add_texture(&mut self, file_path: PathBuf) -> usize {
+        if self.is_file_path(&file_path) {
+            return self.get_id(file_path);
+        }
+
         let id = random::<usize>();
         self.metadata.insert(id, AssetMetadata {
             id,
@@ -51,20 +55,33 @@ impl Registry {
         id
     }
 
-    fn load_texture(&mut self, id: usize) {
+    fn is_file_path(&self, file_path: &PathBuf) -> bool {
+        match self.metadata.iter()
+            .find(|(_, asset)| asset.file_path == *file_path)
+            .map(|(id, _)| *id) {
+                Some(_) => true,
+                None => false
+            }
+    }
+
+    fn load_texture(&mut self, id: usize, normal: bool) {
         if let Some(asset) = self.metadata.get(&id) {
             let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
-            let texture = Texture::from_bytes(&self.device, &self.queue, &bytes, &asset.file_path.to_str().unwrap(), false).unwrap();
+            let texture = Texture::from_bytes(&self.device, &self.queue, &bytes, &asset.file_path.to_str().unwrap(), normal).unwrap();
 
-            self.textures.insert(asset.id, texture);
+            self.textures.insert(asset.id, Arc::new(texture));
         }
     }
 
-    pub fn get_texture(&self, id: usize) -> Option<&Texture> {
-        self.textures.get(&id)
+    pub fn get_texture(&mut self, id: usize, normal: bool) -> Option<Arc<Texture>> {
+        if !self.textures.contains_key(&id) {
+            self.load_texture(id, normal);
+        }
+
+        self.textures.get(&id).cloned()
     }
 
-    pub fn id_from_file_path(&mut self, file_path: PathBuf) -> usize {
+    pub fn get_id(&mut self, file_path: PathBuf) -> usize {
         match self.metadata.iter()
             .find(|(_, asset)| asset.file_path == file_path)
             .map(|(id, _)| *id) {

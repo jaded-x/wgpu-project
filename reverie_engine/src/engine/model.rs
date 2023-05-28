@@ -70,8 +70,6 @@ pub struct Model {
 
 #[derive(Clone, ImguiInspect)]
 pub struct Material {
-    #[inspect(hide = true)]
-    pub name: Option<String>,
     #[inspect(widget = "color")]
     pub diffuse: [f32; 3],
     #[inspect(hide = true)]
@@ -81,9 +79,8 @@ pub struct Material {
 }
 
 impl Material {
-    pub fn new(name: Option<String>, diffuse: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
+    pub fn new(diffuse: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
         Self {
-            name,
             diffuse,
             diffuse_texture,
             normal_texture,
@@ -97,7 +94,6 @@ impl Material {
         }
         
         Self {
-            name: Some(name.to_string()),
             diffuse: [1.0, 1.0, 1.0],
             diffuse_texture: None,
             normal_texture: None,
@@ -112,7 +108,7 @@ impl Gpu<Material> {
 } 
 
 impl Asset for Material {
-    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
+    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &mut Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
         let diffuse_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: cast_slice(&[self.diffuse]),
@@ -122,15 +118,20 @@ impl Asset for Material {
         let default = &Texture::default();
         let default_normal = &Texture::default_normal();
 
-        let diffuse_texture = match self.diffuse_texture {
-            Some(id) => registry.get_texture(id).unwrap(),
-            None => default,
+        let diffuse_texture = { 
+            let id = self.diffuse_texture;
+            match id {
+                Some(id) => {registry.get_texture(id, false).unwrap()},
+                None => default.clone(),
+            }
         };
 
-
-        let normal_texture = match self.normal_texture {
-            Some(id) => registry.get_texture(id).unwrap(),
-            None => default_normal
+        let normal_texture = {
+            let id = self.normal_texture;
+            match id {
+                Some(id) => registry.get_texture(id, true).unwrap(),
+                None => default_normal.clone()
+            }
         };
         
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
