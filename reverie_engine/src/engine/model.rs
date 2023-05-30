@@ -2,7 +2,6 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
-use wgpu::util::DeviceExt;
 
 use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
@@ -11,7 +10,7 @@ use crate::util::cast_slice;
 
 use super::gpu::{Asset, Gpu};
 
-use super::registry::Registry;
+use super::registry::AssetType;
 use super::texture::Texture;
 
 pub trait Vertex {
@@ -72,12 +71,15 @@ pub struct Model {
 #[derive(Serialize, Deserialize)]
 pub struct TextureId {
     pub id: Option<usize>,
+    #[serde(skip)]
+    pub texture: Option<Arc<Texture>>
 }
 
 impl TextureId {
     pub fn new(id: Option<usize>) -> Self {
         Self {
-            id
+            id,
+            texture: None,
         }
     }
 }
@@ -160,8 +162,7 @@ impl Material {
     pub fn save(&self, path: &PathBuf) {
         let yaml = serde_yaml::to_string(self).unwrap();
         if let Some(extension) = path.extension() {
-            dbg!(extension);
-            if extension == "revmat" {
+            if AssetType::from_extension(extension) == AssetType::Material {
                 std::fs::write(path, yaml).unwrap();
             }
         }
@@ -172,63 +173,9 @@ impl Gpu<Material> {
     pub fn update_diffuse_buffer(&self, diffuse: [f32; 3]) {
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
-} 
-
-impl Asset for Material {
-    fn load(&self, device: Arc<wgpu::Device>, layout: Arc<wgpu::BindGroupLayout>, registry: &mut Registry) -> (Vec<wgpu::Buffer>, wgpu::BindGroup) {
-        let diffuse_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: cast_slice(&[self.diffuse]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let default = &Texture::default();
-        let default_normal = &Texture::default_normal();
-
-        let diffuse_texture = { 
-            match self.diffuse_texture.id {
-                Some(id) => {registry.get_texture(id, false).unwrap()},
-                None => default.clone(),
-            }
-        };
-
-        let normal_texture = {
-            match self.normal_texture.id {
-                Some(id) => registry.get_texture(id, true).unwrap(),
-                None => default_normal.clone()
-            }
-        };
-        
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: diffuse_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(&normal_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::Sampler(&normal_texture.sampler),
-                },
-            ],
-            label: Some("material_bind_group"),
-        });
-        
-        (vec![diffuse_buffer], bind_group)
-    }
 }
+
+impl Asset for Material {}
 
 pub struct Mesh {
     pub name: String,
