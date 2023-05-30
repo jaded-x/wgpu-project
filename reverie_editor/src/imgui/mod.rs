@@ -89,17 +89,22 @@ impl Imgui {
 
         ui.window("Inspector")
             .build(|| {
-                if let Some(material) = &self.explorer.selected_file {
-                    let material_id = match &registry.get_material_id_unchecked(material.to_path_buf()) {
+                if let Some(material_path) = &self.explorer.selected_file {
+                    let material_id = match &registry.get_material_id_unchecked(material_path.to_path_buf()) {
                         Some(id) => id.clone(),
-                        None => registry.add_material(material.to_path_buf())
+                        None => registry.add_material(material_path.to_path_buf())
                     };
                     match registry.metadata.get(&material_id).unwrap().asset_type  {
                         AssetType::Material => {
                             if registry.materials.contains_key(&material_id) {
                                 
                             } else {
-                                ui.text(material.file_name().unwrap().to_str().unwrap())
+                                ui.text(material_path.file_name().unwrap().to_str().unwrap());
+                                ui.separator();
+                                if let Some(material) = self.explorer.material.as_mut() {
+                                    material.imgui_inspect(ui);
+                                    material.save(material_path);
+                                };
                             }
                         }
                         _ => {}
@@ -155,6 +160,7 @@ impl Imgui {
 
                 if ui.button(name.0.to_string()) {
                     self.entity = Some(entity);
+                    self.explorer.material = None;
 
                     match light_component.get(entity) {
                         Some(_) => self.light_index = Some(light_index),

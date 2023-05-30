@@ -7,6 +7,7 @@ pub struct Explorer {
     is_first_frame: bool,
     text_input: String,
     pub selected_file: Option<PathBuf>,
+    pub material: Option<Material>,
 }
 
 impl Explorer {
@@ -15,7 +16,8 @@ impl Explorer {
             current_folder: std::env::current_dir().unwrap().join("res"),
             is_first_frame: true,
             text_input: String::new(),
-            selected_file: None
+            selected_file: None,
+            material: None,
         }
     }
 
@@ -107,7 +109,8 @@ impl Explorer {
                             }
                             if entry.file_type().unwrap().is_file() {
                                 if ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(4), [64.0, 64.0]) {
-                                    self.selected_file = Some(entry.path())
+                                    self.selected_file = Some(entry.path());
+                                    self.material = Some(Material::load(&entry.path()));
                                 }
                                 
                                 if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(0) {

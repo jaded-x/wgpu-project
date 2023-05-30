@@ -149,6 +149,18 @@ impl Material {
         
         material
     }
+    
+    pub fn load(path: &PathBuf) -> Self {
+        let yaml = std::fs::read_to_string(path).unwrap();
+        let material: Material = serde_yaml::from_str(&yaml).unwrap();
+
+        material
+    }
+
+    pub fn save(&self, path: &PathBuf) {
+        let yaml = serde_yaml::to_string(self).unwrap();
+        std::fs::write(path, yaml).unwrap();
+    }
 }
 
 impl Gpu<Material> {
