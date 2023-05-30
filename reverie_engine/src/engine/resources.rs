@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::util::cast_slice;
 
 use super::gpu::Gpu;
-use registry::texture::Texture;
+use super::texture::Texture;
 use super::model::{Model, ModelVertex, Material, Mesh};
 
 pub async fn load_string(file_name: &str) -> Result<String> {

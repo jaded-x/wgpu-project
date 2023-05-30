@@ -1,6 +1,7 @@
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
+use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
 
 use imgui_inspector_derive::ImguiInspect;
@@ -10,8 +11,8 @@ use crate::util::cast_slice;
 
 use super::gpu::{Asset, Gpu};
 
-use registry::Registry;
-use registry::texture::Texture;
+use super::registry::Registry;
+use super::texture::Texture;
 
 pub trait Vertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
@@ -68,22 +69,64 @@ pub struct Model {
     pub materials: Vec<Gpu<Material>>,
 }
 
-#[derive(Clone, ImguiInspect)]
+#[derive(Serialize, Deserialize)]
+pub struct TextureId {
+    id: Option<usize>,
+}
+
+impl TextureId {
+    pub fn new(id: Option<usize>) -> Self {
+        Self {
+            id
+        }
+    }
+}
+
+impl InspectTexture for TextureId {
+    fn inspect_texture<'a>(&mut self, ui: &'a imgui::Ui, label: &str) -> bool {
+        let mut result = false;
+        
+        ui.button("test");
+        match ui.drag_drop_target() {
+            Some(target) => {
+                match target.accept_payload::<Option<usize>, _>("texture", imgui::DragDropFlags::empty()) {
+                    Some(Ok(payload_data)) => {
+                        self.id = payload_data.data;
+                        result = true;
+                        dbg!(payload_data.data);
+                    },
+                    Some(Err(e)) => {
+                        println!("{}", e);
+                    },
+                    _ => {},
+                }
+            },
+            _ => {},
+        }
+        ui.same_line();
+        ui.text(label);
+
+        result
+    }
+}
+
+
+#[derive(ImguiInspect, Serialize, Deserialize)]
 pub struct Material {
     #[inspect(widget = "color")]
     pub diffuse: [f32; 3],
+    #[inspect(widget = "texture")]
+    pub diffuse_texture: TextureId,
     #[inspect(hide = true)]
-    pub diffuse_texture: Option<usize>,
-    #[inspect(hide = true)]
-    pub normal_texture: Option<usize>,
+    pub normal_texture: TextureId,
 }
 
 impl Material {
     pub fn new(diffuse: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
         Self {
             diffuse,
-            diffuse_texture,
-            normal_texture,
+            diffuse_texture: TextureId::new(diffuse_texture),
+            normal_texture: TextureId::new(normal_texture),
         }
     }
 
@@ -95,8 +138,8 @@ impl Material {
         
         Self {
             diffuse: [1.0, 1.0, 1.0],
-            diffuse_texture: None,
-            normal_texture: None,
+            diffuse_texture: TextureId::new(None),
+            normal_texture: TextureId::new(None),
         }
     }
 }
@@ -119,16 +162,14 @@ impl Asset for Material {
         let default_normal = &Texture::default_normal();
 
         let diffuse_texture = { 
-            let id = self.diffuse_texture;
-            match id {
+            match self.diffuse_texture.id {
                 Some(id) => {registry.get_texture(id, false).unwrap()},
                 None => default.clone(),
             }
         };
 
         let normal_texture = {
-            let id = self.normal_texture;
-            match id {
+            match self.normal_texture.id {
                 Some(id) => registry.get_texture(id, true).unwrap(),
                 None => default_normal.clone()
             }

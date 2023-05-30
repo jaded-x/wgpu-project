@@ -13,7 +13,7 @@ use super::{
     light_manager::LightManager,
 };
 
-use registry::texture::Texture;
+use super::texture::Texture;
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,
