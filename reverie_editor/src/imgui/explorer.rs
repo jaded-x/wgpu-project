@@ -1,13 +1,13 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use reverie::engine::{model::Material, registry::{Registry, AssetType}};
+use reverie::engine::{model::Material, registry::{Registry, AssetType}, gpu::Gpu};
 
 pub struct Explorer {
     current_folder: PathBuf,
     is_first_frame: bool,
     text_input: String,
     pub selected_file: Option<PathBuf>,
-    pub material: Option<Material>,
+    pub material: Option<Arc<Gpu<Material>>>,
 }
 
 impl Explorer {
@@ -112,7 +112,7 @@ impl Explorer {
                                     self.selected_file = Some(entry.path());
                                     if let Some(extension) = entry.path().extension() {
                                         if AssetType::from_extension(extension) == AssetType::Material {
-                                            self.material = Some(Material::load(&entry.path()));
+                                            self.material = Some(registry.get_material_from_path(entry.path()).unwrap());
                                         }
                                     }
                                 }

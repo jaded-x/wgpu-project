@@ -2,19 +2,19 @@ mod explorer;
 
 use std::sync::Arc;
 
-use reverie::engine::{
+use reverie::{engine::{
     components::{
         transform::Transform, 
         name::Name,
         light::PointLight, material::MaterialComponent
     }, 
     light_manager::LightManager, registry::AssetType
-};
+}, util::cast_slice};
 use specs::{*, WorldExt};
 
 use reverie::engine::registry::Registry;
 
-use imgui_inspector::{ImguiInspect, InspectTexture};
+use imgui_inspector::ImguiInspect;
 use crate::cursor::set_cursor;
 
 use explorer::Explorer;
@@ -51,8 +51,8 @@ impl Imgui {
         let viewport_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
             label: Some("texture"),
             size: wgpu::Extent3d {
-                width: 100,
-                height: 100,
+                width: 800,
+                height: 600,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -90,21 +90,29 @@ impl Imgui {
         ui.window("Inspector")
             .build(|| {
                 if let Some(material_path) = &self.explorer.selected_file {
-                    let material_id = match &registry.get_material_id_unchecked(material_path.to_path_buf()) {
-                        Some(id) => id.clone(),
-                        None => registry.add(material_path.to_path_buf())
-                    };
+                    let material_id = registry.get_id(material_path.to_path_buf());
                     match registry.metadata.get(&material_id).unwrap().asset_type  {
                         AssetType::Material => {
-                            if registry.materials.contains_key(&material_id) {
-                                
-                            } else {
-                                ui.text(material_path.file_name().unwrap().to_str().unwrap());
-                                ui.separator();
-                                if let Some(material) = self.explorer.material.as_mut() {
-                                    material.imgui_inspect(ui);
-                                    material.save(material_path);
-                                };
+                            ui.text(material_path.file_name().unwrap().to_str().unwrap());
+                            ui.separator();
+                            let mut material_asset = self.explorer.material.as_ref().unwrap().asset.lock().unwrap();
+                            let inspect = material_asset.imgui_inspect(ui);
+                            if inspect[0] {
+                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[material_asset.diffuse]));
+                                material_asset.save(material_path);
+                            }
+
+                            if inspect[1] {
+                                material_asset.save(material_path);
+                                registry.reload_material(material_id);
+                                for entity in world.entities().join() {
+                                    let mut materials = world.write_component::<MaterialComponent>();
+                                    if let Some(material) = materials.get_mut(entity) {
+                                        if material.id == material_id {
+                                            material.material = registry.get_material(material_id).unwrap();
+                                        }
+                                    }
+                                }
                             }
                         }
                         _ => {}
@@ -118,7 +126,7 @@ impl Imgui {
                     let mut transforms = world.write_component::<Transform>();
                     if let Some(transform) = transforms.get_mut(entity) {
                         if ui.collapsing_header("Transform", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            if transform.data.imgui_inspect(ui) {
+                            if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 transform.data.update_matrix();
                                 transform.update_buffers(queue);
                                 if self.light_index.is_some() {
@@ -131,7 +139,7 @@ impl Imgui {
                     let mut lights = world.write_component::<PointLight>();
                     if let Some(light) = lights.get_mut(entity) {
                         if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            if light.imgui_inspect(ui) {
+                            if light.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
                             }
                         }
@@ -141,7 +149,7 @@ impl Imgui {
                     if let Some(material) = materials.get_mut(entity) {
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                             let mut material_asset = material.material.asset.lock().unwrap();
-                            if material_asset.imgui_inspect(ui) {
+                            if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 material.material.update_diffuse_buffer(material_asset.diffuse);
                                 
                             }

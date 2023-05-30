@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
 use reverie::engine::registry::Registry;
 use reverie::engine::texture::Texture;
 use specs::prelude::*;
@@ -20,8 +21,6 @@ use reverie::engine::{
     resources,
     window::*, 
     light_manager::LightManager,
-    model::Material, 
-    gpu::Gpu,
 };
 
 pub struct App {
@@ -55,7 +54,7 @@ impl App {
 
         let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
-        let camera_controller = CameraController::new(4.0, 0.2);
+        let camera_controller = CameraController::new(4.0, 0.5);
 
         let input = InputState::default();
 
@@ -65,10 +64,7 @@ impl App {
         let plane_model = resources::load_mesh("meshes/plane.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
         let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
 
-        let basic_material_id = registry.get_id(res("materials/basic.revmat")).unwrap();
-        let green_material = registry.get_material(basic_material_id).unwrap();
-
-        registry.add(res("textures/cube_diffuse.jpg"));
+        let basic_material_id = registry.get_id(res("materials/basic.revmat"));
 
         let mut world = specs::World::new();
         world.register::<Transform>();
