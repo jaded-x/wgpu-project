@@ -90,9 +90,17 @@ impl Imgui {
         ui.window("Inspector")
             .build(|| {
                 if let Some(material) = &self.explorer.selected_file {
-                    match registry.metadata.get(&registry.get_material_id_unchecked(material.to_path_buf()).unwrap()).unwrap().asset_type  {
+                    let material_id = match &registry.get_material_id_unchecked(material.to_path_buf()) {
+                        Some(id) => id.clone(),
+                        None => registry.add_material(material.to_path_buf())
+                    };
+                    match registry.metadata.get(&material_id).unwrap().asset_type  {
                         AssetType::Material => {
-
+                            if registry.materials.contains_key(&material_id) {
+                                
+                            } else {
+                                ui.text(material.file_name().unwrap().to_str().unwrap())
+                            }
                         }
                         _ => {}
                     }

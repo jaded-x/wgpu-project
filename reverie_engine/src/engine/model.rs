@@ -131,16 +131,23 @@ impl Material {
     }
 
     pub fn create(path: &PathBuf, name: &str) -> Self {
-        match std::fs::File::create(path.join(format!("{}{}", name, ".revmat"))) {
+        let file_name = format!("{}{}", name, ".revmat");
+
+        match std::fs::File::create(path.join(&file_name)) {
             Err(e) => eprintln!("Failed to create file: {}", e),
             _ => {}
         }
-        
-        Self {
+
+        let material = Self {
             diffuse: [1.0, 1.0, 1.0],
             diffuse_texture: TextureId::new(None),
             normal_texture: TextureId::new(None),
-        }
+        };
+
+        let yaml = serde_yaml::to_string(&material).unwrap();
+        std::fs::write(path.join(&file_name), yaml).unwrap();
+        
+        material
     }
 }
 

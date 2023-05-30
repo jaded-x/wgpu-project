@@ -27,8 +27,8 @@ impl AssetMetadata {
 pub struct Registry {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    textures: HashMap<usize, Arc<Texture>>,
-    materials: HashMap<usize, Arc<Material>>,
+    pub textures: HashMap<usize, Arc<Texture>>,
+    pub materials: HashMap<usize, Arc<Material>>,
     pub metadata: HashMap<usize, AssetMetadata>,
 }
 
@@ -72,7 +72,7 @@ impl Registry {
         self.metadata.insert(id, AssetMetadata {
             id,
             file_path,
-            asset_type: AssetType::Texture,
+            asset_type: AssetType::Material,
         });
 
         match self.save_metadata() {
