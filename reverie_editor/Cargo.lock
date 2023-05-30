@@ -1765,19 +1765,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
-name = "registry"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "image",
- "once_cell",
- "rand",
- "serde",
- "serde_yaml",
- "wgpu",
-]
-
-[[package]]
 name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1800,7 +1787,6 @@ dependencies = [
  "instant",
  "notify",
  "pollster",
- "registry",
  "reverie_engine",
  "specs",
  "wgpu",
@@ -1825,7 +1811,6 @@ dependencies = [
  "once_cell",
  "pollster",
  "rand",
- "registry",
  "serde",
  "serde_yaml",
  "specs",

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
-use registry::Registry;
-use registry::texture::Texture;
+use reverie::engine::registry::Registry;
+use reverie::engine::texture::Texture;
 use specs::prelude::*;
 
 use reverie::util::{cast_slice, res};
@@ -65,8 +65,8 @@ impl App {
         let plane_model = resources::load_mesh("meshes/plane.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
         let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
 
-        let green_material = Arc::new(Gpu::new(Arc::new(Material::new([0.0, 1.0, 0.0], None, None)), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
-        let purple_stone = Arc::new(Gpu::new(Arc::new(Material::new([1.0, 1.0, 1.0], Some(registry.get_id(res("textures/brickwall.jpg"))), Some(registry.get_id(res("textures/brickwall_normal.jpg"))))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
+        let green_material = Arc::new(Gpu::new(Arc::new(Mutex::new(Material::new([0.0, 1.0, 0.0], None, None))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
+        let purple_stone = Arc::new(Gpu::new(Arc::new(Mutex::new(Material::new([1.0, 1.0, 1.0], Some(registry.get_texture_id(res("textures/brickwall.jpg"))), Some(registry.get_texture_id(res("textures/brickwall_normal.jpg")))))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -193,7 +193,7 @@ impl App {
         );
         
         self.imgui.renderer.textures.replace(imgui::TextureId::new(2), texture);
-        self.imgui.draw(&self.world, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
+        self.imgui.draw(&self.world, &mut self.registry, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
 
         self.context.queue.submit([encoder.finish()]);
         output.present();

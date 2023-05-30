@@ -23,8 +23,6 @@ notify = "6.0.0"
 imgui_inspector = { path = "../../imgui_inspector" }
 imgui_inspector_derive = { path = "../../imgui_inspector/imgui_inspector_derive"}
 
-registry = { path = "../registry" }
-
 [build-dependencies]
 anyhow = "1.0.68"
 fs_extra = "1.2.0"

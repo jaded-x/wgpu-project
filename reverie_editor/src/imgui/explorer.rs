@@ -6,6 +6,7 @@ pub struct Explorer {
     current_folder: PathBuf,
     is_first_frame: bool,
     text_input: String,
+    pub selected_file: Option<PathBuf>,
 }
 
 impl Explorer {
@@ -14,6 +15,7 @@ impl Explorer {
             current_folder: std::env::current_dir().unwrap().join("res"),
             is_first_frame: true,
             text_input: String::new(),
+            selected_file: None
         }
     }
 
@@ -93,18 +95,21 @@ impl Explorer {
                     match entry {
                         Ok(entry) => {
                             if entry.file_type().unwrap().is_dir() {
-                                ui.image_button(entry.file_name().as_os_str().to_str().unwrap(), imgui::TextureId::new(3), [64.0, 64.0]);
+                                ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(3), [64.0, 64.0]);
                                 if ui.is_item_hovered() && ui.is_mouse_double_clicked(imgui::MouseButton::Left) {
                                     self.current_folder = entry.path();
                                 }
                                 
                                 ui.spacing();
-                                ui.text(entry.file_name().as_os_str().to_str().unwrap());
+                                ui.text(entry.file_name().to_str().unwrap());
                                 
                                 ui.next_column();
                             }
                             if entry.file_type().unwrap().is_file() {
-                                ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(4), [64.0, 64.0]);
+                                if ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(4), [64.0, 64.0]) {
+                                    self.selected_file = Some(entry.path())
+                                }
+                                
                                 if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(0) {
                                     ui.text(entry.file_name().to_str().unwrap());
                                     payload.end();

@@ -8,9 +8,11 @@ use reverie::engine::{
         name::Name,
         light::PointLight, material::MaterialComponent
     }, 
-    light_manager::LightManager
+    light_manager::LightManager, registry::AssetType
 };
 use specs::{*, WorldExt};
+
+use reverie::engine::registry::Registry;
 
 use imgui_inspector::{ImguiInspect, InspectTexture};
 use crate::cursor::set_cursor;
@@ -76,7 +78,7 @@ impl Imgui {
         }
     }
 
-    fn ui(&mut self, world: &specs::World, light_manager: &LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
+    fn ui(&mut self, world: &specs::World, registry: &mut Registry, light_manager: &LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
         let ui = self.context.frame();
 
         ui.dockspace_over_main_viewport();
@@ -87,6 +89,14 @@ impl Imgui {
 
         ui.window("Inspector")
             .build(|| {
+                if let Some(material) = &self.explorer.selected_file {
+                    match registry.metadata.get(&registry.get_material_id_unchecked(material.to_path_buf()).unwrap()).unwrap().asset_type  {
+                        AssetType::Material => {
+
+                        }
+                        _ => {}
+                    }
+                }
                 if let Some(entity) = self.entity {
                     let names = world.read_component::<Name>();
                     ui.text(names.get(entity).unwrap().0.clone());
@@ -117,10 +127,10 @@ impl Imgui {
                     let mut materials = world.write_component::<MaterialComponent>();
                     if let Some(material) = materials.get_mut(entity) {
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            // let mut material_asset = material.material.asset.lock().unwrap();
-                            // if material_asset.imgui_inspect(ui) {
-                            //     material.material.update_diffuse_buffer(material_asset.diffuse);
-                            // }
+                            let mut material_asset = material.material.asset.lock().unwrap();
+                            if material_asset.imgui_inspect(ui) {
+                                material.material.update_diffuse_buffer(material_asset.diffuse);
+                            }
                         }
                     }
                 }
@@ -163,10 +173,10 @@ impl Imgui {
         }
     }
 
-    pub fn draw(&mut self, world: &specs::World, light_manager: &LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+    pub fn draw(&mut self, world: &specs::World, registry: &mut Registry, light_manager: &LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         self.platform.prepare_frame(self.context.io_mut(), window).expect("Failed to prepare frame");
 
-        self.ui(world, light_manager, queue, window);
+        self.ui(world, registry, light_manager, queue, window);
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
