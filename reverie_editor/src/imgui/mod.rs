@@ -179,7 +179,7 @@ impl Imgui {
             imgui::Image::new(imgui::TextureId::new(2), ui.content_region_avail()).build(ui);
         });
 
-        self.explorer.ui(ui);
+        self.explorer.ui(ui, registry);
         
 
         if ui.is_any_item_hovered() && !ui.is_any_item_active() {

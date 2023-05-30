@@ -71,7 +71,7 @@ pub struct Model {
 
 #[derive(Serialize, Deserialize)]
 pub struct TextureId {
-    id: Option<usize>,
+    pub id: Option<usize>,
 }
 
 impl TextureId {

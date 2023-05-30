@@ -1,6 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use once_cell::sync::Lazy;
 use specs::prelude::*;
+use wgpu::BindGroupLayout;
 
 use super::{
     components::{
@@ -20,11 +22,12 @@ pub struct Renderer {
     pub texture_view: wgpu::TextureView,
     pub depth_texture: Texture,
     pub transform_bind_group_layout: wgpu::BindGroupLayout,
-    pub material_bind_group_layout: Arc<wgpu::BindGroupLayout>,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub light_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
+
+static MATERIAL_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 
 impl Renderer {
     pub fn new(
@@ -52,7 +55,8 @@ impl Renderer {
             label: None,
         });
 
-        let material_bind_group_layout = Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let mut material_layout = MATERIAL_LAYOUT.lock().unwrap();
+        *material_layout = Some(Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -98,7 +102,7 @@ impl Renderer {
                 },
             ],
             label: Some("material_bind_group_layout"),
-        }));
+        })));
 
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -147,7 +151,7 @@ impl Renderer {
             bind_group_layouts: &[
                 &transform_bind_group_layout,
                 &camera_bind_group_layout,
-                &material_bind_group_layout,
+                material_layout.as_ref().unwrap(),
                 &light_bind_group_layout,
             ],
             push_constant_ranges: &[],
@@ -173,7 +177,6 @@ impl Renderer {
             texture_view,
             depth_texture,
             transform_bind_group_layout,
-            material_bind_group_layout,
             camera_bind_group_layout,
             light_bind_group_layout,
             render_pipeline,
@@ -182,6 +185,10 @@ impl Renderer {
 
     pub fn resize(&mut self, device: &wgpu::Device, extent: &wgpu::Extent3d) {
         (self.texture_view, self.depth_texture) = create_depth_texture(device, extent);
+    }
+
+    pub fn get_material_layout() -> Arc<BindGroupLayout> {
+        MATERIAL_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
     }
 }
 

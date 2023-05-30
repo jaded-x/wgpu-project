@@ -1,9 +1,12 @@
-use std::{path::PathBuf, collections::HashMap, sync::Arc};
+use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex}};
 use rand::random;
 use serde::{Serialize, Deserialize};
+use wgpu::util::DeviceExt;
 use std::error::Error;
 
-use super::{texture::Texture, model::Material};
+use crate::util::cast_slice;
+
+use super::{texture::Texture, model::Material, gpu::Gpu, renderer::Renderer};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum AssetType {
@@ -11,7 +14,7 @@ pub enum AssetType {
     Material,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AssetMetadata {
     id: usize,
     file_path: PathBuf,
@@ -28,7 +31,7 @@ pub struct Registry {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
     pub textures: HashMap<usize, Arc<Texture>>,
-    pub materials: HashMap<usize, Arc<Material>>,
+    pub materials: HashMap<usize, Arc<Gpu<Material>>>,
     pub metadata: HashMap<usize, AssetMetadata>,
 }
 
@@ -109,7 +112,11 @@ impl Registry {
         self.textures.get(&id).cloned()
     }
 
-    pub fn get_material(&self, id: usize) -> Option<Arc<Material>> {
+    pub fn get_material(&mut self, id: usize) -> Option<Arc<Gpu<Material>>> {
+        if !self.materials.contains_key(&id) {
+            self.load_material(id);
+        }
+
         self.materials.get(&id).cloned()
     }
 
@@ -129,6 +136,66 @@ impl Registry {
                 Some(id) => id,
                 None => self.add_material(file_path)
             }
+    }
+
+    fn load_material(&mut self, id: usize) {
+        if let Some(asset) = self.metadata.get(&id).cloned() {
+            let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
+            let material_lock = material.lock().unwrap();
+            let diffuse_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: cast_slice(&[material_lock.diffuse]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+    
+            let default = &Texture::default();
+            let default_normal = &Texture::default_normal();
+    
+            let diffuse_texture = { 
+                match material_lock.diffuse_texture.id {
+                    Some(id) => {self.get_texture(id, false).unwrap()},
+                    None => default.clone(),
+                }
+            };
+    
+            let normal_texture = {
+                match material_lock.normal_texture.id {
+                    Some(id) => self.get_texture(id, true).unwrap(),
+                    None => default_normal.clone()
+                }
+            };
+            
+            let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &Renderer::get_material_layout(),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: diffuse_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::TextureView(&normal_texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::Sampler(&normal_texture.sampler),
+                    },
+                ],
+                label: Some("material_bind_group"),
+            });
+
+            drop(material_lock);
+
+            self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![diffuse_buffer], bind_group)));
+        }
     }
 
     pub fn get_material_id_unchecked(&self, file_path: PathBuf) -> Option<usize> {

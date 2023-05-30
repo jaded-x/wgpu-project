@@ -62,11 +62,11 @@ impl App {
         // let mut watcher = FileWatcher::new().unwrap();
         // watcher.watch(Path::new("res")).unwrap();
 
-        let plane_model = resources::load_mesh("meshes/plane.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
-        let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &renderer.material_bind_group_layout).await.unwrap();
+        let plane_model = resources::load_mesh("meshes/plane.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
+        let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
 
-        let green_material = Arc::new(Gpu::new(Arc::new(Mutex::new(Material::new([0.0, 1.0, 0.0], None, None))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
-        let purple_stone = Arc::new(Gpu::new(Arc::new(Mutex::new(Material::new([1.0, 1.0, 1.0], Some(registry.get_texture_id(res("textures/brickwall.jpg"))), Some(registry.get_texture_id(res("textures/brickwall_normal.jpg")))))), context.device.clone(), renderer.material_bind_group_layout.clone(), context.queue.clone(), &mut registry));
+        let basic_material_id = registry.get_material_id(res("materials/basic.revmat"));
+        let green_material = registry.get_material(basic_material_id).unwrap();
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -78,7 +78,7 @@ impl App {
             .with(Name::new("Plane"))
             .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 0.0), cg::vec3(90.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
             .with(Mesh::new(plane_model[0].clone()))
-            .with(MaterialComponent::new(purple_stone.clone()))
+            .with(MaterialComponent::new(green_material.clone()))
             .build();
         world.create_entity()
             .with(Name::new("Cube"))

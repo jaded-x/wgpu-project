@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use reverie::engine::model::Material;
+use reverie::engine::{model::Material, registry::Registry};
 
 pub struct Explorer {
     current_folder: PathBuf,
@@ -21,7 +21,7 @@ impl Explorer {
         }
     }
 
-    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui) {
+    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, registry: &mut Registry) {
         ui.window("Explorer").build(|| {
             ui.columns(2, "explorer_split", true);
             if self.is_first_frame {
@@ -41,7 +41,7 @@ impl Explorer {
 
             ui.child_window("child").build(|| {
                 ui.columns((ui.content_region_avail()[0] / 80.0) as i32, "content split", false);
-                self.get_files(ui);
+                self.get_files(ui, registry);
             });
 
             if ui.is_item_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
@@ -90,7 +90,7 @@ impl Explorer {
         }
     }
 
-    fn get_files<'a>(&mut self, ui: &'a imgui::Ui) {
+    fn get_files<'a>(&mut self, ui: &'a imgui::Ui, registry: &mut Registry) {
         match std::fs::read_dir(self.current_folder.clone()) {
             Ok(entries) => {
                 for entry in entries {
@@ -113,7 +113,7 @@ impl Explorer {
                                     self.material = Some(Material::load(&entry.path()));
                                 }
                                 
-                                if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(0) {
+                                if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(Some(registry.get_material_id(entry.path()))) {
                                     ui.text(entry.file_name().to_str().unwrap());
                                     payload.end();
                                 }

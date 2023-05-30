@@ -1,13 +1,12 @@
 use anyhow::Result;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::util::cast_slice;
 
-use super::gpu::Gpu;
 use super::texture::Texture;
-use super::model::{Model, ModelVertex, Material, Mesh};
+use super::model::{ModelVertex, Mesh};
 
 pub async fn load_string(file_name: &str) -> Result<String> {
     let mut path = std::env::current_dir().unwrap().join("res");
@@ -37,14 +36,14 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
 pub async fn load_mesh(
     file_name: &str,
     device: &Arc<wgpu::Device>,
-    queue: &Arc<wgpu::Queue>,
-    layout: &Arc<wgpu::BindGroupLayout>,
+    _queue: &Arc<wgpu::Queue>,
+    _layout: &Arc<wgpu::BindGroupLayout>,
 ) -> Result<Vec<Arc<Mesh>>> {
     let obj_text = load_string(file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
 
-    let (models, obj_materials) = tobj::load_obj_buf_async(
+    let (models, _obj_materials) = tobj::load_obj_buf_async(
         &mut obj_reader,
         &tobj::LoadOptions {
             triangulate: true,
