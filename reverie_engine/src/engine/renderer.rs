@@ -12,7 +12,7 @@ use super::{
     context::create_render_pipeline, 
     camera::Camera,
     model::{DrawModel, Vertex, ModelVertex}, 
-    light_manager::LightManager,
+    light_manager::LightManager, registry::Registry,
 };
 
 use super::texture::Texture;

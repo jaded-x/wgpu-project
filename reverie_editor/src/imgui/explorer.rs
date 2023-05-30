@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use reverie::engine::{model::Material, registry::Registry};
+use reverie::engine::{model::Material, registry::{Registry, AssetType}};
 
 pub struct Explorer {
     current_folder: PathBuf,
@@ -110,10 +110,14 @@ impl Explorer {
                             if entry.file_type().unwrap().is_file() {
                                 if ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(4), [64.0, 64.0]) {
                                     self.selected_file = Some(entry.path());
-                                    self.material = Some(Material::load(&entry.path()));
+                                    if let Some(extension) = entry.path().extension() {
+                                        if AssetType::from_extension(extension) == AssetType::Material {
+                                            self.material = Some(Material::load(&entry.path()));
+                                        }
+                                    }
                                 }
                                 
-                                if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(Some(registry.get_material_id(entry.path()))) {
+                                if let Some(payload) = ui.drag_drop_source_config("texture").begin_payload(Some(registry.get_id(entry.path()))) {
                                     ui.text(entry.file_name().to_str().unwrap());
                                     payload.end();
                                 }

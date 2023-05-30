@@ -92,7 +92,7 @@ impl Imgui {
                 if let Some(material_path) = &self.explorer.selected_file {
                     let material_id = match &registry.get_material_id_unchecked(material_path.to_path_buf()) {
                         Some(id) => id.clone(),
-                        None => registry.add_material(material_path.to_path_buf())
+                        None => registry.add(material_path.to_path_buf())
                     };
                     match registry.metadata.get(&material_id).unwrap().asset_type  {
                         AssetType::Material => {
@@ -143,6 +143,7 @@ impl Imgui {
                             let mut material_asset = material.material.asset.lock().unwrap();
                             if material_asset.imgui_inspect(ui) {
                                 material.material.update_diffuse_buffer(material_asset.diffuse);
+                                
                             }
                         }
                     }

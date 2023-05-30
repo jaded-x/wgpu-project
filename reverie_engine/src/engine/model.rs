@@ -159,7 +159,12 @@ impl Material {
 
     pub fn save(&self, path: &PathBuf) {
         let yaml = serde_yaml::to_string(self).unwrap();
-        std::fs::write(path, yaml).unwrap();
+        if let Some(extension) = path.extension() {
+            dbg!(extension);
+            if extension == "revmat" {
+                std::fs::write(path, yaml).unwrap();
+            }
+        }
     }
 }
 

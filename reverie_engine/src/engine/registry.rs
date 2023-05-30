@@ -1,4 +1,4 @@
-use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex}};
+use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex}, ffi::OsStr};
 use rand::random;
 use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
@@ -8,10 +8,24 @@ use crate::util::cast_slice;
 
 use super::{texture::Texture, model::Material, gpu::Gpu, renderer::Renderer};
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
     Texture,
     Material,
+    Mesh,
+    Unknown
+}
+
+impl AssetType {
+    pub fn from_extension(extension: &OsStr) -> AssetType {
+        match extension.to_str().unwrap() {
+            "revmat" => AssetType::Material,
+            "png" => AssetType::Texture,
+            "jpg" => AssetType::Texture,
+            "obj" => AssetType::Mesh,
+            _ => AssetType::Unknown,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -46,47 +60,24 @@ impl Registry {
         }
     }
 
-    pub fn add_texture(&mut self, file_path: PathBuf) -> usize {
-        if self.is_file_path(&file_path) {
-            return self.get_texture_id(file_path);
+    pub fn add(&mut self, file_path: PathBuf) -> usize {
+        if self.contains_path(&file_path) {
+            return self.get_id(file_path).unwrap();
         }
 
         let id = random::<usize>();
         self.metadata.insert(id, AssetMetadata {
             id,
-            file_path,
-            asset_type: AssetType::Texture,
+            file_path: file_path.clone(),
+            asset_type: AssetType::from_extension(file_path.extension().unwrap())
         });
 
-        match self.save_metadata() {
-            Err(e) => println!("Failed to save registry metadata: {}", e),
-            _ => {}
-        }
+        self.save_metadata().unwrap();
 
         id
     }
 
-    pub fn add_material(&mut self, file_path: PathBuf) -> usize {
-        if self.is_file_path(&file_path) {
-            return self.get_material_id(file_path);
-        }
-
-        let id = random::<usize>();
-        self.metadata.insert(id, AssetMetadata {
-            id,
-            file_path,
-            asset_type: AssetType::Material,
-        });
-
-        match self.save_metadata() {
-            Err(e) => println!("Failed to save registry metadata: {}", e),
-            _ => {}
-        }
-
-        id
-    }
-
-    fn is_file_path(&self, file_path: &PathBuf) -> bool {
+    fn contains_path(&self, file_path: &PathBuf) -> bool {
         match self.metadata.iter()
             .find(|(_, asset)| asset.file_path == *file_path)
             .map(|(id, _)| *id) {
@@ -120,21 +111,13 @@ impl Registry {
         self.materials.get(&id).cloned()
     }
 
-    pub fn get_texture_id(&mut self, file_path: PathBuf) -> usize {
-        match self.metadata.iter()
-            .find(|(_, asset)| asset.file_path == file_path)
-            .map(|(id, _)| *id) {
-                Some(id) => id,
-                None => self.add_texture(file_path)
-            }
-    }
+    pub fn get_id(&mut self, file_path: PathBuf) -> Option<usize> {
 
-    pub fn get_material_id(&mut self, file_path: PathBuf) -> usize {
         match self.metadata.iter()
             .find(|(_, asset)| asset.file_path == file_path)
             .map(|(id, _)| *id) {
-                Some(id) => id,
-                None => self.add_material(file_path)
+                Some(id) => Some(id),
+                None => Some(self.add(file_path))
             }
     }
 
