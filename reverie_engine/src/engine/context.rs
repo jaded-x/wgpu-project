@@ -55,7 +55,7 @@ impl Context {
             format: surface_format,
             width: window_size.width,
             height: window_size.height,
-            present_mode: wgpu::PresentMode::Immediate,
+            present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
         };

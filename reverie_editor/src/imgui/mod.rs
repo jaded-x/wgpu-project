@@ -1,6 +1,7 @@
 mod explorer;
+mod viewport;
 
-use std::sync::Arc;
+use std::{sync::Arc, path::PathBuf};
 
 use reverie::{engine::{
     components::{
@@ -8,7 +9,7 @@ use reverie::{engine::{
         name::Name,
         light::PointLight, material::MaterialComponent
     }, 
-    light_manager::LightManager, registry::AssetType
+    light_manager::LightManager, registry::AssetType, model::Material, gpu::Gpu
 }, util::cast_slice};
 use specs::{*, WorldExt};
 
@@ -19,13 +20,14 @@ use crate::cursor::set_cursor;
 
 use explorer::Explorer;
 
+use self::viewport::Viewport;
+
 pub struct Imgui {
     pub context: imgui::Context,
     pub platform: imgui_winit_support::WinitPlatform,
     pub renderer: imgui_wgpu::Renderer,
 
-    pub viewport_texture: Arc<wgpu::Texture>,
-    pub viewport_size: [u32; 2],
+    pub viewport: Viewport,
     pub explorer: Explorer,
 
     entity: Option<Entity>,
@@ -48,30 +50,12 @@ impl Imgui {
 
         let renderer = imgui_wgpu::Renderer::new(&mut context, device, queue, renderer_config);
 
-        let viewport_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("texture"),
-            size: wgpu::Extent3d {
-                width: 800,
-                height: 600,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        }));
-
-        let explorer = Explorer::new();
-
         Self {
             context,
             platform,
             renderer,
-            viewport_size: [viewport_texture.width(), viewport_texture.height()],
-            viewport_texture,
-            explorer,
+            viewport: Viewport::new(device),
+            explorer: Explorer::new(),
 
             entity: None,
             light_index: None,
@@ -102,7 +86,7 @@ impl Imgui {
                                 material_asset.save(material_path);
                             }
 
-                            if inspect[1] {
+                            if inspect[1] || inspect[2] {
                                 material_asset.save(material_path);
                                 registry.reload_material(material_id);
                                 for entity in world.entities().join() {
@@ -118,6 +102,7 @@ impl Imgui {
                         _ => {}
                     }
                 }
+
                 if let Some(entity) = self.entity {
                     let names = world.read_component::<Name>();
                     ui.text(names.get(entity).unwrap().0.clone());
@@ -169,6 +154,7 @@ impl Imgui {
 
                 if ui.button(name.0.to_string()) {
                     self.entity = Some(entity);
+                    self.explorer.selected_file = None;
                     self.explorer.material = None;
 
                     match light_component.get(entity) {
@@ -183,11 +169,7 @@ impl Imgui {
             }
         });
 
-        ui.window("Viewport").build(|| {
-            self.viewport_size = [ui.content_region_avail()[0] as u32, ui.content_region_avail()[1] as u32];
-            imgui::Image::new(imgui::TextureId::new(2), ui.content_region_avail()).build(ui);
-        });
-
+        self.viewport.ui(ui);
         self.explorer.ui(ui, registry);
         
 

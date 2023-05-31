@@ -228,32 +228,3 @@ impl Texture {
         }
     }
 }
-
-// use std::result::Result::Ok;
-
-// impl imgui_inspector::InspectTexture for Texture {
-//     fn inspect_texture<'a>(&self, ui: &'a imgui::Ui, label: &str) -> Option<usize> {
-//         let mut result = None;
-        
-//         ui.button("test");
-//         match ui.drag_drop_target() {
-//             Some(target) => {
-//                 match target.accept_payload::<Option<usize>, _>("texture", imgui::DragDropFlags::empty()) {
-//                     Some(Ok(payload_data)) => {
-//                         result = payload_data.data;
-//                         dbg!(payload_data.data);
-//                     },
-//                     Some(Err(e)) => {
-//                         println!("{}", e);
-//                     },
-//                     _ => {},
-//                 }
-//             },
-//             _ => {},
-//         }
-//         ui.same_line();
-//         ui.text(label);
-        
-//         result
-//     }
-// }

@@ -46,7 +46,7 @@ impl App {
         let context = Context::new(&window.window).await;
         let mut imgui = Imgui::new(&window.window, &context.device, &context.queue);
 
-        let renderer = Renderer::new(&context.device, &context.config, &imgui.viewport_texture.size()); 
+        let renderer = Renderer::new(&context.device, &context.config, &imgui.viewport.texture.size()); 
 
         let mut registry = Registry::new(context.device.clone(), context.queue.clone());
 
@@ -118,14 +118,14 @@ impl App {
         }
     }
 
-    fn resize_imgui(&mut self) {
+    fn resize_viewport(&mut self) {
         let extent = wgpu::Extent3d {
-            width: self.imgui.viewport_size[0],
-            height: self.imgui.viewport_size[1],
+            width: self.imgui.viewport.size[0],
+            height: self.imgui.viewport.size[1],
             depth_or_array_layers: 1,
         };
         
-        self.imgui.viewport_texture  = Arc::new(self.context.device.create_texture(&wgpu::TextureDescriptor {
+        self.imgui.viewport.texture  = Arc::new(self.context.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("texture"),
             size: extent,
             mip_level_count: 1,
@@ -164,17 +164,17 @@ impl App {
             label: Some("encoder")
         });
 
-        if &[self.imgui.viewport_texture.width(), self.imgui.viewport_texture.height()] != &self.imgui.viewport_size {
-            self.resize_imgui();
+        if &[self.imgui.viewport.texture.width(), self.imgui.viewport.texture.height()] != &self.imgui.viewport.size {
+            self.resize_viewport();
         }
 
-        let viewport_view = self.imgui.viewport_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
         self.renderer.draw(&viewport_view, &mut self.world, &self.camera, &self.light_manager, &mut encoder)?;
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 
             &self.imgui.renderer, 
-            self.imgui.viewport_texture.clone(), 
+            self.imgui.viewport.texture.clone(), 
             Arc::new(viewport_view), 
             None, 
             Some(&imgui_wgpu::RawTextureConfig {
@@ -184,8 +184,8 @@ impl App {
                 }
             }), 
             wgpu::Extent3d {
-                width: self.imgui.viewport_texture.width(),
-                height: self.imgui.viewport_texture.width(),
+                width: self.imgui.viewport.texture.width(),
+                height: self.imgui.viewport.texture.width(),
                 depth_or_array_layers: 1,
             },
         );

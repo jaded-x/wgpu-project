@@ -95,7 +95,6 @@ impl InspectTexture for TextureId {
                     Some(Ok(payload_data)) => {
                         self.id = payload_data.data;
                         result = true;
-                        dbg!(payload_data.data);
                     },
                     Some(Err(e)) => {
                         println!("{}", e);
@@ -119,7 +118,7 @@ pub struct Material {
     pub diffuse: [f32; 3],
     #[inspect(widget = "texture")]
     pub diffuse_texture: TextureId,
-    #[inspect(hide = true)]
+    #[inspect(widget = "texture")]
     pub normal_texture: TextureId,
 }
 
