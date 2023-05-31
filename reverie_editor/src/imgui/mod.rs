@@ -129,6 +129,23 @@ impl Imgui {
                     if let Some(material) = materials.get_mut(entity) {
                         let material_id = material.id.clone();
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                            ui.button("mat");
+                            match ui.drag_drop_target() {
+                                Some(target) => {
+                                    match target.accept_payload::<Option<usize>, _>(AssetType::Material.to_string(), imgui::DragDropFlags::empty()) {
+                                        Some(Ok(payload_data)) => {
+                                            material.id = payload_data.data.unwrap();
+                                            material.material = registry.get_material(material.id).unwrap();
+                                        },
+                                        Some(Err(e)) => {
+                                            println!("{}", e);
+                                        },
+                                        _ => {},
+                                    }
+                                },
+                                _ => {},
+                            }
+
                             let material_path = registry.get_filepath(material.id);
                             ui.text(material_path.file_name().unwrap().to_str().unwrap());
                             ui.separator();

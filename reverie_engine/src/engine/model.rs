@@ -88,7 +88,7 @@ impl InspectTexture for TextureId {
     fn inspect_texture<'a>(&mut self, ui: &'a imgui::Ui, label: &str) -> bool {
         let mut result = false;
         
-        ui.button("test");
+        ui.button("tex");
         match ui.drag_drop_target() {
             Some(target) => {
                 match target.accept_payload::<Option<usize>, _>(AssetType::Texture.to_string(), imgui::DragDropFlags::empty()) {
