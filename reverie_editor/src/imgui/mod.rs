@@ -1,7 +1,7 @@
 mod explorer;
 mod viewport;
 
-use std::{sync::Arc, path::PathBuf};
+use std::sync::Arc;
 
 use reverie::{engine::{
     components::{
@@ -82,21 +82,16 @@ impl Imgui {
                             let mut material_asset = self.explorer.material.as_ref().unwrap().asset.lock().unwrap();
                             let inspect = material_asset.imgui_inspect(ui);
                             if inspect[0] {
-                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[material_asset.diffuse]));
                                 material_asset.save(material_path);
+                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[material_asset.diffuse]));
                             }
 
                             if inspect[1] || inspect[2] {
                                 material_asset.save(material_path);
                                 registry.reload_material(material_id);
-                                for entity in world.entities().join() {
-                                    let mut materials = world.write_component::<MaterialComponent>();
-                                    if let Some(material) = materials.get_mut(entity) {
-                                        if material.id == material_id {
-                                            material.material = registry.get_material(material_id).unwrap();
-                                        }
-                                    }
-                                }
+                                update_entity_material(world, material_id, registry);
+                                drop(material_asset);
+                                self.explorer.material = registry.get_material(material_id);
                             }
                         }
                         _ => {}
@@ -132,11 +127,24 @@ impl Imgui {
 
                     let mut materials = world.write_component::<MaterialComponent>();
                     if let Some(material) = materials.get_mut(entity) {
+                        let material_id = material.id.clone();
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                            let material_path = registry.get_filepath(material.id);
+                            ui.text(material_path.file_name().unwrap().to_str().unwrap());
+                            ui.separator();
                             let mut material_asset = material.material.asset.lock().unwrap();
-                            if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
+                            let inspect = material_asset.imgui_inspect(ui);
+                            if inspect[0] {
+                                material_asset.save(&material_path);
                                 material.material.update_diffuse_buffer(material_asset.diffuse);
-                                
+                            }
+
+                            if inspect[1] || inspect[2] {
+                                material_asset.save(&material_path);
+                                registry.reload_material(material.id);
+                                drop(material_asset);
+                                drop(materials);
+                                update_entity_material(world, material_id, registry);
                             }
                         }
                     }
@@ -172,6 +180,9 @@ impl Imgui {
         self.viewport.ui(ui);
         self.explorer.ui(ui, registry);
         
+        if self.explorer.selected_file.is_some() {
+            self.entity = None;
+        }
 
         if ui.is_any_item_hovered() && !ui.is_any_item_active() {
             set_cursor(window, ui);
@@ -226,5 +237,16 @@ impl Imgui {
             },
         );
         self.renderer.textures.replace(imgui::TextureId::new(id), imgui_texture);
+    }
+}
+
+fn update_entity_material(world: &World, id: usize, registry: &mut Registry) {
+    for entity in world.entities().join() {
+        let mut materials = world.write_component::<MaterialComponent>();
+        if let Some(material) = materials.get_mut(entity) {
+            if material.id == id {
+                material.material = registry.get_material(id).unwrap();
+            }
+        }
     }
 }

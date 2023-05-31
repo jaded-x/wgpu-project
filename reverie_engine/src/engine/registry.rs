@@ -244,6 +244,10 @@ impl Registry {
         }
     }
 
+    pub fn get_filepath(&self, id: usize) -> PathBuf {
+        self.metadata.get(&id).unwrap().file_path.clone()
+    }
+
     pub fn get_material_from_path(&mut self, file_path: PathBuf) -> Option<Arc<Gpu<Material>>> {
         let id = self.get_id(file_path);
         self.get_material(id)
