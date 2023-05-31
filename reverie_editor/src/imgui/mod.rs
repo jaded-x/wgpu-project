@@ -9,7 +9,7 @@ use reverie::{engine::{
         name::Name,
         light::PointLight, material::MaterialComponent
     }, 
-    light_manager::LightManager, registry::AssetType, model::Material, gpu::Gpu
+    light_manager::LightManager, registry::AssetType,
 }, util::cast_slice};
 use specs::{*, WorldExt};
 

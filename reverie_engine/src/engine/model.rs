@@ -91,7 +91,7 @@ impl InspectTexture for TextureId {
         ui.button("test");
         match ui.drag_drop_target() {
             Some(target) => {
-                match target.accept_payload::<Option<usize>, _>("texture", imgui::DragDropFlags::empty()) {
+                match target.accept_payload::<Option<usize>, _>(AssetType::Texture.to_string(), imgui::DragDropFlags::empty()) {
                     Some(Ok(payload_data)) => {
                         self.id = payload_data.data;
                         result = true;

@@ -28,6 +28,17 @@ impl AssetType {
     }
 }
 
+impl ToString for AssetType {
+    fn to_string(&self) -> String {
+        match self {
+            AssetType::Material => String::from("revmat"),
+            AssetType::Texture => String::from("texture"),
+            AssetType::Mesh => String::from("mesh"),
+            AssetType::Unknown => String::from("unknown"),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AssetMetadata {
     id: usize,

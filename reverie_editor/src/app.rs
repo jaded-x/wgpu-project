@@ -152,7 +152,6 @@ impl App {
         self.camera_controller.update_camera(&mut self.camera, dt, &self.input);
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
-    
         //self.watcher.handle_events(&mut self.textures);
     }
 
