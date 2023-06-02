@@ -29,9 +29,11 @@ impl Viewport {
     }
 
     pub fn ui<'a>(&mut self, ui: &'a imgui::Ui) {
+        let padding = ui.push_style_var(imgui::StyleVar::WindowPadding([0.0, 0.0]));
         ui.window("Viewport").build(|| {
             self.size = [ui.content_region_avail()[0] as u32, ui.content_region_avail()[1] as u32];
             imgui::Image::new(imgui::TextureId::new(2), ui.content_region_avail()).build(ui);
         });
+        padding.pop();
     }
 }

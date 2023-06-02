@@ -1779,6 +1779,7 @@ dependencies = [
  "env_logger",
  "fs_extra",
  "glob",
+ "image",
  "imgui",
  "imgui-wgpu",
  "imgui-winit-support",

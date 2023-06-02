@@ -27,3 +27,7 @@ imgui_inspector_derive = { path = "../../imgui_inspector/imgui_inspector_derive"
 anyhow = "1.0.68"
 fs_extra = "1.2.0"
 glob = "0.3.0"
+
+[dependencies.image]
+version = "0.24"
+features = ["png", "jpeg"]

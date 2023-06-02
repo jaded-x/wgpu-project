@@ -106,7 +106,7 @@ impl Registry {
 
             self.textures.insert(asset.id, Arc::new(texture));
 
-            let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 20, 20, id);
+            let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 32, 32);
             self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
         }
     }
@@ -283,7 +283,7 @@ fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {
     Ok(metadata)
 }
 
-fn create_imgui_texture(renderer: &Arc<Mutex<imgui_wgpu::Renderer>>, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) -> imgui_wgpu::Texture {
+fn create_imgui_texture(renderer: &Arc<Mutex<imgui_wgpu::Renderer>>, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) -> imgui_wgpu::Texture {
     let bytes = std::fs::read(Path::new(file_name)).unwrap();
     let texture = Texture::from_bytes(device, queue, &bytes, file_name, false).unwrap();
     imgui_wgpu::Texture::from_raw_parts(

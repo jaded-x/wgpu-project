@@ -103,9 +103,7 @@ impl App {
 
         imgui.load_texture("src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3);
         imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
-        imgui.load_texture(res("textures/default_diffuse_texture.jpg").to_str().unwrap(), &context.device, &context.queue, 20, 20, 13628728049108818851);
-        imgui.load_texture(res("textures/flat_normal.png").to_str().unwrap(), &context.device, &context.queue, 20, 20, 2751989207544454065);
-        imgui.load_texture(res("textures/brickwall.jpg").to_str().unwrap(), &context.device, &context.queue, 20, 20, 7827023665519822699);
+        imgui.load_texture("src/imgui/textures/background.png", &context.device, &context.queue, 1, 1, 5);
 
         Self {
             context,
