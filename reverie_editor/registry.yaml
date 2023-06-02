@@ -1,3 +1,15 @@
+16628266983644647817:
+  id: 16628266983644647817
+  file_path: C:\dev\reverie\reverie_editor\res\textures\cube-normal.png
+  asset_type: Texture
+2751989207544454065:
+  id: 2751989207544454065
+  file_path: C:\dev\reverie\reverie_editor\res\textures\flat_normal.png
+  asset_type: Texture
+8193855199045641447:
+  id: 8193855199045641447
+  file_path: C:\dev\reverie\reverie_editor\res\materials\cube_brick.revmat
+  asset_type: Material
 13452095584573952824:
   id: 13452095584573952824
   file_path: C:\dev\reverie\reverie_editor\res\meshes\sphere.mtl
@@ -6,37 +18,33 @@
   id: 125406362668153560
   file_path: C:\dev\reverie\reverie_editor\res\textures\cube-diffuse.jpg
   asset_type: Texture
-3681944568728389845:
-  id: 3681944568728389845
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\sphere.obj
-  asset_type: Mesh
-2751989207544454065:
-  id: 2751989207544454065
-  file_path: C:\dev\reverie\reverie_editor\res\textures\flat_normal.png
-  asset_type: Texture
-13628728049108818851:
-  id: 13628728049108818851
-  file_path: C:\dev\reverie\reverie_editor\res\textures\default_diffuse_texture.jpg
-  asset_type: Texture
-18107631171250797795:
-  id: 18107631171250797795
-  file_path: C:\dev\reverie\reverie_editor\res\materials\basic.revmat
-  asset_type: Material
 2621548427931299704:
   id: 2621548427931299704
   file_path: C:\dev\reverie\reverie_editor\res\meshes\cube.mtl
   asset_type: Unknown
+3681944568728389845:
+  id: 3681944568728389845
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\sphere.obj
+  asset_type: Mesh
+14220652958971434394:
+  id: 14220652958971434394
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\plane.obj
+  asset_type: Mesh
+18107631171250797795:
+  id: 18107631171250797795
+  file_path: C:\dev\reverie\reverie_editor\res\materials\basic.revmat
+  asset_type: Material
 7827023665519822699:
   id: 7827023665519822699
   file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall.jpg
   asset_type: Texture
-16628266983644647817:
-  id: 16628266983644647817
-  file_path: C:\dev\reverie\reverie_editor\res\textures\cube-normal.png
-  asset_type: Texture
-14004660404556113654:
-  id: 14004660404556113654
-  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall_normal.jpg
+4686283503947292907:
+  id: 4686283503947292907
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\cube.obj
+  asset_type: Mesh
+13628728049108818851:
+  id: 13628728049108818851
+  file_path: C:\dev\reverie\reverie_editor\res\textures\default_diffuse_texture.jpg
   asset_type: Texture
 16551274859939052943:
   id: 16551274859939052943
@@ -46,11 +54,7 @@
   id: 10257896035189384858
   file_path: C:\dev\reverie\reverie_editor\res\materials\brick.revmat
   asset_type: Material
-14220652958971434394:
-  id: 14220652958971434394
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\plane.obj
-  asset_type: Mesh
-4686283503947292907:
-  id: 4686283503947292907
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\cube.obj
-  asset_type: Mesh
+14004660404556113654:
+  id: 14004660404556113654
+  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall_normal.jpg
+  asset_type: Texture

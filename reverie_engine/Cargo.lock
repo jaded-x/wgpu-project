@@ -934,6 +934,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "imgui-wgpu"
+version = "0.22.0"
+source = "git+https://github.com/Yatekii/imgui-wgpu-rs#e2e83bc94a05469077107139f78c17d4f2a4ed41"
+dependencies = [
+ "bytemuck",
+ "imgui",
+ "log",
+ "smallvec",
+ "wgpu",
+]
+
+[[package]]
 name = "imgui_inspector"
 version = "0.1.0"
 dependencies = [
@@ -1635,6 +1647,7 @@ dependencies = [
  "glob",
  "image",
  "imgui",
+ "imgui-wgpu",
  "imgui_inspector",
  "imgui_inspector_derive",
  "instant",

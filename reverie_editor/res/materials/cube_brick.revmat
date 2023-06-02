@@ -1,0 +1,8 @@
+diffuse:
+- 1.0
+- 1.0
+- 1.0
+diffuse_texture:
+  id: null
+normal_texture:
+  id: null

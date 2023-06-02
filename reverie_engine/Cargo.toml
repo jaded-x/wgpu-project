@@ -17,6 +17,7 @@ tobj = { version = "3.2.3", features = ["async"] }
 instant = "0.1.12"
 specs = { version = "0.18.0", features = ["derive"]}
 imgui = { version = "0.11.0", features = ["docking"] }
+imgui-wgpu = { git = "https://github.com/Yatekii/imgui-wgpu-rs" }
 once_cell = "1.17.1"
 rand = "0.8.5"
 serde = { version = "1.0.163", features = ["derive"] }

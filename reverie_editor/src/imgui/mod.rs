@@ -1,7 +1,7 @@
 mod explorer;
 mod viewport;
 
-use std::sync::Arc;
+use std::{sync::{Arc, Mutex}, path::Path};
 
 use reverie::{engine::{
     components::{
@@ -9,7 +9,7 @@ use reverie::{engine::{
         name::Name,
         light::PointLight, material::MaterialComponent
     }, 
-    light_manager::LightManager, registry::AssetType,
+    light_manager::LightManager, registry::AssetType, texture::Texture,
 }, util::cast_slice};
 use specs::{*, WorldExt};
 
@@ -25,7 +25,7 @@ use self::viewport::Viewport;
 pub struct Imgui {
     pub context: imgui::Context,
     pub platform: imgui_winit_support::WinitPlatform,
-    pub renderer: imgui_wgpu::Renderer,
+    pub renderer: Arc<Mutex<imgui_wgpu::Renderer>>,
 
     pub viewport: Viewport,
     pub explorer: Explorer,
@@ -48,7 +48,7 @@ impl Imgui {
             ..Default::default()
         };
 
-        let renderer = imgui_wgpu::Renderer::new(&mut context, device, queue, renderer_config);
+        let renderer = Arc::new(Mutex::new(imgui_wgpu::Renderer::new(&mut context, device, queue, renderer_config)));
 
         Self {
             context,
@@ -62,7 +62,7 @@ impl Imgui {
         }
     }
 
-    fn ui(&mut self, world: &specs::World, registry: &mut Registry, light_manager: &LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
+    fn ui(&mut self, world: &specs::World, registry: &mut Registry, light_manager: &LightManager, device: &wgpu::Device, queue: &wgpu::Queue, window: &winit::window::Window) {
         let ui = self.context.frame();
 
         ui.dockspace_over_main_viewport();
@@ -73,7 +73,7 @@ impl Imgui {
 
         ui.window("Inspector")
             .build(|| {
-                if let Some(material_path) = &self.explorer.selected_file {
+                if let Some(material_path) = &self.explorer.selected_file.clone() {
                     let material_id = registry.get_id(material_path.to_path_buf());
                     match registry.metadata.get(&material_id).unwrap().asset_type  {
                         AssetType::Material => {
@@ -209,8 +209,9 @@ impl Imgui {
     pub fn draw(&mut self, world: &specs::World, registry: &mut Registry, light_manager: &LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         self.platform.prepare_frame(self.context.io_mut(), window).expect("Failed to prepare frame");
 
-        self.ui(world, registry, light_manager, queue, window);
+        self.ui(world, registry, light_manager, device, queue, window);
 
+        let mut renderer_lock = self.renderer.lock().unwrap();
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -224,22 +225,21 @@ impl Imgui {
             depth_stencil_attachment: None,
         });
 
-        self.renderer.render(self.context.render(), queue, device, &mut render_pass)
+        renderer_lock.render(self.context.render(), queue, device, &mut render_pass)
             .expect("rendering failed");
-
         drop(render_pass);
 
         Ok(())
     }
 
-    pub async fn load_texture(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) {
-        let texture = reverie::engine::resources::load_texture(file_name, false, device, queue).await.unwrap().texture;
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    pub fn load_texture(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) {
+        let bytes = std::fs::read(Path::new(file_name)).unwrap();
+        let texture = Texture::from_bytes(device, queue, &bytes, file_name, false).unwrap();
         let imgui_texture = imgui_wgpu::Texture::from_raw_parts(
             &device, 
-            &self.renderer, 
-            Arc::new(texture), 
-            Arc::new(texture_view), 
+            &self.renderer.lock().unwrap(), 
+            Arc::new(texture.texture), 
+            Arc::new(texture.view), 
             None, 
             Some(&imgui_wgpu::RawTextureConfig {
                 label: Some("raw texture config"),
@@ -253,7 +253,7 @@ impl Imgui {
                 depth_or_array_layers: 1,
             },
         );
-        self.renderer.textures.replace(imgui::TextureId::new(id), imgui_texture);
+        self.renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
     }
 }
 

@@ -1804,6 +1804,7 @@ dependencies = [
  "glob",
  "image",
  "imgui",
+ "imgui-wgpu",
  "imgui_inspector",
  "imgui_inspector_derive",
  "instant",

@@ -48,7 +48,7 @@ impl App {
 
         let renderer = Renderer::new(&context.device, &context.config, &imgui.viewport.texture.size()); 
 
-        let mut registry = Registry::new(context.device.clone(), context.queue.clone());
+        let mut registry = Registry::new(context.device.clone(), context.queue.clone(), imgui.renderer.clone());
 
         Texture::load_defaults(&context.device, &context.queue);
 
@@ -101,8 +101,11 @@ impl App {
 
         let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
 
-        imgui.load_texture("../src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3).await;
-        imgui.load_texture("../src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4).await;
+        imgui.load_texture("src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3);
+        imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
+        imgui.load_texture(res("textures/default_diffuse_texture.jpg").to_str().unwrap(), &context.device, &context.queue, 20, 20, 13628728049108818851);
+        imgui.load_texture(res("textures/flat_normal.png").to_str().unwrap(), &context.device, &context.queue, 20, 20, 2751989207544454065);
+        imgui.load_texture(res("textures/brickwall.jpg").to_str().unwrap(), &context.device, &context.queue, 20, 20, 7827023665519822699);
 
         Self {
             context,
@@ -172,7 +175,7 @@ impl App {
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 
-            &self.imgui.renderer, 
+            &self.imgui.renderer.lock().unwrap(), 
             self.imgui.viewport.texture.clone(), 
             Arc::new(viewport_view), 
             None, 
@@ -189,7 +192,7 @@ impl App {
             },
         );
         
-        self.imgui.renderer.textures.replace(imgui::TextureId::new(2), texture);
+        self.imgui.renderer.lock().unwrap().textures.replace(imgui::TextureId::new(2), texture);
         self.imgui.draw(&self.world, &mut self.registry, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
 
         self.context.queue.submit([encoder.finish()]);

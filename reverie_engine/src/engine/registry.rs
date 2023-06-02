@@ -1,4 +1,4 @@
-use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex}, ffi::OsStr};
+use std::{path::{PathBuf, Path}, collections::HashMap, sync::{Arc, Mutex}, ffi::OsStr};
 use rand::random;
 use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
@@ -55,16 +55,18 @@ impl AssetMetadata {
 pub struct Registry {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
+    imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>,
     pub textures: HashMap<usize, Arc<Texture>>,
     pub materials: HashMap<usize, Arc<Gpu<Material>>>,
     pub metadata: HashMap<usize, AssetMetadata>,
 }
 
 impl Registry {
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
+    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>) -> Self {
         Self {
             device,
             queue,
+            imgui_renderer,
             textures: HashMap::new(),
             materials: HashMap::new(),
             metadata: load_metadata().unwrap(),
@@ -103,6 +105,9 @@ impl Registry {
             let texture = Texture::from_bytes(&self.device, &self.queue, &bytes, &asset.file_path.to_str().unwrap(), normal).unwrap();
 
             self.textures.insert(asset.id, Arc::new(texture));
+
+            let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 20, 20, id);
+            self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
         }
     }
 
@@ -276,4 +281,27 @@ fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {
     let yaml = std::fs::read_to_string(std::env::current_dir().unwrap().join("registry.yaml"))?;
     let metadata: HashMap<usize, AssetMetadata> = serde_yaml::from_str(&yaml)?;
     Ok(metadata)
+}
+
+fn create_imgui_texture(renderer: &Arc<Mutex<imgui_wgpu::Renderer>>, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) -> imgui_wgpu::Texture {
+    let bytes = std::fs::read(Path::new(file_name)).unwrap();
+    let texture = Texture::from_bytes(device, queue, &bytes, file_name, false).unwrap();
+    imgui_wgpu::Texture::from_raw_parts(
+        &device, 
+        &renderer.lock().unwrap(), 
+        Arc::new(texture.texture), 
+        Arc::new(texture.view), 
+        None, 
+        Some(&imgui_wgpu::RawTextureConfig {
+            label: Some("raw texture config"),
+            sampler_desc: wgpu::SamplerDescriptor {
+                ..Default::default()
+            }
+        }), 
+        wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+    )
 }
