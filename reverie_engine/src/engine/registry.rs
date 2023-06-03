@@ -6,7 +6,7 @@ use std::error::Error;
 
 use crate::util::cast_slice;
 
-use super::{texture::Texture, model::{Material, Mesh}, gpu::Gpu, renderer::Renderer};
+use super::{texture::Texture, model::{Material, Mesh}, gpu::Gpu, renderer::Renderer, resources};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
@@ -114,7 +114,11 @@ impl Registry {
     }
 
     fn load_mesh(&mut self, id: usize) {
-        
+        if let Some(asset) = self.metadata.get(&id) {
+            let mesh = &resources::load_mesh(&asset.file_path, &self.device).unwrap()[0];
+
+            self.meshes.insert(asset.id, mesh.to_owned());
+        }
     }
 
     pub fn get_texture(&mut self, id: usize, normal: bool) -> Option<Arc<Texture>> {
@@ -131,6 +135,14 @@ impl Registry {
         }
 
         self.materials.get(&id).cloned()
+    }
+
+    pub fn get_mesh(&mut self, id: usize) -> Option<Arc<Mesh>> {
+        if !self.meshes.contains_key(&id) {
+            self.load_mesh(id);
+        }
+
+        self.meshes.get(&id).cloned()
     }
 
     pub fn get_id(&mut self, file_path: PathBuf) -> usize {

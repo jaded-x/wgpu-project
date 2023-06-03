@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use specs::{Component, VecStorage};
 
-use crate::engine::model;
+use crate::engine::{model, registry::Registry};
 
 #[derive(Component)]
 #[storage(VecStorage)]
@@ -12,7 +12,9 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(id: usize, mesh: Arc<model::Mesh>) -> Self {
+    pub fn new(id: usize, registry: &mut Registry) -> Self {
+        let mesh = registry.get_mesh(id).unwrap();
+
         Self {
             id,
             mesh

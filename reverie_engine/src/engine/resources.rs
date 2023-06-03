@@ -37,8 +37,6 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
 pub fn load_mesh(
     file_path: &PathBuf,
     device: &Arc<wgpu::Device>,
-    _queue: &Arc<wgpu::Queue>,
-    _layout: &Arc<wgpu::BindGroupLayout>,
 ) -> Result<Vec<Arc<Mesh>>> {
     let obj_text = std::fs::read_to_string(file_path)?;
     let obj_cursor = Cursor::new(obj_text);
