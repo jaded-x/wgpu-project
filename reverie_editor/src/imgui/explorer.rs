@@ -37,6 +37,10 @@ impl Explorer {
                     Material::create(&self.current_folder, &self.text_input);
                     self.text_input = String::new();
                 }
+                if ui.button("Create Scene") {
+                    Material::create(&self.current_folder, &self.text_input);
+                    self.text_input = String::new();
+                }
             });
 
             ui.child_window("child").build(|| {
@@ -72,9 +76,9 @@ impl Explorer {
     fn create_node<'a>(&mut self, ui: &'a imgui::Ui, path: PathBuf, depth: i32) {
         let indent = ui.clone_style().indent_spacing;
         let file_name = path.file_name().unwrap().to_str().unwrap();
-        let mut flags = imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::ALLOW_ITEM_OVERLAP;
+        let mut flags = imgui::TreeNodeFlags::DEFAULT_OPEN | imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::ALLOW_ITEM_OVERLAP;
         if self.current_folder == path {
-            flags = imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::ALLOW_ITEM_OVERLAP | imgui::TreeNodeFlags::SELECTED;
+            flags |= imgui::TreeNodeFlags::SELECTED;
         }
         if ui.tree_node_config(&file_name).default_open(true).flags(flags).build(|| {
             ui.same_line_with_pos(28.0 + indent * depth as f32);

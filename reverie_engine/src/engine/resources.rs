@@ -1,6 +1,7 @@
 use anyhow::Result;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::util::cast_slice;
@@ -8,7 +9,7 @@ use crate::util::cast_slice;
 use super::texture::Texture;
 use super::model::{ModelVertex, Mesh};
 
-pub async fn load_string(file_name: &str) -> Result<String> {
+pub fn load_string(file_name: &str) -> Result<String> {
     let mut path = std::env::current_dir().unwrap().join("res");
     for dir in file_name.split("/") {
         path = path.join(dir);
@@ -33,36 +34,31 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
     Texture::from_bytes(device, queue, &data, file_name, is_normal_map)
 }
 
-pub async fn load_mesh(
-    file_name: &str,
+pub fn load_mesh(
+    file_path: &PathBuf,
     device: &Arc<wgpu::Device>,
     _queue: &Arc<wgpu::Queue>,
     _layout: &Arc<wgpu::BindGroupLayout>,
 ) -> Result<Vec<Arc<Mesh>>> {
-    let obj_text = load_string(file_name).await?;
+    let obj_text = std::fs::read_to_string(file_path)?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
 
-    let (models, _obj_materials) = tobj::load_obj_buf_async(
+    let (models, _obj_materials) = tobj::load_obj_buf(
         &mut obj_reader,
         &tobj::LoadOptions {
             triangulate: true,
             single_index: true,
             ..Default::default()
         },
-        |p| async move {
-            let mut path = std::env::current_dir().unwrap().join("res");
-            let split: Vec<&str> = file_name.split('/').collect();
-            for i in split[..split.len() - 1].iter() {
-                path = path.join(i);
-            }
-            path = path.join(p);
-            
-            let mat_text = load_string(&path.as_path().as_os_str().to_str().unwrap()).await.unwrap();
+        |_p| {
+            let mut mtl_path = file_path.clone();
+            mtl_path.set_extension("mtl");
+
+            let mat_text = load_string(mtl_path.to_str().unwrap()).unwrap();
             tobj::load_mtl_buf(&mut BufReader::new(Cursor::new(mat_text)))
         },
-    )
-    .await?;
+    ).unwrap();
 
     // let mut materials = Vec::new();
     // for material in obj_materials? {
@@ -148,19 +144,19 @@ pub async fn load_mesh(
             }
 
             let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Vertex Buffer", file_name)),
+                label: Some(&format!("{:?} Vertex Buffer", file_path.to_str().unwrap())),
                 contents: cast_slice(&vertices),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
             let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Index Buffer", file_name)),
+                label: Some(&format!("{:?} Index Buffer", file_path.to_str().unwrap())),
                 contents: cast_slice(&material.mesh.indices),
                 usage: wgpu::BufferUsages::INDEX,
             });
 
             Arc::new(Mesh {
-                name: file_name.to_string(),
+                name: file_path.to_str().unwrap().to_string(),
                 vertex_buffer,
                 index_buffer,
                 element_count: material.mesh.indices.len() as u32,

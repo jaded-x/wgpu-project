@@ -6,7 +6,7 @@ use std::error::Error;
 
 use crate::util::cast_slice;
 
-use super::{texture::Texture, model::Material, gpu::Gpu, renderer::Renderer};
+use super::{texture::Texture, model::{Material, Mesh}, gpu::Gpu, renderer::Renderer};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
@@ -58,6 +58,7 @@ pub struct Registry {
     imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>,
     pub textures: HashMap<usize, Arc<Texture>>,
     pub materials: HashMap<usize, Arc<Gpu<Material>>>,
+    pub meshes: HashMap<usize, Arc<Mesh>>,
     pub metadata: HashMap<usize, AssetMetadata>,
 }
 
@@ -69,6 +70,7 @@ impl Registry {
             imgui_renderer,
             textures: HashMap::new(),
             materials: HashMap::new(),
+            meshes: HashMap::new(),
             metadata: load_metadata().unwrap(),
         }
     }
@@ -109,6 +111,10 @@ impl Registry {
             let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 32, 32);
             self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
         }
+    }
+
+    fn load_mesh(&mut self, id: usize) {
+        
     }
 
     pub fn get_texture(&mut self, id: usize, normal: bool) -> Option<Arc<Texture>> {

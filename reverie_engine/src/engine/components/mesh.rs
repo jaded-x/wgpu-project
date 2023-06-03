@@ -7,12 +7,14 @@ use crate::engine::model;
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct Mesh {
+    pub id: usize,
     pub mesh: Arc<model::Mesh>,
 }
 
 impl Mesh {
-    pub fn new(mesh: Arc<model::Mesh>) -> Self {
+    pub fn new(id: usize, mesh: Arc<model::Mesh>) -> Self {
         Self {
+            id,
             mesh
         }
     }

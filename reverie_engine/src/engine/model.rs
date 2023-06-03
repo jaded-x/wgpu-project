@@ -87,11 +87,10 @@ impl TextureId {
 impl InspectTexture for TextureId {
     fn inspect_texture<'a>(&mut self, ui: &'a imgui::Ui, label: &str) -> bool {
         let mut result = false;
-        if self.id.is_some() {
-            imgui::Image::new(imgui::TextureId::new(self.id.unwrap()), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui);
-        } else {
-            imgui::Image::new(imgui::TextureId::new(5), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui);
-        }
+        match self.id {
+            Some(id) => imgui::Image::new(imgui::TextureId::new(id), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui),
+            None => imgui::Image::new(imgui::TextureId::new(5), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui),
+        } 
         
         match ui.drag_drop_target() {
             Some(target) => {

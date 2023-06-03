@@ -3,6 +3,6 @@ diffuse:
 - 1.0
 - 1.0
 diffuse_texture:
-  id: 125406362668153560
+  id: null
 normal_texture:
-  id: 16628266983644647817
+  id: null

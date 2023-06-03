@@ -61,8 +61,8 @@ impl App {
         // let mut watcher = FileWatcher::new().unwrap();
         // watcher.watch(Path::new("res")).unwrap();
 
-        let plane_model = resources::load_mesh("meshes/plane.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
-        let cube_model = resources::load_mesh("meshes/cube.obj", &context.device, &context.queue.clone(), &Renderer::get_material_layout()).await.unwrap();
+        let plane_model = resources::load_mesh(&res("meshes/plane.obj"), &context.device, &context.queue.clone(), &Renderer::get_material_layout()).unwrap();
+        let cube_model = resources::load_mesh(&res("meshes/cube.obj"), &context.device, &context.queue.clone(), &Renderer::get_material_layout()).unwrap();
 
         let basic_material_id = registry.get_id(res("materials/basic.revmat"));
 
@@ -75,27 +75,27 @@ impl App {
         world.create_entity()
             .with(Name::new("Plane"))
             .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 0.0), cg::vec3(90.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(Mesh::new(plane_model[0].clone()))
+            .with(Mesh::new(1, plane_model[0].clone()))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
         world.create_entity()
             .with(Name::new("Cube"))
             .with(Transform::new(TransformData::new(cg::vec3(-2.0, 0.0, -2.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
-            .with(Mesh::new(cube_model[0].clone()))
+            .with(Mesh::new(1, cube_model[0].clone()))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
         world.create_entity()
             .with(Name::new("Light 1"))
             .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
             .with(PointLight::new([1.0, 1.0, 1.0]))
-            .with(Mesh::new(cube_model[0].clone()))
+            .with(Mesh::new(1, cube_model[0].clone()))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
         world.create_entity()
             .with(Name::new("Light 2"))
             .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
             .with(PointLight::new([1.0, 1.0, 1.0]))
-            .with(Mesh::new(cube_model[0].clone()))
+            .with(Mesh::new(1, cube_model[0].clone()))
             .with(MaterialComponent::new(18107631171250797795, &mut registry))
             .build();
 
