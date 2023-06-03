@@ -7,7 +7,7 @@ use reverie::{engine::{
     components::{
         transform::Transform, 
         name::Name,
-        light::PointLight, material::MaterialComponent
+        light::PointLight, material::MaterialComponent, mesh::Mesh
     }, 
     light_manager::LightManager, registry::AssetType, texture::Texture,
 }, util::cast_slice};
@@ -129,7 +129,7 @@ impl Imgui {
                     if let Some(material) = materials.get_mut(entity) {
                         let material_id = material.id.clone();
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            ui.button("mat");
+                            ui.button("material");
                             match ui.drag_drop_target() {
                                 Some(target) => {
                                     match target.accept_payload::<Option<usize>, _>(AssetType::Material.to_string(), imgui::DragDropFlags::empty()) {
@@ -162,6 +162,29 @@ impl Imgui {
                                 drop(material_asset);
                                 drop(materials);
                                 update_entity_material(world, material_id, registry);
+                            }
+                        }
+                    }
+
+                    let mut meshes = world.write_component::<Mesh>();
+                    if let Some(mesh) = meshes.get_mut(entity) {
+                        let mesh_id = mesh.id.clone();
+                        if ui.collapsing_header("Mesh", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                            ui.button("mesh");
+                            match ui.drag_drop_target() {
+                                Some(target) => {
+                                    match target.accept_payload::<Option<usize>, _>(AssetType::Mesh.to_string(), imgui::DragDropFlags::empty()) {
+                                        Some(Ok(payload_data)) => {
+                                            mesh.id = payload_data.data.unwrap();
+                                            mesh.mesh = registry.get_mesh(mesh.id).unwrap();
+                                        },
+                                        Some(Err(e)) => {
+                                            println!("{}", e);
+                                        },
+                                        _ => {},
+                                    }
+                                }
+                                _ => {},
                             }
                         }
                     }
