@@ -1,6 +1,6 @@
 struct Transform {
     matrix: mat4x4<f32>,
-    ti_matrix: mat3x3<f32>,
+    ti_matrix: mat4x4<f32>,
 }
 @group(0) @binding(0)
 var<uniform> transform: Transform;
@@ -54,6 +54,7 @@ fn vs_main (
     var world_tangent = normalize(normal_matrix * model.tangent);
     world_tangent = normalize(world_tangent - dot(world_tangent, world_normal) * world_normal);
     let world_bitangent = cross(world_normal, world_tangent);
+    //let world_bitangent = normalize(normal_matrix * model.bitangent);
 
     let tangent_matrix = transpose(mat3x3<f32>(
         world_tangent,
@@ -95,14 +96,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let object_normal: vec4<f32> = textureSample(t_normal, s_normal, in.tex_coords);
 
     let tangent_normal = normalize(object_normal.xyz * 2.0 - 1.0);
-    var light_dir = normalize((tangent_matrix * lights[0].position) - in.tangent_position);
     let view_dir = normalize(in.tangent_view_position - in.tangent_position);
 
-    var result = calculate_point_light(lights[0], in.tangent_position, tangent_normal, view_dir, light_dir);
+    var result = vec3<f32>(0.0);
 
-    for (var i = 1; i < light_count; i = i + 1) {
-        var light_dir = normalize((tangent_matrix * lights[i].position) - in.tangent_position);
-        result += calculate_point_light(lights[i], in.tangent_position, tangent_normal, view_dir, light_dir);
+    for (var i = 0; i < light_count; i = i + 1) {
+        var light_position = tangent_matrix * lights[i].position;
+        var light_dir = normalize(light_position - in.tangent_position);
+        result += calculate_point_light(lights[i], light_position, in.tangent_position, tangent_normal, view_dir, light_dir);
     }
 
     result *= object_color.xyz;
@@ -112,9 +113,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(pow(result, vec3(1.0 / gamma)), object_color.a);
 }
 
-fn calculate_point_light(light: PointLight, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
-    let distance = length(light.position - tangent_position);
-    let attenuation = 1.0 / (distance * distance);
+fn calculate_point_light(light: PointLight, light_position: vec3<f32>, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
+    let distance = length(light_position - tangent_position);
+    let attenuation = 1.0 / distance;
 
     let ambient_strength = 0.005;
     let ambient_color = light.color * ambient_strength * attenuation;

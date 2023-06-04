@@ -168,7 +168,6 @@ impl Imgui {
 
                     let mut meshes = world.write_component::<Mesh>();
                     if let Some(mesh) = meshes.get_mut(entity) {
-                        let mesh_id = mesh.id.clone();
                         if ui.collapsing_header("Mesh", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                             ui.button("mesh");
                             match ui.drag_drop_target() {

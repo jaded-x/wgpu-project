@@ -18,7 +18,6 @@ use reverie::engine::{
     renderer::{Renderer, Pass},
     context::Context,
     input::InputState,
-    resources,
     window::*, 
     light_manager::LightManager,
 };
@@ -62,8 +61,8 @@ impl App {
         // watcher.watch(Path::new("res")).unwrap();
 
         let basic_material_id = registry.get_id(res("materials/basic.revmat"));
-        let plane_id = registry.get_id(res("meshes/plane.obj"));
-        let cube_id = registry.get_id(res("meshes/cube.obj"));
+        let plane_id = registry.get_id(res("meshes/sphere.obj"));
+        let cube_id = registry.get_id(res("meshes/sphere.obj"));
 
         let mut world = specs::World::new();
         world.register::<Transform>();
@@ -89,13 +88,6 @@ impl App {
             .with(PointLight::new([1.0, 1.0, 1.0]))
             .with(Mesh::new(cube_id, &mut registry))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
-            .build();
-        world.create_entity()
-            .with(Name::new("Light 2"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
-            .with(PointLight::new([1.0, 1.0, 1.0]))
-            .with(Mesh::new(cube_id, &mut registry))
-            .with(MaterialComponent::new(18107631171250797795, &mut registry))
             .build();
 
         let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);

@@ -1,6 +1,6 @@
 diffuse:
-- 1.0
-- 1.0
+- 0.8823528
+- 0.0
 - 1.0
 diffuse_texture:
   id: null
