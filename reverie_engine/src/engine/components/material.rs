@@ -1,15 +1,17 @@
 
 use std::sync::Arc;
 
+use serde::Serialize;
 use specs::{Component, VecStorage};
 
 use crate::engine::{gpu::Gpu, model::Material, registry::Registry};
 
 
-#[derive(Component)]
+#[derive(Clone, Component, Serialize)]
 #[storage(VecStorage)]
 pub struct MaterialComponent {
     pub id: usize,
+    #[serde(skip)]
     pub material: Arc<Gpu<Material>>
 }
 

@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use reverie::engine::registry::Registry;
 use reverie::engine::texture::Texture;
+use serde::Serialize;
 use specs::prelude::*;
 
 use reverie::util::{cast_slice, res};
@@ -31,6 +34,7 @@ pub struct App {
     camera: Camera,
     camera_controller: CameraController,
     world: World,
+    scene: PathBuf,
 
     light_manager: LightManager,
     //watcher: FileWatcher,
@@ -60,7 +64,7 @@ impl App {
         // let mut watcher = FileWatcher::new().unwrap();
         // watcher.watch(Path::new("res")).unwrap();
 
-        let basic_material_id = registry.get_id(res("materials/basic.revmat"));
+        let basic_material_id = registry.get_id(res("materials/default.revmat"));
         let plane_id = registry.get_id(res("meshes/sphere.obj"));
         let cube_id = registry.get_id(res("meshes/sphere.obj"));
 
@@ -96,12 +100,15 @@ impl App {
         imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
         imgui.load_texture("src/imgui/textures/background.png", &context.device, &context.queue, 1, 1, 5);
 
+        let scene = res("scenes/first.revscene");
+
         Self {
             context,
             input,
             camera,
             camera_controller,
             world,
+            scene,
             renderer,
             imgui,
             light_manager,
@@ -182,7 +189,7 @@ impl App {
         );
         
         self.imgui.renderer.lock().unwrap().textures.replace(imgui::TextureId::new(2), texture);
-        self.imgui.draw(&self.world, &mut self.registry, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
+        self.imgui.draw(&mut self.world, &self.scene, &mut self.registry, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
 
         self.context.queue.submit([encoder.finish()]);
         output.present();
@@ -273,4 +280,50 @@ pub async fn run() {
     //     }
     // });
 
+}
+
+pub fn save_scene(world: &World, path: &PathBuf) {
+    let entities = world.entities();
+    let names = world.read_storage::<Name>();
+    let transforms = world.read_storage::<Transform>();
+    let materials = world.read_storage::<MaterialComponent>();
+    let meshes = world.read_storage::<Mesh>();
+    let lights = world.read_storage::<PointLight>();
+    
+    let mut s_names = HashMap::new();
+    let mut s_transforms = HashMap::new();
+    let mut s_materials = HashMap::new();
+    let mut s_meshes = HashMap::new();
+    let mut s_lights = HashMap::new();
+
+    for entity in entities.join() {
+        if let Some(name) = names.get(entity) {
+            s_names.insert(entity.id(), name.clone());
+        }
+        if let Some(transform) = transforms.get(entity) {
+            s_transforms.insert(entity.id(), transform.data.clone());
+        }
+        if let Some(material) = materials.get(entity) {
+            s_materials.insert(entity.id(), material.clone());
+        }
+        if let Some(mesh) = meshes.get(entity) {
+            s_meshes.insert(entity.id(), mesh.clone());
+        }
+        if let Some(light) = lights.get(entity) {
+            s_lights.insert(entity.id(), light.clone());
+        }
+    }
+
+    let yaml_names = serde_yaml::to_string(&s_names).unwrap();
+    let yaml_transforms = serde_yaml::to_string(&s_transforms).unwrap();
+    let yaml_materials = serde_yaml::to_string(&s_materials).unwrap();
+    let yaml_meshes = serde_yaml::to_string(&s_meshes).unwrap();
+    let yaml_lights = serde_yaml::to_string(&s_lights).unwrap();
+
+    let yaml = format!(
+        "# Names\n{}\n\n# Transforms\n{}\n\n# Materials\n{}\n\n# Meshes\n{}\n\n# Lights\n{}",
+        yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_lights
+    );
+    
+    std::fs::write(path, yaml).unwrap();
 }

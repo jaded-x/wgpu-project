@@ -13,6 +13,7 @@ pub enum AssetType {
     Texture,
     Material,
     Mesh,
+    Scene,
     Unknown
 }
 
@@ -23,6 +24,7 @@ impl AssetType {
             "png" => AssetType::Texture,
             "jpg" => AssetType::Texture,
             "obj" => AssetType::Mesh,
+            "revscene" => AssetType::Scene,
             _ => AssetType::Unknown,
         }
     }
@@ -34,6 +36,7 @@ impl ToString for AssetType {
             AssetType::Material => String::from("revmat"),
             AssetType::Texture => String::from("texture"),
             AssetType::Mesh => String::from("mesh"),
+            AssetType::Scene => String::from("scene"),
             AssetType::Unknown => String::from("unknown"),
         }
     }

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 wgpu = "0.15.1"
-cg = { package = "cgmath", version = "0.18.0" }
+cg = { package = "cgmath", version = "0.18.0", features = ["serde"] }
 env_logger = "0.10.0"
 winit = { version = "0.27.2" }
 anyhow = "1.0.68"

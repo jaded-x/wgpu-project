@@ -1,9 +1,10 @@
+use serde::{Serialize, Deserialize};
 use specs::{prelude::*, Component};
 
 use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
 
-#[derive(Component, ImguiInspect)]
+#[derive(Clone, Component, ImguiInspect, Serialize, Deserialize)]
 #[storage(VecStorage)]
 pub struct PointLight {
     #[inspect(widget = "color")]

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use cg::Matrix;
 use cg::SquareMatrix;
+use serde::Deserialize;
+use serde::Serialize;
 use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
@@ -12,7 +14,7 @@ use crate::util::cast_slice;
 use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
 
-#[derive(ImguiInspect)]
+#[derive(Clone, ImguiInspect, Serialize, Deserialize)]
 pub struct TransformData {
     #[inspect(widget = "custom", speed = 0.01)]
     position: cg::Vector3<f32>,
