@@ -11,6 +11,7 @@ pub mod gpu;
 pub mod light_manager;
 pub mod registry;
 pub mod scene;
+pub mod material;
 
 pub mod components;
 pub mod primitives;

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use specs::{Component, VecStorage};
 
-use crate::engine::{gpu::Gpu, model::Material, registry::Registry};
+use crate::engine::{gpu::Gpu, registry::Registry, material::Material};
 
 #[derive(Clone, Component, Serialize)]
 #[storage(VecStorage)]

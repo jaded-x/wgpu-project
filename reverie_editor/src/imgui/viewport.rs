@@ -5,6 +5,7 @@ use reverie::engine::{registry::{AssetType, Registry}, scene::Scene};
 pub struct Viewport {
     pub texture: Arc<wgpu::Texture>,
     pub size: [u32; 2],
+    pub active: bool,
 }
 
 impl Viewport {
@@ -27,6 +28,7 @@ impl Viewport {
         Self {
             size: [texture.width(), texture.height()],
             texture,
+            active: false,
         }
     }
 
@@ -53,6 +55,9 @@ impl Viewport {
                     }
                 },
                 _ => {},
+            }
+            if ui.is_item_hovered() {
+                self.active = ui.is_mouse_down(imgui::MouseButton::Right);
             }
         });
         padding.pop();

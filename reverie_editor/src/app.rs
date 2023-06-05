@@ -42,10 +42,6 @@ impl App {
 
         Texture::load_defaults(&context.device, &context.queue);
 
-        let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
-            Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
-        let camera_controller = CameraController::new(4.0, 0.5);
-
         let input = InputState::default();
 
         // let mut watcher = FileWatcher::new().unwrap();
@@ -56,6 +52,10 @@ impl App {
         imgui.load_texture("src/imgui/textures/background.png", &context.device, &context.queue, 1, 1, 5);
 
         let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device);
+
+        let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
+            Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
+        let camera_controller = CameraController::new(4.0, 0.5);
 
         Self {
             context,
@@ -101,7 +101,9 @@ impl App {
     }
 
     fn update(&mut self, dt: instant::Duration) {
-        self.camera_controller.update_camera(&mut self.camera, dt, &self.input);
+        if self.imgui.viewport.active {
+            self.camera_controller.update_camera(&mut self.camera, dt, &self.input);
+        }
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
         //self.watcher.handle_events(&mut self.textures);

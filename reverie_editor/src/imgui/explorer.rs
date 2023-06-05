@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use reverie::engine::{model::Material, registry::{Registry, AssetType}, gpu::Gpu};
+use reverie::engine::{registry::{Registry, AssetType}, gpu::Gpu, material::Material};
 
 pub struct Explorer {
     current_folder: PathBuf,
@@ -120,7 +120,7 @@ impl Explorer {
                                         }
                                     }
                                 }
-                                
+
                                 if let Some(payload) = ui.drag_drop_source_config(AssetType::from_extension(entry.path().extension().unwrap()).to_string()).begin_payload(Some(registry.get_id(entry.path()))) {
                                     ui.text(entry.file_name().to_str().unwrap());
                                     payload.end();

@@ -54,7 +54,6 @@ fn vs_main (
     var world_tangent = normalize(normal_matrix * model.tangent);
     world_tangent = normalize(world_tangent - dot(world_tangent, world_normal) * world_normal);
     let world_bitangent = cross(world_normal, world_tangent);
-    //let world_bitangent = normalize(normal_matrix * model.bitangent);
 
     let tangent_matrix = transpose(mat3x3<f32>(
         world_tangent,
@@ -115,7 +114,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 fn calculate_point_light(light: PointLight, light_position: vec3<f32>, tangent_position: vec3<f32>, tangent_normal: vec3<f32>, view_dir: vec3<f32>, light_dir: vec3<f32>) -> vec3<f32>{
     let distance = length(light_position - tangent_position);
-    let attenuation = 1.0 / distance;
+    var attenuation = 1.0 / (distance * distance);
 
     let ambient_strength = 0.005;
     let ambient_color = light.color * ambient_strength * attenuation;
