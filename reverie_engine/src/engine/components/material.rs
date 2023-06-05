@@ -6,7 +6,6 @@ use specs::{Component, VecStorage};
 
 use crate::engine::{gpu::Gpu, model::Material, registry::Registry};
 
-
 #[derive(Clone, Component, Serialize)]
 #[storage(VecStorage)]
 pub struct MaterialComponent {

@@ -21,13 +21,13 @@ pub struct Renderer {
     pub clear_color: wgpu::Color,
     pub texture_view: wgpu::TextureView,
     pub depth_texture: Texture,
-    pub transform_bind_group_layout: wgpu::BindGroupLayout,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
-    pub light_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
 }
 
 static MATERIAL_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
+static TRANSFORM_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
+static LIGHT_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 
 impl Renderer {
     pub fn new(
@@ -39,7 +39,8 @@ impl Renderer {
 
         let (texture_view, depth_texture) = create_depth_texture(device, extent);
 
-        let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let mut transform_layout = TRANSFORM_LAYOUT.lock().unwrap();
+        *transform_layout = Some(Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -53,7 +54,7 @@ impl Renderer {
                 }
             ],
             label: None,
-        });
+        })));
 
         let mut material_layout = MATERIAL_LAYOUT.lock().unwrap();
         *material_layout = Some(Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -120,7 +121,8 @@ impl Renderer {
             label: Some("camera_bind_group_layout"),
         });
         
-        let light_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let mut light_layout = LIGHT_LAYOUT.lock().unwrap();
+        *light_layout = Some(Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -144,15 +146,15 @@ impl Renderer {
                 },
             ],
             label: Some("light_bind_group_layout")
-        });
+        })));
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
-                &transform_bind_group_layout,
+                transform_layout.as_ref().unwrap(),
                 &camera_bind_group_layout,
                 material_layout.as_ref().unwrap(),
-                &light_bind_group_layout,
+                light_layout.as_ref().unwrap(),
             ],
             push_constant_ranges: &[],
         });
@@ -176,9 +178,7 @@ impl Renderer {
             clear_color,
             texture_view,
             depth_texture,
-            transform_bind_group_layout,
             camera_bind_group_layout,
-            light_bind_group_layout,
             render_pipeline,
         }
     }
@@ -189,6 +189,14 @@ impl Renderer {
 
     pub fn get_material_layout() -> Arc<BindGroupLayout> {
         MATERIAL_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
+    }
+
+    pub fn get_transform_layout() -> Arc<BindGroupLayout> {
+        TRANSFORM_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
+    }
+
+    pub fn get_light_layout() -> Arc<BindGroupLayout> {
+        LIGHT_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
     }
 }
 

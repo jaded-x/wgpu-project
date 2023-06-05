@@ -1,9 +1,9 @@
 use std::{sync::Arc, path::PathBuf};
 
-use reverie::engine::registry::AssetType;
+use reverie::engine::{registry::{AssetType, Registry}, light_manager::LightManager};
 use specs::World;
 
-use crate::app::save_scene;
+use crate::app::{save_scene, load_scene};
 
 pub struct Viewport {
     pub texture: Arc<wgpu::Texture>,
@@ -33,7 +33,7 @@ impl Viewport {
         }
     }
 
-    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, world: &mut World, scene: &PathBuf) {
+    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, world: &mut World, light_manager: &mut LightManager, scene: &PathBuf, registry: &mut Registry, device: &wgpu::Device) {
         let padding = ui.push_style_var(imgui::StyleVar::WindowPadding([0.0, 0.0]));
         ui.window("Viewport").menu_bar(true).build(|| {
             let bar = ui.begin_menu_bar();
@@ -47,8 +47,7 @@ impl Viewport {
                 Some(target) => {
                     match target.accept_payload::<Option<usize>, _>(AssetType::Scene.to_string(), imgui::DragDropFlags::empty()) {
                         Some(Ok(payload_data)) => {
-                            //self.id = payload_data.data;
-                            println!("hi");
+                            load_scene(&registry.get_filepath(payload_data.data.unwrap()), world, light_manager, registry, device);
                         },
                         Some(Err(e)) => {
                             println!("{}", e);

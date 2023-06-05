@@ -62,7 +62,7 @@ impl Imgui {
         }
     }
 
-    fn ui(&mut self, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
+    fn ui(&mut self, device: &wgpu::Device, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &mut LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
         let ui = self.context.frame();
 
         ui.dockspace_over_main_viewport();
@@ -216,7 +216,7 @@ impl Imgui {
             }
         });
 
-        self.viewport.ui(ui, world, scene);
+        self.viewport.ui(ui, world, light_manager, scene, registry, device);
         self.explorer.ui(ui, registry);
         
         if self.explorer.selected_file.is_some() {
@@ -228,10 +228,10 @@ impl Imgui {
         }
     }
 
-    pub fn draw(&mut self, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+    pub fn draw(&mut self, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &mut LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         self.platform.prepare_frame(self.context.io_mut(), window).expect("Failed to prepare frame");
 
-        self.ui(world, scene, registry, light_manager, queue, window);
+        self.ui(device, world, scene, registry, light_manager, queue, window);
 
         let mut renderer_lock = self.renderer.lock().unwrap();
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

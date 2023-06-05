@@ -14,7 +14,14 @@ use crate::util::cast_slice;
 use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
 
-#[derive(Clone, ImguiInspect, Serialize, Deserialize)]
+#[derive(Deserialize)]
+pub struct DeserializedData {
+    pub position: cg::Vector3<f32>,
+    pub rotation: cg::Vector3<f32>,
+    pub scale: cg::Vector3<f32>,
+}
+
+#[derive(Clone, ImguiInspect, Serialize)]
 pub struct TransformData {
     #[inspect(widget = "custom", speed = 0.01)]
     position: cg::Vector3<f32>,
@@ -24,8 +31,10 @@ pub struct TransformData {
     scale: cg::Vector3<f32>,
 
     #[inspect(hide = true)]
+    #[serde(skip)]
     matrix: cg::Matrix4<f32>,
     #[inspect(hide = true)]
+    #[serde(skip)]
     normal_matrix: cg::Matrix4<f32>,
 }
 

@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use reverie::engine::components::transform::DeserializedData;
 use reverie::engine::registry::Registry;
 use reverie::engine::texture::Texture;
-use serde::Serialize;
+use serde::Deserialize;
 use specs::prelude::*;
 
 use reverie::util::{cast_slice, res};
@@ -76,25 +77,25 @@ impl App {
         world.register::<PointLight>();
         world.create_entity()
             .with(Name::new("Plane"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 0.0), cg::vec3(90.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 0.0), cg::vec3(90.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &Renderer::get_transform_layout()))
             .with(Mesh::new(plane_id, &mut registry))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
         world.create_entity()
             .with(Name::new("Cube"))
-            .with(Transform::new(TransformData::new(cg::vec3(-2.0, 0.0, -2.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(-2.0, 0.0, -2.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &Renderer::get_transform_layout()))
             .with(Mesh::new(cube_id, &mut registry))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
         world.create_entity()
             .with(Name::new("Light 1"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &renderer.transform_bind_group_layout))
+            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &Renderer::get_transform_layout()))
             .with(PointLight::new([1.0, 1.0, 1.0]))
             .with(Mesh::new(cube_id, &mut registry))
             .with(MaterialComponent::new(basic_material_id, &mut registry))
             .build();
 
-        let light_manager = LightManager::new(&context.device, &renderer.light_bind_group_layout, &world);
+        let light_manager = LightManager::new(&context.device, &Renderer::get_light_layout(), &world);
 
         imgui.load_texture("src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3);
         imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
@@ -189,7 +190,7 @@ impl App {
         );
         
         self.imgui.renderer.lock().unwrap().textures.replace(imgui::TextureId::new(2), texture);
-        self.imgui.draw(&mut self.world, &self.scene, &mut self.registry, &self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
+        self.imgui.draw(&mut self.world, &self.scene, &mut self.registry, &mut self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
 
         self.context.queue.submit([encoder.finish()]);
         output.present();
@@ -326,4 +327,52 @@ pub fn save_scene(world: &World, path: &PathBuf) {
     );
     
     std::fs::write(path, yaml).unwrap();
+}
+
+#[derive(Deserialize)]
+struct DeserializedId {
+    id: usize
+}
+
+pub fn load_scene(path: &PathBuf, app_world: &mut World, light_manager: &mut LightManager, registry: &mut Registry, device: &wgpu::Device) {
+    let yaml = std::fs::read_to_string(path).unwrap();
+    let sections: Vec<&str> = yaml.split("\n\n").collect();
+
+    let s_names: HashMap<u32, Name> = serde_yaml::from_str(sections[0]).unwrap();
+    let s_transforms: HashMap<u32, DeserializedData> = serde_yaml::from_str(sections[1]).unwrap();
+    let s_materials: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[2]).unwrap();
+    let s_meshes: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[3]).unwrap();
+    let s_lights: HashMap<u32, PointLight> = serde_yaml::from_str(sections[4]).unwrap();
+
+    let mut world = specs::World::new();
+        world.register::<Transform>();
+        world.register::<MaterialComponent>();
+        world.register::<Mesh>();
+        world.register::<Name>();
+        world.register::<PointLight>();
+
+    for id in 0..s_names.len() as u32 {
+        let mut entity = world.create_entity();
+
+        if let Some(name) = s_names.get(&id) {
+            entity = entity.with(name.clone());
+        }
+        if let Some(transform) = s_transforms.get(&id) {
+            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale), device, &Renderer::get_transform_layout()))
+        }
+        if let Some(material) = s_materials.get(&id) {
+            entity = entity.with(MaterialComponent::new(material.id, registry))
+        }
+        if let Some(mesh) = s_meshes.get(&id) {
+            entity = entity.with(Mesh::new(mesh.id, registry))
+        }
+        if let Some(light) = s_lights.get(&id) {
+            entity = entity.with(light.clone())
+        }
+
+        entity.build();
+    }
+
+    *app_world = world;
+    *light_manager = LightManager::new(device, &Renderer::get_light_layout(), &app_world)
 }
