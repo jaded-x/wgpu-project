@@ -10,6 +10,7 @@ pub mod window;
 pub mod gpu;
 pub mod light_manager;
 pub mod registry;
+pub mod scene;
 
 pub mod components;
 pub mod primitives;

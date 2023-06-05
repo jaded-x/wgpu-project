@@ -1,15 +1,14 @@
 mod explorer;
 mod viewport;
 
-use std::{sync::{Arc, Mutex}, path::{Path, PathBuf}};
+use std::{sync::{Arc, Mutex}, path::Path};
 
 use reverie::{engine::{
     components::{
         transform::Transform, 
         name::Name,
         light::PointLight, material::MaterialComponent, mesh::Mesh
-    }, 
-    light_manager::LightManager, registry::AssetType, texture::Texture,
+    }, registry::AssetType, texture::Texture, scene::Scene,
 }, util::cast_slice};
 use specs::{*, WorldExt};
 
@@ -62,7 +61,7 @@ impl Imgui {
         }
     }
 
-    fn ui(&mut self, device: &wgpu::Device, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &mut LightManager, queue: &wgpu::Queue, window: &winit::window::Window) {
+    fn ui(&mut self, device: &wgpu::Device, scene: &mut Scene, registry: &mut Registry, queue: &wgpu::Queue, window: &winit::window::Window) {
         let ui = self.context.frame();
 
         ui.dockspace_over_main_viewport();
@@ -89,7 +88,7 @@ impl Imgui {
                             if inspect[1] || inspect[2] {
                                 material_asset.save(material_path);
                                 registry.reload_material(material_id);
-                                update_entity_material(world, material_id, registry);
+                                update_entity_material(&scene.world, material_id, registry);
                                 drop(material_asset);
                                 self.explorer.material = registry.get_material(material_id);
                             }
@@ -99,33 +98,33 @@ impl Imgui {
                 }
 
                 if let Some(entity) = self.entity {
-                    let names = world.read_component::<Name>();
+                    let names = scene.world.read_component::<Name>();
                     ui.text(names.get(entity).unwrap().0.clone());
                     ui.separator();
 
-                    let mut transforms = world.write_component::<Transform>();
+                    let mut transforms = scene.world.write_component::<Transform>();
                     if let Some(transform) = transforms.get_mut(entity) {
                         if ui.collapsing_header("Transform", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                             if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 transform.data.update_matrix();
                                 transform.update_buffers(queue);
                                 if self.light_index.is_some() {
-                                    light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position());
+                                    scene.light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position());
                                 }
                             }
                         }
                     }
 
-                    let mut lights = world.write_component::<PointLight>();
+                    let mut lights = scene.world.write_component::<PointLight>();
                     if let Some(light) = lights.get_mut(entity) {
                         if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                             if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
+                                scene.light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
                             }
                         }
                     }
 
-                    let mut materials = world.write_component::<MaterialComponent>();
+                    let mut materials = scene.world.write_component::<MaterialComponent>();
                     if let Some(material) = materials.get_mut(entity) {
                         let material_id = material.id.clone();
                         if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
@@ -161,12 +160,12 @@ impl Imgui {
                                 registry.reload_material(material.id);
                                 drop(material_asset);
                                 drop(materials);
-                                update_entity_material(world, material_id, registry);
+                                update_entity_material(&scene.world, material_id, registry);
                             }
                         }
                     }
 
-                    let mut meshes = world.write_component::<Mesh>();
+                    let mut meshes = scene.world.write_component::<Mesh>();
                     if let Some(mesh) = meshes.get_mut(entity) {
                         if ui.collapsing_header("Mesh", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                             ui.button("mesh");
@@ -191,12 +190,12 @@ impl Imgui {
             });
 
         ui.window("Objects").build(|| {
-            let names = world.read_component::<Name>();
-            let light_component = world.read_component::<PointLight>();
+            let names = scene.world.read_component::<Name>();
+            let light_component = scene.world.read_component::<PointLight>();
 
             let mut light_index = 0;
 
-            for entity in world.entities().join() {
+            for entity in scene.world.entities().join() {
                 let name = names.get(entity).unwrap();
 
                 if ui.button(name.0.to_string()) {
@@ -216,7 +215,7 @@ impl Imgui {
             }
         });
 
-        self.viewport.ui(ui, world, light_manager, scene, registry, device);
+        self.viewport.ui(ui, scene, registry, device);
         self.explorer.ui(ui, registry);
         
         if self.explorer.selected_file.is_some() {
@@ -228,10 +227,10 @@ impl Imgui {
         }
     }
 
-    pub fn draw(&mut self, world: &mut specs::World, scene: &PathBuf, registry: &mut Registry, light_manager: &mut LightManager, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+    pub fn draw(&mut self, scene: &mut Scene, registry: &mut Registry, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         self.platform.prepare_frame(self.context.io_mut(), window).expect("Failed to prepare frame");
 
-        self.ui(device, world, scene, registry, light_manager, queue, window);
+        self.ui(device, scene, registry, queue, window);
 
         let mut renderer_lock = self.renderer.lock().unwrap();
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

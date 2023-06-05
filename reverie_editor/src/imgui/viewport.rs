@@ -1,9 +1,6 @@
-use std::{sync::Arc, path::PathBuf};
+use std::sync::Arc;
 
-use reverie::engine::{registry::{AssetType, Registry}, light_manager::LightManager};
-use specs::World;
-
-use crate::app::{save_scene, load_scene};
+use reverie::engine::{registry::{AssetType, Registry}, scene::Scene};
 
 pub struct Viewport {
     pub texture: Arc<wgpu::Texture>,
@@ -33,12 +30,12 @@ impl Viewport {
         }
     }
 
-    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, world: &mut World, light_manager: &mut LightManager, scene: &PathBuf, registry: &mut Registry, device: &wgpu::Device) {
+    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, scene: &mut Scene, registry: &mut Registry, device: &wgpu::Device) {
         let padding = ui.push_style_var(imgui::StyleVar::WindowPadding([0.0, 0.0]));
         ui.window("Viewport").menu_bar(true).build(|| {
             let bar = ui.begin_menu_bar();
             if ui.menu_item("Save") {
-                save_scene(world, scene);
+                scene.save_scene();
             }
             bar.unwrap().end();
             self.size = [ui.content_region_avail()[0] as u32, ui.content_region_avail()[1] as u32];
@@ -47,7 +44,7 @@ impl Viewport {
                 Some(target) => {
                     match target.accept_payload::<Option<usize>, _>(AssetType::Scene.to_string(), imgui::DragDropFlags::empty()) {
                         Some(Ok(payload_data)) => {
-                            load_scene(&registry.get_filepath(payload_data.data.unwrap()), world, light_manager, registry, device);
+                            scene.load_scene(&registry.get_filepath(payload_data.data.unwrap()), registry, device);
                         },
                         Some(Err(e)) => {
                             println!("{}", e);

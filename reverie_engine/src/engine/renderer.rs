@@ -11,8 +11,7 @@ use super::{
     },
     context::create_render_pipeline, 
     camera::Camera,
-    model::{DrawModel, Vertex, ModelVertex}, 
-    light_manager::LightManager,
+    model::{DrawModel, Vertex, ModelVertex}, scene::Scene,
 };
 
 use super::texture::Texture;
@@ -219,14 +218,14 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
 }
 
 pub trait Pass {
-    fn draw(&mut self, view: &wgpu::TextureView, world: &mut World, camera: &Camera, lights: &LightManager, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, view: &wgpu::TextureView, world: &mut World, camera: &Camera, lights: &LightManager, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
-        let meshes = world.read_storage::<Mesh>();
-        let transforms = world.read_storage::<Transform>();
-        let materials_c = world.read_storage::<MaterialComponent>();
+    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+        let meshes = scene.world.read_storage::<Mesh>();
+        let transforms = scene.world.read_storage::<Transform>();
+        let materials_c = scene.world.read_storage::<MaterialComponent>();
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -253,7 +252,7 @@ impl Pass for Renderer {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);
-            render_pass.set_bind_group(3, &lights.bind_group, &[]);
+            render_pass.set_bind_group(3, &scene.light_manager.bind_group, &[]);
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);

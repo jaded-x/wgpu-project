@@ -1,29 +1,16 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 
-use reverie::engine::components::transform::DeserializedData;
 use reverie::engine::registry::Registry;
+use reverie::engine::scene::Scene;
 use reverie::engine::texture::Texture;
-use serde::Deserialize;
-use specs::prelude::*;
-
 use reverie::util::{cast_slice, res};
 
 use reverie::engine::{
     camera::{Camera, CameraController, Projection},
-    components::{
-        mesh::Mesh,
-        transform::{Transform, TransformData},
-        material::MaterialComponent,
-        name::Name,
-        light::PointLight,
-    }, 
     renderer::{Renderer, Pass},
     context::Context,
     input::InputState,
     window::*, 
-    light_manager::LightManager,
 };
 
 pub struct App {
@@ -34,10 +21,9 @@ pub struct App {
 
     camera: Camera,
     camera_controller: CameraController,
-    world: World,
-    scene: PathBuf,
 
-    light_manager: LightManager,
+    scene: Scene,
+
     //watcher: FileWatcher,
 
     registry: Registry,
@@ -65,54 +51,20 @@ impl App {
         // let mut watcher = FileWatcher::new().unwrap();
         // watcher.watch(Path::new("res")).unwrap();
 
-        let basic_material_id = registry.get_id(res("materials/default.revmat"));
-        let plane_id = registry.get_id(res("meshes/sphere.obj"));
-        let cube_id = registry.get_id(res("meshes/sphere.obj"));
-
-        let mut world = specs::World::new();
-        world.register::<Transform>();
-        world.register::<MaterialComponent>();
-        world.register::<Mesh>();
-        world.register::<Name>();
-        world.register::<PointLight>();
-        world.create_entity()
-            .with(Name::new("Plane"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 0.0), cg::vec3(90.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &Renderer::get_transform_layout()))
-            .with(Mesh::new(plane_id, &mut registry))
-            .with(MaterialComponent::new(basic_material_id, &mut registry))
-            .build();
-        world.create_entity()
-            .with(Name::new("Cube"))
-            .with(Transform::new(TransformData::new(cg::vec3(-2.0, 0.0, -2.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(1.0, 1.0, 1.0)), &context.device, &Renderer::get_transform_layout()))
-            .with(Mesh::new(cube_id, &mut registry))
-            .with(MaterialComponent::new(basic_material_id, &mut registry))
-            .build();
-        world.create_entity()
-            .with(Name::new("Light 1"))
-            .with(Transform::new(TransformData::new(cg::vec3(0.0, 0.0, 1.0), cg::vec3(0.0, 0.0, 0.0), cg::vec3(0.1, 0.1, 0.1)), &context.device, &Renderer::get_transform_layout()))
-            .with(PointLight::new([1.0, 1.0, 1.0]))
-            .with(Mesh::new(cube_id, &mut registry))
-            .with(MaterialComponent::new(basic_material_id, &mut registry))
-            .build();
-
-        let light_manager = LightManager::new(&context.device, &Renderer::get_light_layout(), &world);
-
         imgui.load_texture("src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3);
         imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
         imgui.load_texture("src/imgui/textures/background.png", &context.device, &context.queue, 1, 1, 5);
 
-        let scene = res("scenes/first.revscene");
+        let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device);
 
         Self {
             context,
             input,
             camera,
             camera_controller,
-            world,
             scene,
             renderer,
             imgui,
-            light_manager,
             //watcher,
             registry
         }
@@ -168,7 +120,7 @@ impl App {
         }
 
         let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.renderer.draw(&viewport_view, &mut self.world, &self.camera, &self.light_manager, &mut encoder)?;
+        self.renderer.draw(&viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 
@@ -190,7 +142,7 @@ impl App {
         );
         
         self.imgui.renderer.lock().unwrap().textures.replace(imgui::TextureId::new(2), texture);
-        self.imgui.draw(&mut self.world, &self.scene, &mut self.registry, &mut self.light_manager, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
+        self.imgui.draw(&mut self.scene, &mut self.registry, &self.context.device, &self.context.queue, &view, &window, &mut encoder)?;
 
         self.context.queue.submit([encoder.finish()]);
         output.present();
@@ -281,98 +233,4 @@ pub async fn run() {
     //     }
     // });
 
-}
-
-pub fn save_scene(world: &World, path: &PathBuf) {
-    let entities = world.entities();
-    let names = world.read_storage::<Name>();
-    let transforms = world.read_storage::<Transform>();
-    let materials = world.read_storage::<MaterialComponent>();
-    let meshes = world.read_storage::<Mesh>();
-    let lights = world.read_storage::<PointLight>();
-    
-    let mut s_names = HashMap::new();
-    let mut s_transforms = HashMap::new();
-    let mut s_materials = HashMap::new();
-    let mut s_meshes = HashMap::new();
-    let mut s_lights = HashMap::new();
-
-    for entity in entities.join() {
-        if let Some(name) = names.get(entity) {
-            s_names.insert(entity.id(), name.clone());
-        }
-        if let Some(transform) = transforms.get(entity) {
-            s_transforms.insert(entity.id(), transform.data.clone());
-        }
-        if let Some(material) = materials.get(entity) {
-            s_materials.insert(entity.id(), material.clone());
-        }
-        if let Some(mesh) = meshes.get(entity) {
-            s_meshes.insert(entity.id(), mesh.clone());
-        }
-        if let Some(light) = lights.get(entity) {
-            s_lights.insert(entity.id(), light.clone());
-        }
-    }
-
-    let yaml_names = serde_yaml::to_string(&s_names).unwrap();
-    let yaml_transforms = serde_yaml::to_string(&s_transforms).unwrap();
-    let yaml_materials = serde_yaml::to_string(&s_materials).unwrap();
-    let yaml_meshes = serde_yaml::to_string(&s_meshes).unwrap();
-    let yaml_lights = serde_yaml::to_string(&s_lights).unwrap();
-
-    let yaml = format!(
-        "# Names\n{}\n\n# Transforms\n{}\n\n# Materials\n{}\n\n# Meshes\n{}\n\n# Lights\n{}",
-        yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_lights
-    );
-    
-    std::fs::write(path, yaml).unwrap();
-}
-
-#[derive(Deserialize)]
-struct DeserializedId {
-    id: usize
-}
-
-pub fn load_scene(path: &PathBuf, app_world: &mut World, light_manager: &mut LightManager, registry: &mut Registry, device: &wgpu::Device) {
-    let yaml = std::fs::read_to_string(path).unwrap();
-    let sections: Vec<&str> = yaml.split("\n\n").collect();
-
-    let s_names: HashMap<u32, Name> = serde_yaml::from_str(sections[0]).unwrap();
-    let s_transforms: HashMap<u32, DeserializedData> = serde_yaml::from_str(sections[1]).unwrap();
-    let s_materials: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[2]).unwrap();
-    let s_meshes: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[3]).unwrap();
-    let s_lights: HashMap<u32, PointLight> = serde_yaml::from_str(sections[4]).unwrap();
-
-    let mut world = specs::World::new();
-        world.register::<Transform>();
-        world.register::<MaterialComponent>();
-        world.register::<Mesh>();
-        world.register::<Name>();
-        world.register::<PointLight>();
-
-    for id in 0..s_names.len() as u32 {
-        let mut entity = world.create_entity();
-
-        if let Some(name) = s_names.get(&id) {
-            entity = entity.with(name.clone());
-        }
-        if let Some(transform) = s_transforms.get(&id) {
-            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale), device, &Renderer::get_transform_layout()))
-        }
-        if let Some(material) = s_materials.get(&id) {
-            entity = entity.with(MaterialComponent::new(material.id, registry))
-        }
-        if let Some(mesh) = s_meshes.get(&id) {
-            entity = entity.with(Mesh::new(mesh.id, registry))
-        }
-        if let Some(light) = s_lights.get(&id) {
-            entity = entity.with(light.clone())
-        }
-
-        entity.build();
-    }
-
-    *app_world = world;
-    *light_manager = LightManager::new(device, &Renderer::get_light_layout(), &app_world)
 }
