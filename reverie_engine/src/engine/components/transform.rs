@@ -8,6 +8,7 @@ use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
 
+use crate::engine::renderer::Renderer;
 use crate::util::align::Align16;
 use crate::util::cast_slice;
 
@@ -48,7 +49,7 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub fn new(transform: TransformData, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
+    pub fn new(transform: TransformData, device: &wgpu::Device) -> Self {
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("matrix_buffer"),
             contents: cast_slice(&[transform.matrix, transform.normal_matrix]),
@@ -62,7 +63,7 @@ impl Transform {
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
+            layout: &Renderer::get_transform_layout(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,

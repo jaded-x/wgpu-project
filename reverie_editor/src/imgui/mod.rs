@@ -213,7 +213,20 @@ impl Imgui {
                     light_index += 1;
                 }
             }
+            drop(names);
+            drop(light_component);
+
+            ui.popup("objects_popup", || {
+                if ui.button("Create Object") {
+                    scene.create_entity(device);
+                }
+            });
+
+            if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
+                ui.open_popup("objects_popup")
+            }
         });
+        
 
         self.viewport.ui(ui, scene, registry, device);
         self.explorer.ui(ui, registry);
@@ -222,9 +235,9 @@ impl Imgui {
             self.entity = None;
         }
 
-        if ui.is_any_item_hovered() && !ui.is_any_item_active() {
+        //if ui.is_any_item_hovered() && !ui.is_any_item_active() {
             set_cursor(window, ui);
-        }
+        //}
     }
 
     pub fn draw(&mut self, scene: &mut Scene, registry: &mut Registry, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {

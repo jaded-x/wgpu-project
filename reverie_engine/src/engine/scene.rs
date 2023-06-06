@@ -75,6 +75,10 @@ impl Scene {
         self.light_manager = LightManager::new(device, &Renderer::get_light_layout(), &self.world);
         self.path = path.clone();
     }
+
+    pub fn create_entity(&mut self, device: &wgpu::Device) {
+        self.world.create_entity().with(Name::new("Object")).with(Transform::new(TransformData::default(), device)).build();
+    }
 }
 
 fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) -> World {
@@ -86,7 +90,7 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
         world.register::<Mesh>();
         world.register::<Name>();
         world.register::<PointLight>();
-        world.create_entity().with(Transform::new(TransformData::default(), device, &Renderer::get_transform_layout())).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
+        world.create_entity().with(Transform::new(TransformData::default(), device)).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
         return world;
     }
     let sections: Vec<&str> = yaml.split("\n\n").collect();
@@ -111,7 +115,7 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
             entity = entity.with(name.clone());
         }
         if let Some(transform) = s_transforms.get(&id) {
-            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale), device, &Renderer::get_transform_layout()))
+            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale), device))
         }
         if let Some(material) = s_materials.get(&id) {
             entity = entity.with(MaterialComponent::new(material.id, registry))
