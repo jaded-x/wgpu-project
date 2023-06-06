@@ -38,8 +38,8 @@ impl Explorer {
                     self.text_input = String::new();
                 }
                 if ui.button("Create Scene") {
-                    Material::create(&self.current_folder, &self.text_input);
-                    self.text_input = String::new();
+                    let file_name = format!("{}{}", &self.text_input, ".revscene");
+                    std::fs::write(&self.current_folder.join(file_name), "").unwrap();
                 }
             });
 

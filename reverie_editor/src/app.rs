@@ -89,7 +89,6 @@ impl App {
         }));
         self.renderer.resize(&self.context.device, &extent);
         self.camera.projection.resize(extent.width, extent.height);
-        self.camera.projection.aspect;
     }
 
     fn resize(&mut self, new_window_size: winit::dpi::PhysicalSize<u32>) {

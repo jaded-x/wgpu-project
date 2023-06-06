@@ -79,6 +79,16 @@ impl Scene {
 
 fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) -> World {
     let yaml = std::fs::read_to_string(path).unwrap();
+    if yaml == "" {
+        let mut world = specs::World::new();
+        world.register::<Transform>();
+        world.register::<MaterialComponent>();
+        world.register::<Mesh>();
+        world.register::<Name>();
+        world.register::<PointLight>();
+        world.create_entity().with(Transform::new(TransformData::default(), device, &Renderer::get_transform_layout())).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
+        return world;
+    }
     let sections: Vec<&str> = yaml.split("\n\n").collect();
 
     let s_names: HashMap<u32, Name> = serde_yaml::from_str(sections[0]).unwrap();
