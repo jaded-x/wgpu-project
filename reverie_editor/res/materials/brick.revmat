@@ -1,11 +1,10 @@
-albedo:
-- 1.0
-- 1.0
-- 1.0
-metallic: 1.0
-roughness: 1.0
-ao: 1.0
-diffuse_texture:
-  id: 7827023665519822699
-normal_texture:
-  id: 14004660404556113654
+albedo_map:
+  id: 18383461605085444235
+normal_map:
+  id: 521589741683229499
+metallic_map:
+  id: 13529245170620284884
+roughness_map:
+  id: 18150260911918932675
+ao_map:
+  id: 4245367715641574756

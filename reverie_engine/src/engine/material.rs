@@ -62,44 +62,29 @@ pub struct PBR {
     pub ao: f32,
 }
 
-impl PBR {
-    pub fn from_material(material: &Material) -> Self {
-        dbg!(material.metallic);
-        Self {
-            albedo: material.albedo,
-            metallic: material.metallic,
-            roughness: material.roughness,
-            ao: material.ao,
-        }
-    }
-}
-
 
 #[derive(ImguiInspect, Serialize, Deserialize)]
 pub struct Material {
-    #[inspect(widget = "color")]
-    pub albedo: [f32; 3],
-    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
-    pub metallic: f32,
-    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
-    pub roughness: f32,
-    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
-    pub ao: f32,
     #[inspect(widget = "texture")]
-    pub diffuse_texture: TextureId,
+    pub albedo_map: TextureId,
     #[inspect(widget = "texture")]
-    pub normal_texture: TextureId,
+    pub normal_map: TextureId,
+    #[inspect(widget = "texture")]
+    pub metallic_map: TextureId,
+    #[inspect(widget = "texture")]
+    pub roughness_map: TextureId,
+    #[inspect(widget = "texture")]
+    pub ao_map: TextureId,
 }
 
 impl Material {
-    pub fn new(albedo: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
+    pub fn new(albedo: Option<usize>, normal: Option<usize>, metallic: Option<usize>, roughness: Option<usize>, ao: Option<usize>) -> Self {
         Self {
-            albedo,
-            metallic: 1.0,
-            roughness: 1.0,
-            ao: 1.0,
-            diffuse_texture: TextureId::new(diffuse_texture),
-            normal_texture: TextureId::new(normal_texture),
+            albedo_map: TextureId::new(albedo),
+            normal_map: TextureId::new(normal),
+            metallic_map: TextureId::new(metallic),
+            roughness_map: TextureId::new(roughness),
+            ao_map: TextureId::new(ao),
         }
     }
 
@@ -112,12 +97,11 @@ impl Material {
         }
 
         let material = Self {
-            albedo: [1.0, 1.0, 1.0],
-            metallic: 1.0,
-            roughness: 1.0,
-            ao: 1.0,
-            diffuse_texture: TextureId::new(None),
-            normal_texture: TextureId::new(None),
+            albedo_map: TextureId::new(None),
+            normal_map: TextureId::new(None),
+            metallic_map: TextureId::new(None),
+            roughness_map: TextureId::new(None),
+            ao_map: TextureId::new(None),
         };
 
         let yaml = serde_yaml::to_string(&material).unwrap();

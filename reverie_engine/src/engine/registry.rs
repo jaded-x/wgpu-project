@@ -162,24 +162,24 @@ impl Registry {
             if !self.materials.contains_key(&id) {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
-                let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: cast_slice(&[PBR::from_material(&material_lock)]),
-                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                });
+                // let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                //     label: None,
+                //     contents: cast_slice(&[PBR::from_material(&material_lock)]),
+                //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                // });
         
                 let default = &Texture::default();
                 let default_normal = &Texture::default_normal();
         
-                let diffuse_texture = { 
-                    match material_lock.diffuse_texture.id {
+                let albedo_map = { 
+                    match material_lock.albedo_map.id {
                         Some(id) => {self.get_texture(id, false).unwrap()},
                         None => default.clone(),
                     }
                 };
         
-                let normal_texture = {
-                    match material_lock.normal_texture.id {
+                let normal_map = {
+                    match material_lock.normal_map.id {
                         Some(id) => self.get_texture(id, true).unwrap(),
                         None => default_normal.clone()
                     }
@@ -190,23 +190,43 @@ impl Registry {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: buffer.as_entire_binding(),
+                            resource: wgpu::BindingResource::TextureView(&albedo_map.view),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
-                            resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                            resource: wgpu::BindingResource::Sampler(&albedo_map.sampler),
                         },
                         wgpu::BindGroupEntry {
                             binding: 2,
-                            resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
                         },
                         wgpu::BindGroupEntry {
                             binding: 3,
-                            resource: wgpu::BindingResource::TextureView(&normal_texture.view),
+                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
                         },
                         wgpu::BindGroupEntry {
                             binding: 4,
-                            resource: wgpu::BindingResource::Sampler(&normal_texture.sampler),
+                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 5,
+                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 6,
+                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 7,
+                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 8,
+                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 9,
+                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
                         },
                     ],
                     label: Some("material_bind_group"),
@@ -214,7 +234,7 @@ impl Registry {
 
                 drop(material_lock);
 
-                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![buffer], bind_group)));
+                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![], bind_group)));
             }
         }
     }
@@ -224,26 +244,45 @@ impl Registry {
             if self.materials.contains_key(&id) {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
-                let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: cast_slice(&[PBR::from_material(&material_lock)]),
-                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                });
+                // let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                //     label: None,
+                //     contents: cast_slice(&[PBR::from_material(&material_lock)]),
+                //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                // });
         
                 let default = &Texture::default();
                 let default_normal = &Texture::default_normal();
-
-                let diffuse_texture = { 
-                    match material_lock.diffuse_texture.id {
+        
+                let albedo_map = { 
+                    match material_lock.albedo_map.id {
                         Some(id) => {self.get_texture(id, false).unwrap()},
                         None => default.clone(),
                     }
                 };
         
-                let normal_texture = {
-                    match material_lock.normal_texture.id {
+                let normal_map = {
+                    match material_lock.normal_map.id {
                         Some(id) => self.get_texture(id, true).unwrap(),
                         None => default_normal.clone()
+                    }
+                };
+
+                let metallic_map = {
+                    match material_lock.metallic_map.id {
+                        Some(id) => self.get_texture(id, false).unwrap(),
+                        None => default.clone(),
+                    }
+                };
+                let roughness_map = {
+                    match material_lock.roughness_map.id {
+                        Some(id) => self.get_texture(id, false).unwrap(),
+                        None => default.clone(),
+                    }
+                };
+                let ao_map = {
+                    match material_lock.ao_map.id {
+                        Some(id) => self.get_texture(id, false).unwrap(),
+                        None => default.clone(),
                     }
                 };
                 
@@ -252,23 +291,43 @@ impl Registry {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: buffer.as_entire_binding(),
+                            resource: wgpu::BindingResource::TextureView(&albedo_map.view),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
-                            resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                            resource: wgpu::BindingResource::Sampler(&albedo_map.sampler),
                         },
                         wgpu::BindGroupEntry {
                             binding: 2,
-                            resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
                         },
                         wgpu::BindGroupEntry {
                             binding: 3,
-                            resource: wgpu::BindingResource::TextureView(&normal_texture.view),
+                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
                         },
                         wgpu::BindGroupEntry {
                             binding: 4,
-                            resource: wgpu::BindingResource::Sampler(&normal_texture.sampler),
+                            resource: wgpu::BindingResource::TextureView(&metallic_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 5,
+                            resource: wgpu::BindingResource::Sampler(&metallic_map.sampler),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 6,
+                            resource: wgpu::BindingResource::TextureView(&roughness_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 7,
+                            resource: wgpu::BindingResource::Sampler(&roughness_map.sampler),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 8,
+                            resource: wgpu::BindingResource::TextureView(&ao_map.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 9,
+                            resource: wgpu::BindingResource::Sampler(&ao_map.sampler),
                         },
                     ],
                     label: Some("material_bind_group"),
@@ -276,7 +335,7 @@ impl Registry {
 
                 drop(material_lock);
 
-                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![buffer], bind_group)));
+                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![], bind_group)));
             }
         }
     }

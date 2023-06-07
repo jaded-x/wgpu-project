@@ -79,17 +79,11 @@ impl Imgui {
                             ui.text(material_path.file_name().unwrap().to_str().unwrap());
                             ui.separator();
                             let mut material_asset = self.explorer.material.as_ref().unwrap().asset.lock().unwrap();
-                            let inspect = material_asset.imgui_inspect(ui);
-                            if inspect[0] {
+                            if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 material_asset.save(material_path);
-                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[Align16(&[material_asset.albedo[0], material_asset.albedo[1], material_asset.albedo[2], material_asset.metallic, material_asset.roughness, material_asset.ao])]));
-                            }
-
-                            if inspect[1] || inspect[2] {
-                                material_asset.save(material_path);
+                                drop(material_asset);
                                 registry.reload_material(material_id);
                                 update_entity_material(&scene.world, material_id, registry);
-                                drop(material_asset);
                                 self.explorer.material = registry.get_material(material_id);
                             }
                         }
@@ -149,18 +143,13 @@ impl Imgui {
                                 ui.text(material_path.file_name().unwrap().to_str().unwrap());
                                 ui.separator();
                                 let mut material_asset = material.material.asset.lock().unwrap();
-                                let inspect = material_asset.imgui_inspect(ui);
-                                if inspect[0] || inspect[1] || inspect[2] || inspect[3] {
+                                if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                     material_asset.save(&material_path);
-                                    material.material.update_diffuse_buffer(PBR::from_material(&material_asset));
-                                }
-
-                                if inspect[4] || inspect[5] {
-                                    material_asset.save(&material_path);
-                                    registry.reload_material(material.id);
                                     drop(material_asset);
+                                    registry.reload_material(material_id);
                                     drop(materials);
                                     update_entity_material(&scene.world, material_id, registry);
+                                    self.explorer.material = registry.get_material(material_id);
                                 }
                             }
                         }
