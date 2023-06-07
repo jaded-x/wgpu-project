@@ -15,7 +15,6 @@ pub struct LightManager {
     pub bind_group: wgpu::BindGroup,
     pub buffer: wgpu::Buffer,
     pub count_buffer: wgpu::Buffer,
-    lights: Vec<LightData>,
 }
 
 impl LightManager {
@@ -70,7 +69,6 @@ impl LightManager {
             bind_group,
             buffer,
             count_buffer,
-            lights
         }
     }
 

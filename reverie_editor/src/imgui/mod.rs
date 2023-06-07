@@ -8,8 +8,8 @@ use reverie::{engine::{
         transform::Transform, 
         name::Name,
         light::PointLight, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
-    }, registry::AssetType, texture::Texture, scene::Scene, light_manager::{self, LightManager},
-}, util::cast_slice};
+    }, registry::AssetType, texture::Texture, scene::Scene, material::PBR,
+}, util::{cast_slice, align::Align16}};
 use specs::{*, WorldExt};
 
 use reverie::engine::registry::Registry;
@@ -82,7 +82,7 @@ impl Imgui {
                             let inspect = material_asset.imgui_inspect(ui);
                             if inspect[0] {
                                 material_asset.save(material_path);
-                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[material_asset.diffuse]));
+                                self.explorer.material.as_ref().unwrap().update_buffer(0, cast_slice(&[Align16(&[material_asset.albedo[0], material_asset.albedo[1], material_asset.albedo[2], material_asset.metallic, material_asset.roughness, material_asset.ao])]));
                             }
 
                             if inspect[1] || inspect[2] {
@@ -150,12 +150,12 @@ impl Imgui {
                                 ui.separator();
                                 let mut material_asset = material.material.asset.lock().unwrap();
                                 let inspect = material_asset.imgui_inspect(ui);
-                                if inspect[0] {
+                                if inspect[0] || inspect[1] || inspect[2] || inspect[3] {
                                     material_asset.save(&material_path);
-                                    material.material.update_diffuse_buffer(material_asset.diffuse);
+                                    material.material.update_diffuse_buffer(PBR::from_material(&material_asset));
                                 }
 
-                                if inspect[1] || inspect[2] {
+                                if inspect[4] || inspect[5] {
                                     material_asset.save(&material_path);
                                     registry.reload_material(material.id);
                                     drop(material_asset);

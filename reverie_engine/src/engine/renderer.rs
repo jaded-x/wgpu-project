@@ -64,7 +64,7 @@ impl Renderer {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<cg::Vector3<f32>>() as u64),
+                        min_binding_size: None,
                     },
                     count: None,
                 },
@@ -161,7 +161,7 @@ impl Renderer {
         let render_pipeline = {
             let shader = wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/light.wgsl").into()),
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/pbr.wgsl").into()),
             };
             create_render_pipeline(
                 &device,

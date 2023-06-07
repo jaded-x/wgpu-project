@@ -4,7 +4,7 @@ use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
 use serde::{Serialize, Deserialize};
 
-use crate::util::cast_slice;
+use crate::util::{cast_slice, align::Align16};
 
 use super::{registry::AssetType, gpu::{Gpu, Asset}, texture::Texture};
 
@@ -54,11 +54,35 @@ impl InspectTexture for TextureId {
     }
 }
 
+pub struct PBR {
+    pub albedo: Align16<[f32; 3]>,
+    pub metallic: Align16<f32>,
+    pub roughness: Align16<f32>,
+    pub ao: Align16<f32>,
+}
+
+impl PBR {
+    pub fn from_material(material: &Material) -> Self {
+        Self {
+            albedo: Align16(material.albedo),
+            metallic: Align16(material.metallic),
+            roughness: Align16(material.roughness),
+            ao: Align16(material.ao),
+        }
+    }
+}
+
 
 #[derive(ImguiInspect, Serialize, Deserialize)]
 pub struct Material {
     #[inspect(widget = "color")]
-    pub diffuse: [f32; 3],
+    pub albedo: [f32; 3],
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
+    pub metallic: f32,
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
+    pub roughness: f32,
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
+    pub ao: f32,
     #[inspect(widget = "texture")]
     pub diffuse_texture: TextureId,
     #[inspect(widget = "texture")]
@@ -66,9 +90,12 @@ pub struct Material {
 }
 
 impl Material {
-    pub fn new(diffuse: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
+    pub fn new(albedo: [f32; 3], diffuse_texture: Option<usize>, normal_texture: Option<usize>) -> Self {
         Self {
-            diffuse,
+            albedo,
+            metallic: 1.0,
+            roughness: 1.0,
+            ao: 1.0,
             diffuse_texture: TextureId::new(diffuse_texture),
             normal_texture: TextureId::new(normal_texture),
         }
@@ -83,7 +110,10 @@ impl Material {
         }
 
         let material = Self {
-            diffuse: [1.0, 1.0, 1.0],
+            albedo: [1.0, 1.0, 1.0],
+            metallic: 1.0,
+            roughness: 1.0,
+            ao: 1.0,
             diffuse_texture: TextureId::new(None),
             normal_texture: TextureId::new(None),
         };
@@ -112,7 +142,7 @@ impl Material {
 }
 
 impl Gpu<Material> {
-    pub fn update_diffuse_buffer(&self, diffuse: [f32; 3]) {
+    pub fn update_diffuse_buffer(&self, diffuse: PBR) {
         self.update_buffer(0, cast_slice(&[diffuse]));
     }
 }

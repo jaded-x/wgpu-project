@@ -1,7 +1,10 @@
-diffuse:
+albedo:
 - 1.0
 - 1.0
 - 1.0
+metallic: 1.0
+roughness: 1.0
+ao: 1.0
 diffuse_texture:
   id: 125406362668153560
 normal_texture:

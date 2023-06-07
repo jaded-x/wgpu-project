@@ -4,9 +4,9 @@ use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
 use std::error::Error;
 
-use crate::util::cast_slice;
+use crate::util::{cast_slice, align::Align16};
 
-use super::{texture::Texture, model::Mesh, gpu::Gpu, renderer::Renderer, resources, material::Material};
+use super::{texture::Texture, model::Mesh, gpu::Gpu, renderer::Renderer, resources, material::{Material, PBR}};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
@@ -162,9 +162,9 @@ impl Registry {
             if !self.materials.contains_key(&id) {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
-                let diffuse_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: cast_slice(&[material_lock.diffuse]),
+                    contents: cast_slice(&[PBR::from_material(&material_lock)]),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
         
@@ -190,7 +190,7 @@ impl Registry {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: diffuse_buffer.as_entire_binding(),
+                            resource: buffer.as_entire_binding(),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
@@ -214,7 +214,7 @@ impl Registry {
 
                 drop(material_lock);
 
-                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![diffuse_buffer], bind_group)));
+                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![buffer], bind_group)));
             }
         }
     }
@@ -224,9 +224,9 @@ impl Registry {
             if self.materials.contains_key(&id) {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
-                let diffuse_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: cast_slice(&[material_lock.diffuse]),
+                    contents: cast_slice(&[material_lock.albedo[0], material_lock.albedo[1], material_lock.albedo[2], material_lock.metallic, material_lock.roughness, material_lock.ao]),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
         
@@ -252,7 +252,7 @@ impl Registry {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: diffuse_buffer.as_entire_binding(),
+                            resource: buffer.as_entire_binding(),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
@@ -276,7 +276,7 @@ impl Registry {
 
                 drop(material_lock);
 
-                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![diffuse_buffer], bind_group)));
+                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![buffer], bind_group)));
             }
         }
     }
