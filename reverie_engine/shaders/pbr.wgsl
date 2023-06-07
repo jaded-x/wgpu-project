@@ -79,7 +79,7 @@ fn fs_main(
     f0 = mix(f0, material.albedo, material.metallic);
 
     var lo = vec3<f32>(0.0);
-    for (var i = 0; i < 4; i = i + 1) {
+    for (var i = 0; i < light_count; i = i + 1) {
         let l = normalize(lights[i].position - in.world_position);
         let h = normalize(v + l);
         let distance = length(lights[i].position - in.world_position);

@@ -226,7 +226,7 @@ impl Registry {
                 let material_lock = material.lock().unwrap();
                 let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: cast_slice(&[material_lock.albedo[0], material_lock.albedo[1], material_lock.albedo[2], material_lock.metallic, material_lock.roughness, material_lock.ao]),
+                    contents: cast_slice(&[PBR::from_material(&material_lock)]),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
         

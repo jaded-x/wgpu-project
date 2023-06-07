@@ -54,20 +54,22 @@ impl InspectTexture for TextureId {
     }
 }
 
+#[repr(align(16))]
 pub struct PBR {
-    pub albedo: Align16<[f32; 3]>,
-    pub metallic: Align16<f32>,
-    pub roughness: Align16<f32>,
-    pub ao: Align16<f32>,
+    pub albedo: [f32; 3],
+    pub metallic: f32,
+    pub roughness: f32,
+    pub ao: f32,
 }
 
 impl PBR {
     pub fn from_material(material: &Material) -> Self {
+        dbg!(material.metallic);
         Self {
-            albedo: Align16(material.albedo),
-            metallic: Align16(material.metallic),
-            roughness: Align16(material.roughness),
-            ao: Align16(material.ao),
+            albedo: material.albedo,
+            metallic: material.metallic,
+            roughness: material.roughness,
+            ao: material.ao,
         }
     }
 }
