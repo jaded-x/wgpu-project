@@ -5,6 +5,8 @@ use specs::{Component, VecStorage};
 
 use crate::engine::{model, registry::Registry};
 
+use super::{ComponentDefault, TypeName};
+
 #[derive(Clone, Component, Serialize)]
 #[storage(VecStorage)]
 pub struct Mesh {
@@ -21,5 +23,22 @@ impl Mesh {
             id,
             mesh
         }
+    }
+}
+
+impl ComponentDefault for Mesh {
+    fn default(_device: &wgpu::Device, registry: &mut Registry) -> Self {
+        let mesh = registry.get_mesh(0).unwrap();
+
+        Self {
+            id: 0,
+            mesh,
+        }
+    }
+}
+
+impl TypeName for Mesh {
+    fn type_name() -> &'static str {
+        "mesh"
     }
 }

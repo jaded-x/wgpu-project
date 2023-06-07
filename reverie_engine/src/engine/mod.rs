@@ -14,4 +14,3 @@ pub mod scene;
 pub mod material;
 
 pub mod components;
-pub mod primitives;

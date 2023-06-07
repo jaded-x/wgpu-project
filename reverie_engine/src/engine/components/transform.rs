@@ -8,12 +8,16 @@ use specs::{prelude::*, Component};
 
 use wgpu::util::DeviceExt;
 
+use crate::engine::registry::Registry;
 use crate::engine::renderer::Renderer;
 use crate::util::align::Align16;
 use crate::util::cast_slice;
 
 use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
+
+use super::ComponentDefault;
+use super::TypeName;
 
 #[derive(Deserialize)]
 pub struct DeserializedData {
@@ -142,4 +146,45 @@ fn calculate_transform_matrix(position: cg::Vector3<f32>, rotation: cg::Vector3<
         * cg::Matrix4::from_angle_z(cg::Deg(rotation.z));
     
     cg::Matrix4::from_translation(position) * rotation * cg::Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z)
+}
+
+impl ComponentDefault for Transform {
+    fn default(device: &wgpu::Device, _registry: &mut Registry) -> Self {
+        let transform = TransformData::default();
+
+        let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("matrix_buffer"),
+            contents: cast_slice(&[transform.matrix, transform.normal_matrix]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let position_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("position_buffer"),
+            contents: cast_slice(&[Align16(transform.position)]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &Renderer::get_transform_layout(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: matrix_buffer.as_entire_binding()
+                }
+            ],
+            label: None,
+        });
+
+        Self {
+            data: TransformData::default(),
+            buffers: HashMap::from([("matrix", matrix_buffer), ("position", position_buffer)]),
+            bind_group,
+        }
+    }
+}
+
+impl TypeName for Transform {
+    fn type_name() -> &'static str {
+        "transform"
+    }
 }

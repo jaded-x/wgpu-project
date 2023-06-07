@@ -1,4 +1,5 @@
 use anyhow::Result;
+use obj::Obj;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
 use std::path::PathBuf;

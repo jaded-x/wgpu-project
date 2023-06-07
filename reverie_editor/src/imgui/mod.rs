@@ -7,8 +7,8 @@ use reverie::{engine::{
     components::{
         transform::Transform, 
         name::Name,
-        light::PointLight, material::MaterialComponent, mesh::Mesh
-    }, registry::AssetType, texture::Texture, scene::Scene,
+        light::PointLight, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
+    }, registry::AssetType, texture::Texture, scene::Scene, light_manager::{self, LightManager},
 }, util::cast_slice};
 use specs::{*, WorldExt};
 
@@ -98,93 +98,108 @@ impl Imgui {
                 }
 
                 if let Some(entity) = self.entity {
-                    let names = scene.world.read_component::<Name>();
-                    ui.text(names.get(entity).unwrap().0.clone());
+                    let mut names = scene.world.write_component::<Name>();
+                    ui.input_text("##entity name", &mut names.get_mut(entity).unwrap().0).build();
                     ui.separator();
+                    {
+                        let mut transforms = scene.world.write_component::<Transform>();
+                        if let Some(transform) = transforms.get_mut(entity) {
+                            if ui.collapsing_header("Transform", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                                if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
+                                    transform.data.update_matrix();
+                                    transform.update_buffers(queue);
+                                    if self.light_index.is_some() {
+                                        scene.light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position());
+                                    }
+                                }
+                            }
+                        }
 
-                    let mut transforms = scene.world.write_component::<Transform>();
-                    if let Some(transform) = transforms.get_mut(entity) {
-                        if ui.collapsing_header("Transform", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                transform.data.update_matrix();
-                                transform.update_buffers(queue);
-                                if self.light_index.is_some() {
-                                    scene.light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position());
+                        let mut lights = scene.world.write_component::<PointLight>();
+                        if let Some(light) = lights.get_mut(entity) {
+                            if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                                if light.imgui_inspect(ui).iter().any(|&value| value == true) {
+                                    scene.light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
+                                }
+                            }
+                        }
+
+                        let mut materials = scene.world.write_component::<MaterialComponent>();
+                        if let Some(material) = materials.get_mut(entity) {
+                            let material_id = material.id.clone();
+                            if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                                ui.button("material");
+                                match ui.drag_drop_target() {
+                                    Some(target) => {
+                                        match target.accept_payload::<Option<usize>, _>(AssetType::Material.to_string(), imgui::DragDropFlags::empty()) {
+                                            Some(Ok(payload_data)) => {
+                                                material.id = payload_data.data.unwrap();
+                                                material.material = registry.get_material(material.id).unwrap();
+                                            },
+                                            Some(Err(e)) => {
+                                                println!("{}", e);
+                                            },
+                                            _ => {},
+                                        }
+                                    },
+                                    _ => {},
+                                }
+
+                                let material_path = registry.get_filepath(material.id);
+                                ui.text(material_path.file_name().unwrap().to_str().unwrap());
+                                ui.separator();
+                                let mut material_asset = material.material.asset.lock().unwrap();
+                                let inspect = material_asset.imgui_inspect(ui);
+                                if inspect[0] {
+                                    material_asset.save(&material_path);
+                                    material.material.update_diffuse_buffer(material_asset.diffuse);
+                                }
+
+                                if inspect[1] || inspect[2] {
+                                    material_asset.save(&material_path);
+                                    registry.reload_material(material.id);
+                                    drop(material_asset);
+                                    drop(materials);
+                                    update_entity_material(&scene.world, material_id, registry);
+                                }
+                            }
+                        }
+
+                        let mut meshes = scene.world.write_component::<Mesh>();
+                        if let Some(mesh) = meshes.get_mut(entity) {
+                            if ui.collapsing_header("Mesh", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                                ui.button("mesh");
+                                match ui.drag_drop_target() {
+                                    Some(target) => {
+                                        match target.accept_payload::<Option<usize>, _>(AssetType::Mesh.to_string(), imgui::DragDropFlags::empty()) {
+                                            Some(Ok(payload_data)) => {
+                                                mesh.id = payload_data.data.unwrap();
+                                                mesh.mesh = registry.get_mesh(mesh.id).unwrap();
+                                            },
+                                            Some(Err(e)) => {
+                                                println!("{}", e);
+                                            },
+                                            _ => {},
+                                        }
+                                    }
+                                    _ => {},
                                 }
                             }
                         }
                     }
+                    
 
-                    let mut lights = scene.world.write_component::<PointLight>();
-                    if let Some(light) = lights.get_mut(entity) {
-                        if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                scene.light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
-                            }
-                        }
-                    }
+                    ui.popup("components", || {
+                        ui.text("Add Component");
+                        add_component::<Name>(ui, scene, entity, device, registry);
+                        add_component::<Transform>(ui, scene, entity, device, registry);
+                        add_component::<MaterialComponent>(ui, scene, entity, device, registry);
+                        add_component::<Mesh>(ui, scene, entity, device, registry);
+                        add_component::<PointLight>(ui, scene, entity, device, registry);
+                    });
 
-                    let mut materials = scene.world.write_component::<MaterialComponent>();
-                    if let Some(material) = materials.get_mut(entity) {
-                        let material_id = material.id.clone();
-                        if ui.collapsing_header("Material", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            ui.button("material");
-                            match ui.drag_drop_target() {
-                                Some(target) => {
-                                    match target.accept_payload::<Option<usize>, _>(AssetType::Material.to_string(), imgui::DragDropFlags::empty()) {
-                                        Some(Ok(payload_data)) => {
-                                            material.id = payload_data.data.unwrap();
-                                            material.material = registry.get_material(material.id).unwrap();
-                                        },
-                                        Some(Err(e)) => {
-                                            println!("{}", e);
-                                        },
-                                        _ => {},
-                                    }
-                                },
-                                _ => {},
-                            }
-
-                            let material_path = registry.get_filepath(material.id);
-                            ui.text(material_path.file_name().unwrap().to_str().unwrap());
-                            ui.separator();
-                            let mut material_asset = material.material.asset.lock().unwrap();
-                            let inspect = material_asset.imgui_inspect(ui);
-                            if inspect[0] {
-                                material_asset.save(&material_path);
-                                material.material.update_diffuse_buffer(material_asset.diffuse);
-                            }
-
-                            if inspect[1] || inspect[2] {
-                                material_asset.save(&material_path);
-                                registry.reload_material(material.id);
-                                drop(material_asset);
-                                drop(materials);
-                                update_entity_material(&scene.world, material_id, registry);
-                            }
-                        }
-                    }
-
-                    let mut meshes = scene.world.write_component::<Mesh>();
-                    if let Some(mesh) = meshes.get_mut(entity) {
-                        if ui.collapsing_header("Mesh", imgui::TreeNodeFlags::DEFAULT_OPEN) {
-                            ui.button("mesh");
-                            match ui.drag_drop_target() {
-                                Some(target) => {
-                                    match target.accept_payload::<Option<usize>, _>(AssetType::Mesh.to_string(), imgui::DragDropFlags::empty()) {
-                                        Some(Ok(payload_data)) => {
-                                            mesh.id = payload_data.data.unwrap();
-                                            mesh.mesh = registry.get_mesh(mesh.id).unwrap();
-                                        },
-                                        Some(Err(e)) => {
-                                            println!("{}", e);
-                                        },
-                                        _ => {},
-                                    }
-                                }
-                                _ => {},
-                            }
-                        }
+                    if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
+                        ui.open_popup("components")
                     }
                 }
             });
@@ -198,7 +213,7 @@ impl Imgui {
             for entity in scene.world.entities().join() {
                 let name = names.get(entity).unwrap();
 
-                if ui.button(name.0.to_string()) {
+                if ui.button(format!("{}##{}", name.0.to_string(), entity.id())) {
                     self.entity = Some(entity);
                     self.explorer.selected_file = None;
                     self.explorer.material = None;
@@ -235,9 +250,7 @@ impl Imgui {
             self.entity = None;
         }
 
-        //if ui.is_any_item_hovered() && !ui.is_any_item_active() {
-            set_cursor(window, ui);
-        //}
+        set_cursor(window, ui);
     }
 
     pub fn draw(&mut self, scene: &mut Scene, registry: &mut Registry, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, window: &winit::window::Window, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
@@ -299,5 +312,14 @@ fn update_entity_material(world: &World, id: usize, registry: &mut Registry) {
                 material.material = registry.get_material(id).unwrap();
             }
         }
+    }
+}
+
+use std::string::ToString;
+
+fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry) where T: TypeName {
+    if ui.button(T::type_name()) {
+        let mut components = scene.world.write_storage::<T>();
+        components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
     }
 }

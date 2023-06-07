@@ -15,6 +15,7 @@ pub struct LightManager {
     pub bind_group: wgpu::BindGroup,
     pub buffer: wgpu::Buffer,
     pub count_buffer: wgpu::Buffer,
+    lights: Vec<LightData>,
 }
 
 impl LightManager {
@@ -68,7 +69,8 @@ impl LightManager {
         Self {
             bind_group,
             buffer,
-            count_buffer
+            count_buffer,
+            lights
         }
     }
 
@@ -79,4 +81,5 @@ impl LightManager {
     pub fn update_light_data(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
         queue.write_buffer(&self.buffer, (std::mem::size_of::<LightData>()  * index  + 16) as u64, cast_slice(&[data]));
     }
+
 }
