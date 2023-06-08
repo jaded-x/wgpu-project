@@ -82,7 +82,7 @@ impl Imgui {
                             if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                 material_asset.save(material_path);
                                 drop(material_asset);
-                                registry.reload_material(material_id);
+                                registry.load_material(material_id, true);
                                 update_entity_material(&scene.world, material_id, registry);
                                 self.explorer.material = registry.get_material(material_id);
                             }
@@ -146,7 +146,7 @@ impl Imgui {
                                 if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                     material_asset.save(&material_path);
                                     drop(material_asset);
-                                    registry.reload_material(material_id);
+                                    registry.load_material(material_id, true);
                                     drop(materials);
                                     update_entity_material(&scene.world, material_id, registry);
                                     self.explorer.material = registry.get_material(material_id);

@@ -1,5 +1,6 @@
 use std::{path::{PathBuf, Path}, collections::HashMap, sync::{Arc, Mutex}, ffi::OsStr};
 use rand::random;
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
 use std::error::Error;
@@ -108,9 +109,7 @@ impl Registry {
         if let Some(asset) = self.metadata.get(&id) {
             let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
             let texture = Texture::from_bytes(&self.device, &self.queue, &bytes, &asset.file_path.to_str().unwrap(), normal).unwrap();
-
             self.textures.insert(asset.id, Arc::new(texture));
-
             let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 32, 32);
             self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
         }
@@ -134,7 +133,7 @@ impl Registry {
 
     pub fn get_material(&mut self, id: usize) -> Option<Arc<Gpu<Material>>> {
         if !self.materials.contains_key(&id) {
-            self.load_material(id);
+            self.load_material(id, false);
         }
 
         self.materials.get(&id).cloned()
@@ -157,9 +156,9 @@ impl Registry {
             }
     }
 
-    fn load_material(&mut self, id: usize) {
+    pub fn load_material(&mut self, id: usize, is_loaded: bool) {
         if let Some(asset) = self.metadata.get(&id).cloned() {
-            if !self.materials.contains_key(&id) {
+            if self.materials.contains_key(&id) == is_loaded {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
                 // let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -167,88 +166,31 @@ impl Registry {
                 //     contents: cast_slice(&[PBR::from_material(&material_lock)]),
                 //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 // });
-        
-                let default = &Texture::default();
-                let default_normal = &Texture::default_normal();
-        
-                let albedo_map = { 
-                    match material_lock.albedo_map.id {
-                        Some(id) => {self.get_texture(id, false).unwrap()},
-                        None => default.clone(),
-                    }
-                };
-        
-                let normal_map = {
-                    match material_lock.normal_map.id {
-                        Some(id) => self.get_texture(id, true).unwrap(),
-                        None => default_normal.clone()
-                    }
-                };
+
+                let texture_option_ids = vec![material_lock.albedo_map.id, material_lock.normal_map.id, material_lock.metallic_map.id, material_lock.roughness_map.id, material_lock.ao_map.id];
+                let texture_ids: Vec<usize> = texture_option_ids.into_iter().filter_map(|x| x).collect();
                 
-                let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &Renderer::get_material_layout(),
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&albedo_map.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&albedo_map.sampler),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 3,
-                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 4,
-                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 5,
-                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 6,
-                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 7,
-                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 8,
-                            resource: wgpu::BindingResource::TextureView(&normal_map.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 9,
-                            resource: wgpu::BindingResource::Sampler(&normal_map.sampler),
-                        },
-                    ],
-                    label: Some("material_bind_group"),
-                });
 
-                drop(material_lock);
+                let computed_textures: Vec<_> = texture_ids.into_par_iter().filter_map(|id| {
+                    if let Some(asset) = self.metadata.get(&id) {
+                        dbg!("hi");
+                        let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
+                        let img = image::load_from_memory(&bytes).expect("Failed to decode image data");
+                        
+                        let is_normal = self.get_filepath(id).to_str().unwrap().contains("normal");
+                        let texture = Texture::from_image(&self.device, &self.queue, &img, asset.file_path.to_str(), is_normal).unwrap();
+                        let imgui_texture = create_imgui_texture(&self.imgui_renderer, asset.file_path.to_str().unwrap(), &self.device, &self.queue, 32, 32);
+                        
+                        Some((asset.id, Arc::new(texture), imgui_texture))
+                    } else {
+                        None
+                    }
+                }).collect();
 
-                self.materials.insert(asset.id, Arc::new(Gpu::create(material, self.queue.clone(), vec![], bind_group)));
-            }
-        }
-    }
-
-    pub fn reload_material(&mut self, id: usize) {
-        if let Some(asset) = self.metadata.get(&id).cloned() {
-            if self.materials.contains_key(&id) {
-                let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
-                let material_lock = material.lock().unwrap();
-                // let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                //     label: None,
-                //     contents: cast_slice(&[PBR::from_material(&material_lock)]),
-                //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                // });
+                for (id, texture, imgui_texture) in computed_textures {
+                    self.textures.insert(id, texture);
+                    self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
+                }
         
                 let default = &Texture::default();
                 let default_normal = &Texture::default_normal();
@@ -269,20 +211,21 @@ impl Registry {
 
                 let metallic_map = {
                     match material_lock.metallic_map.id {
-                        Some(id) => self.get_texture(id, false).unwrap(),
-                        None => default.clone(),
+                        Some(id) => self.get_texture(id, true).unwrap(),
+                        None => default_normal.clone()
                     }
                 };
+
                 let roughness_map = {
                     match material_lock.roughness_map.id {
-                        Some(id) => self.get_texture(id, false).unwrap(),
-                        None => default.clone(),
+                        Some(id) => self.get_texture(id, true).unwrap(),
+                        None => default_normal.clone()
                     }
                 };
                 let ao_map = {
                     match material_lock.ao_map.id {
-                        Some(id) => self.get_texture(id, false).unwrap(),
-                        None => default.clone(),
+                        Some(id) => self.get_texture(id, true).unwrap(),
+                        None => default_normal.clone()
                     }
                 };
                 

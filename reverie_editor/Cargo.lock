@@ -1827,6 +1827,7 @@ dependencies = [
  "once_cell",
  "pollster",
  "rand",
+ "rayon",
  "serde",
  "serde_yaml",
  "specs",
