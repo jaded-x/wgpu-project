@@ -143,6 +143,9 @@ impl Imgui {
                                 ui.text(material_path.file_name().unwrap().to_str().unwrap());
                                 ui.separator();
                                 let mut material_asset = material.material.asset.lock().unwrap();
+                                if material_asset.floats.imgui_inspect(ui).iter().any(|&value| value == true) {
+                                    material.material.update_floats(material_asset.floats);
+                                }
                                 if material_asset.imgui_inspect(ui).iter().any(|&value| value == true) {
                                     material_asset.save(&material_path);
                                     drop(material_asset);

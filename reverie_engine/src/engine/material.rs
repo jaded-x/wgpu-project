@@ -55,16 +55,34 @@ impl InspectTexture for TextureId {
 }
 
 #[repr(align(16))]
+#[derive(ImguiInspect, Serialize, Deserialize, Clone, Copy)]
 pub struct PBR {
+    #[inspect(widget = "color")]
     pub albedo: [f32; 3],
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
     pub metallic: f32,
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
     pub roughness: f32,
+    #[inspect(widget = "drag", min = 0.0, max = 1.0, speed = 0.05)]
     pub ao: f32,
+}
+
+impl Default for PBR {
+    fn default() -> Self {
+        Self {
+            albedo: [1.0, 1.0, 1.0],
+            metallic: 0.5,
+            roughness: 0.5,
+            ao: 0.5,
+        }
+    }
 }
 
 
 #[derive(ImguiInspect, Serialize, Deserialize)]
 pub struct Material {
+    #[inspect(hide = true)]
+    pub floats: PBR,
     #[inspect(widget = "texture")]
     pub albedo_map: TextureId,
     #[inspect(widget = "texture")]
@@ -80,6 +98,7 @@ pub struct Material {
 impl Material {
     pub fn new(albedo: Option<usize>, normal: Option<usize>, metallic: Option<usize>, roughness: Option<usize>, ao: Option<usize>) -> Self {
         Self {
+            floats: PBR::default(),
             albedo_map: TextureId::new(albedo),
             normal_map: TextureId::new(normal),
             metallic_map: TextureId::new(metallic),
@@ -97,6 +116,7 @@ impl Material {
         }
 
         let material = Self {
+            floats: PBR::default(),
             albedo_map: TextureId::new(None),
             normal_map: TextureId::new(None),
             metallic_map: TextureId::new(None),
@@ -128,8 +148,8 @@ impl Material {
 }
 
 impl Gpu<Material> {
-    pub fn update_diffuse_buffer(&self, diffuse: PBR) {
-        self.update_buffer(0, cast_slice(&[diffuse]));
+    pub fn update_floats(&self, floats: PBR) {
+        self.update_buffer(0, cast_slice(&[floats]));
     }
 }
 

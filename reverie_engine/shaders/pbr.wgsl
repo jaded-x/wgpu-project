@@ -73,14 +73,56 @@ var t_ao: texture_2d<f32>;
 @group(2) @binding(9)
 var s_ao: sampler;
 
+struct PBR {
+    albedo: vec3<f32>,
+    metallic: f32,
+    roughness: f32,
+    ao: f32,
+}
+@group(2) @binding(10)
+var<uniform> pbr: PBR;
+
+struct PBRBool {
+    albedo: f32,
+    metallic: f32,
+    roughness: f32,
+    ao: f32,
+}
+@group(2) @binding(11)
+var<uniform> bools: PBRBool;
+
 @fragment
 fn fs_main(
     in: VertexOutput
 ) -> @location(0) vec4<f32> {
-    let albedo = pow(textureSample(t_albedo, s_albedo, in.tex_coords).rgb, vec3<f32>(2.2));
-    let metallic = textureSample(t_metallic, s_metallic, in.tex_coords).r;
-    let roughness = textureSample(t_roughness, s_roughness, in.tex_coords).r;
-    let ao = textureSample(t_ao, s_ao, in.tex_coords).r;
+    var albedo: vec3<f32>;
+    var metallic: f32;
+    var roughness: f32;
+    var ao: f32;
+    
+    if (bools.albedo != 0.0) {
+        albedo = pow(textureSample(t_albedo, s_albedo, in.tex_coords).rgb, vec3<f32>(2.2));
+    } else {
+        albedo = pbr.albedo;
+    }
+    
+    if (bools.metallic != 0.0) {
+        metallic = textureSample(t_metallic, s_metallic, in.tex_coords).r;
+    } else {
+        metallic = pbr.metallic;
+    }
+    
+    if (bools.roughness != 0.0) {
+        roughness = textureSample(t_roughness, s_roughness, in.tex_coords).r;
+    } else {
+        roughness = pbr.roughness;
+    }
+    
+    if (bools.ao != 0.0) {
+        ao = textureSample(t_ao, s_ao, in.tex_coords).r;
+    } else {
+        ao = pbr.ao;
+    }
 
     let n = get_normal_from_map(in.normal, in.world_position, in.tex_coords);
     let v = normalize(camera.view_pos.xyz - in.world_position);
