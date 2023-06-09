@@ -112,14 +112,17 @@ impl Registry {
             let device = self.device.clone();
             let queue = self.queue.clone();
             let file_path = asset.file_path.clone();
-
+            let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
+            let img = image::load_from_memory(bytes.as_slice()).unwrap();
+            let imgui_img = img.clone();
+            
             std::thread::spawn(move || {
-                let imgui_texture = create_imgui_texture(imgui_renderer, file_path.to_str().unwrap(), device, queue, 32, 32);
+                let imgui_texture = create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 32, 32);
                 sender.send(imgui_texture).unwrap();
             });
 
-            let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
-            let texture = Texture::from_bytes(&self.device, &self.queue, &bytes, &asset.file_path.to_str().unwrap(), normal).unwrap();
+            let texture = Texture::from_image(&self.device, &self.queue, &img, Some(asset.file_path.to_str().unwrap()), normal).unwrap();
+            
             return Some((asset.id, Arc::new(texture), receiver.recv().unwrap()));
         }
         None
@@ -171,12 +174,10 @@ impl Registry {
             if self.materials.contains_key(&id) == is_loaded {
                 let material = Arc::new(Mutex::new(Material::load(&asset.file_path)));
                 let material_lock = material.lock().unwrap();
-                
 
                 let texture_option_ids = vec![material_lock.albedo_map.id, material_lock.normal_map.id, material_lock.metallic_map.id, material_lock.roughness_map.id, material_lock.ao_map.id];
                 let texture_ids: Vec<usize> = texture_option_ids.into_iter().filter_map(|x| x).collect();
                 
-
                 let computed_textures: Vec<_> = texture_ids.into_par_iter().filter_map(|id| {
                     if let Some(_) = self.metadata.get(&id) {
                         let is_normal = self.get_filepath(id).to_str().unwrap().contains("normal");
@@ -305,9 +306,8 @@ fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {
     Ok(metadata)
 }
 
-fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, file_name: &str, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, width: u32, height: u32) -> imgui_wgpu::Texture {
-    let bytes = std::fs::read(Path::new(file_name)).unwrap();
-    let texture = Texture::from_bytes(&device, &queue, &bytes, file_name, false).unwrap();
+fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image::DynamicImage, file_name: &str, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, width: u32, height: u32) -> imgui_wgpu::Texture {
+    let texture = Texture::from_image(&device, &queue, img, Some(file_name), false).unwrap();
     imgui_wgpu::Texture::from_raw_parts(
         &device, 
         &renderer.lock().unwrap(), 
