@@ -30,7 +30,8 @@ pub struct Imgui {
     pub explorer: Explorer,
 
     entity: Option<Entity>,
-    light_index: Option<usize>,
+    point_light_index: Option<usize>,
+    directional_light_index: Option<usize>,
 }
 
 impl Imgui {
@@ -57,7 +58,8 @@ impl Imgui {
             explorer: Explorer::new(),
 
             entity: None,
-            light_index: None,
+            point_light_index: None,
+            directional_light_index: None,
         }
     }
 
@@ -102,8 +104,8 @@ impl Imgui {
                                 if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
                                     transform.data.update_matrix();
                                     transform.update_buffers(queue);
-                                    if self.light_index.is_some() {
-                                        scene.light_manager.update_light_position(queue, self.light_index.unwrap(), transform.get_position());
+                                    if self.point_light_index.is_some() {
+                                        scene.light_manager.update_light_position(queue, self.point_light_index.unwrap(), transform.get_position());
                                     }
                                 }
                             }
@@ -113,7 +115,7 @@ impl Imgui {
                         if let Some(light) = lights.get_mut(entity) {
                             if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                                 if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                    scene.light_manager.update_light_data(queue, self.light_index.unwrap(), light.get_color());
+                                    scene.light_manager.update_light_data(queue, self.point_light_index.unwrap(), light.get_color());
                                 }
                             }
                         }
@@ -122,7 +124,7 @@ impl Imgui {
                         if let Some(light) = directional_lights.get_mut(entity) {
                             if ui.collapsing_header("Directional Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                                 if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                    scene.light_manager.update_directional_data(queue, self.light_index.unwrap(), light.direction, light.color)
+                                    scene.light_manager.update_directional_data(queue, self.directional_light_index.unwrap(), light.direction, light.color)
                                 }
                             }
                         }
@@ -208,9 +210,11 @@ impl Imgui {
 
         ui.window("Objects").build(|| {
             let names = scene.world.read_component::<Name>();
-            let light_component = scene.world.read_component::<PointLight>();
+            let point_light_component = scene.world.read_component::<PointLight>();
+            let directional_light_component = scene.world.read_component::<DirectionalLight>();
 
-            let mut light_index = 0;
+            let mut point_light_index = 0;
+            let mut directional_light_index = 0;
 
             for entity in scene.world.entities().join() {
                 let name = names.get(entity).unwrap();
@@ -220,18 +224,28 @@ impl Imgui {
                     self.explorer.selected_file = None;
                     self.explorer.material = None;
 
-                    match light_component.get(entity) {
-                        Some(_) => self.light_index = Some(light_index),
-                        None => self.light_index = None,
+                    match point_light_component.get(entity) {
+                        Some(_) => self.point_light_index = Some(point_light_index),
+                        None => self.point_light_index = None,
+                    }
+
+                    match directional_light_component.get(entity) {
+                        Some(_) => self.directional_light_index = Some(directional_light_index),
+                        None => self.directional_light_index = None,
                     }
                 }
 
-                if light_component.get(entity).is_some() {
-                    light_index += 1;
+                if point_light_component.get(entity).is_some() {
+                    point_light_index += 1;
+                }
+
+                if directional_light_component.get(entity).is_some() {
+                    directional_light_index += 1;
                 }
             }
             drop(names);
-            drop(light_component);
+            drop(point_light_component);
+            drop(directional_light_component);
 
             ui.popup("objects_popup", || {
                 if ui.button("Create Object") {
