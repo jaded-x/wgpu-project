@@ -30,7 +30,7 @@ impl PointLight {
 impl ComponentDefault for PointLight {
     fn default(_device: &wgpu::Device, _registry: &mut Registry) -> Self {
         Self {
-            diffuse_color: [255.0, 255.0, 255.0]
+            diffuse_color: [1.0, 1.0, 1.0]
         }
     }
 }

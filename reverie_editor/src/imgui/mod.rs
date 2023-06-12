@@ -8,7 +8,7 @@ use reverie::{engine::{
         transform::Transform, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
-    }, registry::AssetType, texture::Texture, scene::Scene, light_manager::{self, LightManager},
+    }, registry::AssetType, texture::Texture, scene::Scene,
 }};
 use specs::{*, WorldExt};
 
@@ -194,12 +194,12 @@ impl Imgui {
 
                     ui.popup("components", || {
                         ui.text("Add Component");
-                        add_component::<Name>(ui, scene, entity, device, registry);
-                        add_component::<Transform>(ui, scene, entity, device, registry);
-                        add_component::<MaterialComponent>(ui, scene, entity, device, registry);
-                        add_component::<Mesh>(ui, scene, entity, device, registry);
-                        add_component::<PointLight>(ui, scene, entity, device, registry);
-                        add_component::<DirectionalLight>(ui, scene, entity, device, registry);
+                        add_component::<Name>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<Transform>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<MaterialComponent>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<Mesh>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<PointLight>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<DirectionalLight>(ui, scene, entity, device, registry, self.point_light_index);
                     });
 
                     if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
@@ -333,11 +333,12 @@ fn update_entity_material(world: &World, id: usize, registry: &mut Registry) {
 
 use std::string::ToString;
 
-fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &mut Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry) where T: TypeName {
+fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &mut Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry, index: Option<usize>) where T: TypeName {
     if ui.button(T::type_name()) {
         let mut components = scene.world.write_storage::<T>();
         if let Some(_) = components.get(entity) {
             components.remove(entity);
+            scene.light_manager.remove_point_light(device, index.unwrap())
         } else {
             components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
             drop(components);
