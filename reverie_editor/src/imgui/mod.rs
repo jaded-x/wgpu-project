@@ -322,6 +322,10 @@ use std::string::ToString;
 fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry) where T: TypeName {
     if ui.button(T::type_name()) {
         let mut components = scene.world.write_storage::<T>();
-        components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
+        if let Some(_) = components.get(entity) {
+            components.remove(entity);
+        } else {
+            components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
+        }
     }
 }

@@ -125,14 +125,17 @@ impl LightManager {
     }
 
     pub fn update_light_position(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
+        let index = index + 1;
         queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[data]));
     }
 
     pub fn update_light_data(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
-        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>()  * index  + 16) as u64, cast_slice(&[data]));
+        let index = index + 1;
+        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index + 16) as u64, cast_slice(&[data]));
     }
 
     pub fn update_directional_data(&self, queue: &wgpu::Queue, index: usize, direction: cg::Vector3<f32>, color: [f32; 3]) {
+        let index = index + 1;
         queue.write_buffer(&self.directional_buffer, (std::mem::size_of::<DirectionalData>()  * index) as u64, cast_slice(&[DirectionalData {
             _direction: Align16(direction),
             _color: Align16(color)
