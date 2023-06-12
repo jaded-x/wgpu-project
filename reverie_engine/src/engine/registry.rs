@@ -62,7 +62,7 @@ pub struct Registry {
     imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>,
     pub textures: HashMap<usize, Arc<Texture>>,
     pub materials: HashMap<usize, Arc<Gpu<Material>>>,
-    pub meshes: HashMap<usize, Arc<Mesh>>,
+    pub meshes: HashMap<usize, Arc<Vec<Mesh>>>,
     pub metadata: HashMap<usize, AssetMetadata>,
 }
 
@@ -130,7 +130,7 @@ impl Registry {
 
     fn load_mesh(&mut self, id: usize) {
         if let Some(asset) = self.metadata.get(&id) {
-            let mesh = &resources::load_mesh(&asset.file_path, &self.device).unwrap()[0];
+            let mesh = &resources::load_mesh(&asset.file_path, &self.device).unwrap();
 
             self.meshes.insert(asset.id, mesh.to_owned());
         }
@@ -152,7 +152,7 @@ impl Registry {
         self.materials.get(&id).cloned()
     }
 
-    pub fn get_mesh(&mut self, id: usize) -> Option<Arc<Mesh>> {
+    pub fn get_mesh(&mut self, id: usize) -> Option<Arc<Vec<Mesh>>> {
         if !self.meshes.contains_key(&id) {
             self.load_mesh(id);
         }

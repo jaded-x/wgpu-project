@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use serde::Deserialize;
 use specs::{World, WorldExt, Join, Builder};
 
-use super::{light_manager::LightManager, renderer::Renderer, components::{name::Name, transform::{Transform, DeserializedData, TransformData}, material::MaterialComponent, mesh::Mesh, light::PointLight}, registry::Registry};
+use super::{light_manager::LightManager, renderer::Renderer, components::{name::Name, transform::{Transform, DeserializedData, TransformData}, material::MaterialComponent, mesh::Mesh, light::{PointLight, DirectionalLight}}, registry::Registry};
 
 pub struct Scene {
     pub path: PathBuf,
@@ -29,13 +29,16 @@ impl Scene {
         let transforms = self.world.read_storage::<Transform>();
         let materials = self.world.read_storage::<MaterialComponent>();
         let meshes = self.world.read_storage::<Mesh>();
-        let lights = self.world.read_storage::<PointLight>();
+        let point_lights = self.world.read_storage::<PointLight>();
+        let directional_lights = self.world.read_storage::<DirectionalLight>();
+
         
         let mut s_names = HashMap::new();
         let mut s_transforms = HashMap::new();
         let mut s_materials = HashMap::new();
         let mut s_meshes = HashMap::new();
-        let mut s_lights = HashMap::new();
+        let mut s_point_lights = HashMap::new();
+        let mut s_directional_lights = HashMap::new();
 
         for entity in entities.join() {
             if let Some(name) = names.get(entity) {
@@ -50,8 +53,11 @@ impl Scene {
             if let Some(mesh) = meshes.get(entity) {
                 s_meshes.insert(entity.id(), mesh.clone());
             }
-            if let Some(light) = lights.get(entity) {
-                s_lights.insert(entity.id(), light.clone());
+            if let Some(light) = point_lights.get(entity) {
+                s_point_lights.insert(entity.id(), light.clone());
+            }
+            if let Some(light) = directional_lights.get(entity) {
+                s_directional_lights.insert(entity.id(), light.clone());
             }
         }
 
@@ -59,11 +65,12 @@ impl Scene {
         let yaml_transforms = serde_yaml::to_string(&s_transforms).unwrap();
         let yaml_materials = serde_yaml::to_string(&s_materials).unwrap();
         let yaml_meshes = serde_yaml::to_string(&s_meshes).unwrap();
-        let yaml_lights = serde_yaml::to_string(&s_lights).unwrap();
+        let yaml_point_lights = serde_yaml::to_string(&s_point_lights).unwrap();
+        let yaml_directional_lights = serde_yaml::to_string(&s_directional_lights).unwrap();
 
         let yaml = format!(
-            "# Names\n{}\n\n# Transforms\n{}\n\n# Materials\n{}\n\n# Meshes\n{}\n\n# Lights\n{}",
-            yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_lights
+            "# Names\n{}\n\n# Transforms\n{}\n\n# Materials\n{}\n\n# Meshes\n{}\n\n# Point Lights\n{}\n\n# Directional Lights\n{}",
+            yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_point_lights, yaml_directional_lights
         );
         
         std::fs::write(self.path.clone(), yaml).unwrap();
@@ -90,6 +97,7 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
         world.register::<Mesh>();
         world.register::<Name>();
         world.register::<PointLight>();
+        world.register::<DirectionalLight>();
         world.create_entity().with(Transform::new(TransformData::default(), device)).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
         return world;
     }
@@ -99,7 +107,8 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
     let s_transforms: HashMap<u32, DeserializedData> = serde_yaml::from_str(sections[1]).unwrap();
     let s_materials: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[2]).unwrap();
     let s_meshes: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[3]).unwrap();
-    let s_lights: HashMap<u32, PointLight> = serde_yaml::from_str(sections[4]).unwrap();
+    let s_point_lights: HashMap<u32, PointLight> = serde_yaml::from_str(sections[4]).unwrap();
+    let s_directional_lights: HashMap<u32, DirectionalLight> = serde_yaml::from_str(sections[5]).unwrap();
 
     let mut world = specs::World::new();
         world.register::<Transform>();
@@ -107,6 +116,7 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
         world.register::<Mesh>();
         world.register::<Name>();
         world.register::<PointLight>();
+        world.register::<DirectionalLight>();
 
     for id in 0..s_names.len() as u32 {
         let mut entity = world.create_entity();
@@ -123,9 +133,12 @@ fn load_scene(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
         if let Some(mesh) = s_meshes.get(&id) {
             entity = entity.with(Mesh::new(mesh.id, registry))
         }
-        if let Some(light) = s_lights.get(&id) {
+        if let Some(light) = s_point_lights.get(&id) {
             entity = entity.with(light.clone())
         }
+        if let Some(light) = s_directional_lights.get(&id) {
+            entity = entity.with(light.clone())
+        };
 
         entity.build();
     }

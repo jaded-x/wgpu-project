@@ -38,7 +38,7 @@ pub async fn load_texture(file_name: &str, is_normal_map: bool, device: &wgpu::D
 pub fn load_mesh(
     file_path: &PathBuf,
     device: &Arc<wgpu::Device>,
-) -> Result<Vec<Arc<Mesh>>> {
+) -> Result<Arc<Vec<Mesh>>> {
     let obj_text = std::fs::read_to_string(file_path)?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
@@ -69,7 +69,7 @@ pub fn load_mesh(
 
     //     materials.push(material_asset)
     // }
-
+    
     let meshes = models
         .into_iter()
         .map(|material| {
@@ -142,6 +142,8 @@ pub fn load_mesh(
                 v.bitangent = (cg::Vector3::from(v.bitangent) * denom).into();
             }
 
+
+
             let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(&format!("{:?} Vertex Buffer", file_path.to_str().unwrap())),
                 contents: cast_slice(&vertices),
@@ -154,15 +156,15 @@ pub fn load_mesh(
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-            Arc::new(Mesh {
+            Mesh {
                 name: file_path.to_str().unwrap().to_string(),
                 vertex_buffer,
                 index_buffer,
                 element_count: material.mesh.indices.len() as u32,
                 material: material.mesh.material_id.unwrap_or(0),
-            })
+            }
         })
         .collect::<Vec<_>>();
 
-    Ok(meshes)
+    Ok(Arc::new(meshes))
 }

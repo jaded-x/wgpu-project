@@ -18,9 +18,17 @@ struct PointLight {
     color: vec3<f32>,
 };
 @group(3) @binding(0)
-var<storage, read> lights: array<PointLight>;
+var<storage, read> point_lights: array<PointLight>;
 @group(3) @binding(1)
-var<uniform> light_count: i32;
+var<uniform> point_light_count: i32;
+struct DirectionalLight {
+    direction: vec3<f32>,
+    color: vec3<f32>,
+};
+@group(3) @binding(2)
+var<storage, read> directional_lights: array<DirectionalLight>;
+@group(3) @binding(3)
+var<uniform> directional_light_count: i32;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -131,12 +139,32 @@ fn fs_main(
     f0 = mix(f0, albedo, metallic);
 
     var lo = vec3<f32>(0.0);
-    for (var i = 0; i < light_count; i = i + 1) {
-        let l = normalize(lights[i].position - in.world_position);
+    for (var i = 0; i < point_light_count; i = i + 1) {
+        let l = normalize(point_lights[i].position - in.world_position);
         let h = normalize(v + l);
-        let distance = length(lights[i].position - in.world_position);
+        let distance = length(point_lights[i].position - in.world_position);
         let attenuation = 1.0 / (distance * distance);
-        let radiance = lights[i].color * attenuation;
+        let radiance = point_lights[i].color * attenuation;
+
+        let ndf = distributionggx(n, h, roughness);
+        let g = geometrysmith(n, v, l, roughness);
+        let f = fresnelschlick(max(dot(h, v), 0.0), f0);
+
+        let numerator = ndf * g * f;
+        let denominator = 4.0 / max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+        let specular = numerator / denominator;
+
+        let ks = f;
+        var kd = vec3<f32>(1.0) - ks;
+        kd = kd * (1.0 - metallic);
+        let nl = max(dot(n, l), 0.0);
+        lo = lo + ((kd * albedo / PI + specular) * radiance * nl);
+    }
+
+    for (var i = 0; i < directional_light_count; i = i + 1) {
+        let l = normalize(directional_lights[i].direction);
+        let h = normalize(v + l);
+        let radiance = directional_lights[i].color;
 
         let ndf = distributionggx(n, h, roughness);
         let g = geometrysmith(n, v, l, roughness);

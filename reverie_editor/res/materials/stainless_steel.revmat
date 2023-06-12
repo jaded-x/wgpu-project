@@ -7,7 +7,7 @@ floats:
   roughness: 0.5
   ao: 0.5
 albedo_map:
-  id: null
+  id: 3413657097294810512
 normal_map:
   id: 16743552215167775342
 metallic_map:

@@ -201,6 +201,26 @@ impl Renderer {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        min_binding_size: None,
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: None,
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
             ],
             label: Some("light_bind_group_layout")
         })));
@@ -314,7 +334,9 @@ impl Pass for Renderer {
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);
-                render_pass.draw_mesh(&mesh.mesh, &material.material);
+                for m in (*mesh.mesh).iter() {
+                    render_pass.draw_mesh(&m, &material.material);
+                }
             }
         }
 

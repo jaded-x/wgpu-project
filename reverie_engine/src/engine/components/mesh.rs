@@ -12,7 +12,7 @@ use super::{ComponentDefault, TypeName};
 pub struct Mesh {
     pub id: usize,
     #[serde(skip)]
-    pub mesh: Arc<model::Mesh>,
+    pub mesh: Arc<Vec<model::Mesh>>,
 }
 
 impl Mesh {

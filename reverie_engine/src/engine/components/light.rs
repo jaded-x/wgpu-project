@@ -40,3 +40,35 @@ impl TypeName for PointLight {
         "point_light"
     }
 }
+
+#[derive(Clone, Component, ImguiInspect, Serialize, Deserialize)]
+pub struct DirectionalLight {
+    #[inspect(widget = "custom", speed = 0.05)]
+    pub direction: cg::Vector3<f32>,
+    #[inspect(widget = "color") ]
+    pub color: [f32; 3],
+}
+
+impl DirectionalLight {
+    pub fn new(direction: cg::Vector3<f32>, color: [f32; 3]) -> Self {
+        Self {
+            direction,
+            color,
+        }
+    }
+}
+
+impl ComponentDefault for DirectionalLight {
+    fn default(_device: &wgpu::Device, _registry: &mut Registry) -> Self {
+        Self {
+            direction: cg::vec3(-0.2, -1.0, -0.3),
+            color: [1.0, 1.0, 1.0],
+        }
+    }
+}
+
+impl TypeName for DirectionalLight {
+    fn type_name() -> &'static str {
+        "directional_light"
+    }
+}

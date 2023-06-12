@@ -7,7 +7,7 @@ use reverie::{engine::{
     components::{
         transform::Transform, 
         name::Name,
-        light::PointLight, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
+        light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
     }, registry::AssetType, texture::Texture, scene::Scene, material::PBR,
 }, util::{cast_slice, align::Align16}};
 use specs::{*, WorldExt};
@@ -118,6 +118,15 @@ impl Imgui {
                             }
                         }
 
+                        let mut directional_lights = scene.world.write_component::<DirectionalLight>();
+                        if let Some(light) = directional_lights.get_mut(entity) {
+                            if ui.collapsing_header("Directional Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
+                                if light.imgui_inspect(ui).iter().any(|&value| value == true) {
+                                    scene.light_manager.update_directional_data(queue, self.light_index.unwrap(), light.direction, light.color)
+                                }
+                            }
+                        }
+
                         let mut materials = scene.world.write_component::<MaterialComponent>();
                         if let Some(material) = materials.get_mut(entity) {
                             let material_id = material.id.clone();
@@ -188,6 +197,7 @@ impl Imgui {
                         add_component::<MaterialComponent>(ui, scene, entity, device, registry);
                         add_component::<Mesh>(ui, scene, entity, device, registry);
                         add_component::<PointLight>(ui, scene, entity, device, registry);
+                        add_component::<DirectionalLight>(ui, scene, entity, device, registry);
                     });
 
                     if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
