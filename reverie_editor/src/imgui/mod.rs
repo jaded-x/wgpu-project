@@ -198,11 +198,7 @@ impl Imgui {
                         add_component::<Transform>(ui, scene, entity, device, registry);
                         add_component::<MaterialComponent>(ui, scene, entity, device, registry);
                         add_component::<Mesh>(ui, scene, entity, device, registry);
-                        if add_component::<PointLight>(ui, scene, entity, device, registry) {
-                            let transforms = scene.world.read_component::<Transform>();
-                            let lights = scene.world.read_component::<PointLight>();
-                            scene.light_manager.add_point_light(device, transforms.get(entity).unwrap(), lights.get(entity).unwrap())
-                        }
+                        add_component::<PointLight>(ui, scene, entity, device, registry);
                         add_component::<DirectionalLight>(ui, scene, entity, device, registry);
                     });
 
@@ -337,16 +333,19 @@ fn update_entity_material(world: &World, id: usize, registry: &mut Registry) {
 
 use std::string::ToString;
 
-fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry) -> bool 
-where T: TypeName {
+fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, scene: &mut Scene, entity: Entity, device: &wgpu::Device, registry: &mut Registry) where T: TypeName {
     if ui.button(T::type_name()) {
         let mut components = scene.world.write_storage::<T>();
         if let Some(_) = components.get(entity) {
             components.remove(entity);
         } else {
             components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
+            drop(components);
+            if T::type_name() == "point_light" {
+                let transforms = scene.world.read_component::<Transform>();
+                let lights = scene.world.read_component::<PointLight>();
+                scene.light_manager.add_point_light(device, transforms.get(entity).unwrap(), lights.get(entity).unwrap());
+            }
         }
-        return true;
     }
-    false
 }

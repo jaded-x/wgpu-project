@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use serde::Deserialize;
 use specs::{World, WorldExt, Join, Builder};
 
-use super::{light_manager::LightManager, renderer::Renderer, components::{name::Name, transform::{Transform, DeserializedData, TransformData}, material::MaterialComponent, mesh::Mesh, light::{PointLight, DirectionalLight}}, registry::Registry};
+use super::{light_manager::LightManager, components::{name::Name, transform::{Transform, DeserializedData, TransformData}, material::MaterialComponent, mesh::Mesh, light::{PointLight, DirectionalLight}}, registry::Registry};
 
 pub struct Scene {
     pub path: PathBuf,
