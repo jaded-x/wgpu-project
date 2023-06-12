@@ -14,7 +14,7 @@ pub struct Scene {
 impl Scene {
     pub fn new(path: PathBuf, registry: &mut Registry, device: &wgpu::Device) -> Self {
         let world = load_scene(&path, registry, device);
-        let light_manager = LightManager::new(device, &Renderer::get_light_layout(), &world);
+        let light_manager = LightManager::new(device, &world);
 
         Self {
             path,
@@ -79,7 +79,7 @@ impl Scene {
     pub fn load_scene(&mut self, path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) {
         self.world = load_scene(path, registry, device);
     
-        self.light_manager = LightManager::new(device, &Renderer::get_light_layout(), &self.world);
+        self.light_manager = LightManager::new(device, &self.world);
         self.path = path.clone();
     }
 

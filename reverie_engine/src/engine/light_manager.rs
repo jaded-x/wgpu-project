@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::util::{cast_slice, align::Align16};
 
-use super::components::{light::{PointLight, DirectionalLight}, transform::Transform};
+use super::{components::{light::{PointLight, DirectionalLight}, transform::Transform}, renderer::Renderer};
 
 #[derive(Clone)]
 struct LightData {
@@ -18,6 +18,8 @@ struct DirectionalData {
 }
 
 pub struct LightManager {
+    point_lights: Vec<LightData>,
+    directional_lights: Vec<DirectionalData>,
     pub bind_group: wgpu::BindGroup,
     pub point_buffer: wgpu::Buffer,
     pub point_count_buffer: wgpu::Buffer,
@@ -26,7 +28,7 @@ pub struct LightManager {
 }
 
 impl LightManager {
-    pub fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout, world: &World) -> Self {
+    pub fn new(device: &wgpu::Device, world: &World) -> Self {
         let mut point_lights = Vec::new();
 
         let transform_components = world.read_component::<Transform>();
@@ -49,11 +51,9 @@ impl LightManager {
             });
         }
 
-        let point_lights_data = point_lights.clone();
-
         let point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("light_data_buffer"),
-            contents: cast_slice(&point_lights_data.into_boxed_slice()),
+            contents: cast_slice(&point_lights.clone().into_boxed_slice()),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -93,7 +93,7 @@ impl LightManager {
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
+            layout: &Renderer::get_light_layout(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -116,6 +116,8 @@ impl LightManager {
         });
 
         Self {
+            point_lights,
+            directional_lights,
             bind_group,
             point_buffer,
             point_count_buffer,
@@ -140,5 +142,68 @@ impl LightManager {
             _direction: Align16(direction),
             _color: Align16(color)
         }]));
+    }
+
+    pub fn add_point_light(&mut self, device: &wgpu::Device, transform: &Transform, light: &PointLight) {
+        let transform_data = transform.get_position();
+        let light_data = light.get_color();
+
+        self.point_lights.push(LightData {
+            _position: Align16(transform_data),
+            _color: Align16(light_data)
+        });
+
+        dbg!(self.point_lights.len());
+
+        self.point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_data_buffer"),
+            contents: cast_slice(&self.point_lights.clone().into_boxed_slice()),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.point_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_count_buffer"),
+            contents: cast_slice(&[self.point_lights.len() as i32]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &Renderer::get_light_layout(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.point_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.point_count_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.directional_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: self.directional_count_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("light_bind_group"),
+        });
+    }
+
+    pub fn remove_point_light(&mut self, device: &wgpu::Device, index: usize) {
+        self.point_lights.remove(index);
+
+        self.point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_data_buffer"),
+            contents: cast_slice(&self.point_lights.clone().into_boxed_slice()),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.point_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_count_buffer"),
+            contents: cast_slice(&[self.point_lights.len() as i32]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
     }
 }
