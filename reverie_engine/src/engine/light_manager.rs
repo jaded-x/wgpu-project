@@ -32,7 +32,12 @@ impl LightManager {
         let transform_components = world.read_component::<Transform>();
         let point_light_components = world.read_component::<PointLight>();
 
-        let point_light_count = point_light_components.count() as i32;
+        let point_light_count = point_light_components.count() as i32 + 1;
+
+        point_lights.push(LightData {
+            _position: Align16(cg::vec3(0.0, 0.0, 0.0)),
+            _color: Align16(cg::vec3(0.0, 0.0, 0.0)),
+        });
 
         for (transform, light) in (&transform_components, &point_light_components).join() {
             let transform_data = transform.get_position();
@@ -61,9 +66,12 @@ impl LightManager {
         let mut directional_lights = Vec::new();
 
         let directional_light_components = world.read_component::<DirectionalLight>();
-        let directional_light_count = directional_light_components.count() as i32;
+        let directional_light_count = directional_light_components.count() as i32 + 1;
 
-        
+        directional_lights.push(DirectionalData {
+            _direction: Align16(cg::vec3(0.0, 0.0, 0.0)),
+            _color: Align16([0.0, 0.0, 0.0])
+        });
 
         for light in directional_light_components.join() {
             directional_lights.push(DirectionalData {
@@ -125,7 +133,7 @@ impl LightManager {
     }
 
     pub fn update_directional_data(&self, queue: &wgpu::Queue, index: usize, direction: cg::Vector3<f32>, color: [f32; 3]) {
-        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<DirectionalData>()  * index) as u64, cast_slice(&[DirectionalData {
+        queue.write_buffer(&self.directional_buffer, (std::mem::size_of::<DirectionalData>()  * index) as u64, cast_slice(&[DirectionalData {
             _direction: Align16(direction),
             _color: Align16(color)
         }]));

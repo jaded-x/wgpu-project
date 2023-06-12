@@ -8,8 +8,8 @@ use reverie::{engine::{
         transform::Transform, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
-    }, registry::AssetType, texture::Texture, scene::Scene, material::PBR,
-}, util::{cast_slice, align::Align16}};
+    }, registry::AssetType, texture::Texture, scene::Scene,
+}};
 use specs::{*, WorldExt};
 
 use reverie::engine::registry::Registry;

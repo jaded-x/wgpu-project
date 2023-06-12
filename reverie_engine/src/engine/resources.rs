@@ -1,5 +1,4 @@
 use anyhow::Result;
-use obj::Obj;
 use wgpu::util::DeviceExt;
 use std::io::{BufReader, Cursor};
 use std::path::PathBuf;
@@ -69,7 +68,7 @@ pub fn load_mesh(
 
     //     materials.push(material_asset)
     // }
-    
+
     let meshes = models
         .into_iter()
         .map(|material| {

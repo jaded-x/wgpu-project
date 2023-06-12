@@ -4,7 +4,7 @@ use imgui_inspector_derive::ImguiInspect;
 use imgui_inspector::*;
 use serde::{Serialize, Deserialize};
 
-use crate::util::{cast_slice, align::Align16};
+use crate::util::cast_slice;
 
 use super::{registry::AssetType, gpu::{Gpu, Asset}, texture::Texture};
 

@@ -1,13 +1,13 @@
-use std::{path::{PathBuf, Path}, collections::HashMap, sync::{Arc, Mutex, mpsc::channel}, ffi::OsStr};
+use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex, mpsc::channel}, ffi::OsStr};
 use rand::random;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
 use std::error::Error;
 
-use crate::util::{cast_slice, align::Align16};
+use crate::util::cast_slice;
 
-use super::{texture::Texture, model::Mesh, gpu::Gpu, renderer::Renderer, resources, material::{Material, PBR}};
+use super::{texture::Texture, model::Mesh, gpu::Gpu, renderer::Renderer, resources, material::Material};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
