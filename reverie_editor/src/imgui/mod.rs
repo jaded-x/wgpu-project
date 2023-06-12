@@ -194,12 +194,12 @@ impl Imgui {
 
                     ui.popup("components", || {
                         ui.text("Add Component");
-                        add_component::<Name>(ui, scene, entity, device, registry, self.point_light_index);
-                        add_component::<Transform>(ui, scene, entity, device, registry, self.point_light_index);
-                        add_component::<MaterialComponent>(ui, scene, entity, device, registry, self.point_light_index);
-                        add_component::<Mesh>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<Name>(ui, scene, entity, device, registry, None);
+                        add_component::<Transform>(ui, scene, entity, device, registry, None);
+                        add_component::<MaterialComponent>(ui, scene, entity, device, registry, None);
+                        add_component::<Mesh>(ui, scene, entity, device, registry, None);
                         add_component::<PointLight>(ui, scene, entity, device, registry, self.point_light_index);
-                        add_component::<DirectionalLight>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<DirectionalLight>(ui, scene, entity, device, registry, self.directional_light_index);
                     });
 
                     if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
@@ -338,7 +338,11 @@ fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, 
         let mut components = scene.world.write_storage::<T>();
         if let Some(_) = components.get(entity) {
             components.remove(entity);
-            scene.light_manager.remove_point_light(device, index.unwrap())
+            if T::type_name() == "point_light" {
+                scene.light_manager.remove_point_light(device, index.unwrap())
+            } else if T::type_name() == "directional_light"  {
+                scene.light_manager.remove_directional_light(device, index.unwrap())
+            }
         } else {
             components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
             drop(components);
@@ -346,6 +350,9 @@ fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, 
                 let transforms = scene.world.read_component::<Transform>();
                 let lights = scene.world.read_component::<PointLight>();
                 scene.light_manager.add_point_light(device, transforms.get(entity).unwrap(), lights.get(entity).unwrap());
+            } else if T::type_name() == "directional_light" {
+                let lights = scene.world.read_component::<DirectionalLight>();
+                scene.light_manager.add_directional_light(device, lights.get(entity).unwrap());
             }
         }
     }

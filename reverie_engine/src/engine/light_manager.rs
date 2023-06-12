@@ -227,4 +227,85 @@ impl LightManager {
             label: Some("light_bind_group"),
         });
     }
+
+    pub fn add_directional_light(&mut self, device: &wgpu::Device, light: &DirectionalLight) {
+        self.directional_lights.push(DirectionalData {
+            _direction: Align16(light.direction),
+            _color: Align16(light.color)
+        });
+
+        self.directional_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_data_buffer"),
+            contents: cast_slice(&self.directional_lights.clone().into_boxed_slice()),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.directional_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_count_buffer"),
+            contents: cast_slice(&[self.directional_lights.len() as i32]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &Renderer::get_light_layout(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.point_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.point_count_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.directional_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: self.directional_count_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("light_bind_group"),
+        });
+    }
+
+    pub fn remove_directional_light(&mut self, device: &wgpu::Device, index: usize) {
+        self.directional_lights.remove(index + 1);
+
+        self.directional_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_data_buffer"),
+            contents: cast_slice(&self.directional_lights.clone().into_boxed_slice()),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.directional_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("light_count_buffer"),
+            contents: cast_slice(&[self.directional_lights.len() as i32]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &Renderer::get_light_layout(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.point_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.point_count_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.directional_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: self.directional_count_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("light_bind_group"),
+        });
+    }
 }
