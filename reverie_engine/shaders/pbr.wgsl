@@ -53,7 +53,7 @@ fn vs_main(
 
     var out: VertexOutput;
     out.position = camera.view_proj * world_position;
-    out.normal = model.normal;
+    out.normal = normalize((transform.ti_matrix * vec4<f32>(model.normal, 0.0)).xyz);
     out.world_position = world_position.xyz;
     out.tex_coords = model.tex_coords;
 
@@ -80,6 +80,11 @@ var s_roughness: sampler;
 var t_ao: texture_2d<f32>;
 @group(2) @binding(9)
 var s_ao: sampler;
+
+@group(3) @binding(4)
+var t_depth_cube: texture_depth_cube;
+@group(3) @binding(5)
+var s_depth_cube: sampler;
 
 struct PBR {
     albedo: vec3<f32>,
@@ -138,6 +143,8 @@ fn fs_main(
     var f0 = vec3<f32>(0.04);
     f0 = mix(f0, albedo, metallic);
 
+    var shadow = 0.0;
+
     var lo = vec3<f32>(0.0);
     for (var i = 1; i < point_light_count; i = i + 1) {
         let l = normalize(point_lights[i].position - in.world_position);
@@ -158,28 +165,39 @@ fn fs_main(
         var kd = vec3<f32>(1.0) - ks;
         kd = kd * (1.0 - metallic);
         let nl = max(dot(n, l), 0.0);
-        lo = lo + ((kd * albedo / PI + specular) * radiance * nl);
+
+        let light_to_fragment = length(point_lights[i].position - in.world_position);
+        let shadow_depth = textureSample(t_depth_cube, s_depth_cube, l) * 11.0;
+
+        if (light_to_fragment > shadow_depth) {
+            shadow = 1.0;  // In shadow
+        } else {
+            shadow = 0.0;  // Not in shadow
+        }
+        
+
+        lo = lo + ((kd * albedo / PI + specular) * radiance * nl) * (1.0 - shadow);
     }
 
-    for (var i = 1; i < directional_light_count; i = i + 1) {
-        let l = normalize(directional_lights[i].direction);
-        let h = normalize(v + l);
-        let radiance = directional_lights[i].color;
+    // for (var i = 1; i < directional_light_count; i = i + 1) {
+    //     let l = normalize(directional_lights[i].direction);
+    //     let h = normalize(v + l);
+    //     let radiance = directional_lights[i].color;
 
-        let ndf = distributionggx(n, h, roughness);
-        let g = geometrysmith(n, v, l, roughness);
-        let f = fresnelschlick(max(dot(h, v), 0.0), f0);
+    //     let ndf = distributionggx(n, h, roughness);
+    //     let g = geometrysmith(n, v, l, roughness);
+    //     let f = fresnelschlick(max(dot(h, v), 0.0), f0);
 
-        let numerator = ndf * g * f;
-        let denominator = 4.0 / max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
-        let specular = numerator / denominator;
+    //     let numerator = ndf * g * f;
+    //     let denominator = 4.0 / max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+    //     let specular = numerator / denominator;
 
-        let ks = f;
-        var kd = vec3<f32>(1.0) - ks;
-        kd = kd * (1.0 - metallic);
-        let nl = max(dot(n, l), 0.0);
-        lo = lo + ((kd * albedo / PI + specular) * radiance * nl);
-    }
+    //     let ks = f;
+    //     var kd = vec3<f32>(1.0) - ks;
+    //     kd = kd * (1.0 - metallic);
+    //     let nl = max(dot(n, l), 0.0);
+    //     lo = lo + ((kd * albedo / PI + specular) * radiance * nl);
+    // }
 
     let ambient = vec3<f32>(0.03) * albedo * ao;
     var color = ambient + lo;

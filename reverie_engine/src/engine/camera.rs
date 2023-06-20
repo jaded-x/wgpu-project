@@ -116,7 +116,7 @@ impl Projection {
     }
 
     pub fn calc_matrix(&self) -> cg::Matrix4<f32> {
-        OPENGL_TO_WGPU_MATRIX * cg::perspective(self.fovy, self.aspect, self.znear, self.zfar)
+        cg::perspective(self.fovy, self.aspect, self.znear, self.zfar)
     }
 }
 

@@ -120,8 +120,12 @@ impl App {
             self.resize_viewport();
         }
 
+        // dbg!("t");
+        // dbg!(&self.imgui.viewport.texture.width());
+        // dbg!(&self.imgui.viewport.texture.height());
+
         let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.renderer.draw(&viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
+        self.renderer.draw(&self.context.device, &viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 
