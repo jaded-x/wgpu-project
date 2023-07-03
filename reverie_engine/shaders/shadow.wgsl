@@ -1,8 +1,5 @@
-struct Projection {
-    proj_view: mat4x4<f32>,
-}
 @group(0) @binding(0)
-var<uniform> projection: Projection;
+var<uniform> projection: mat4x4<f32>;
 
 struct Transform {
     matrix: mat4x4<f32>,
@@ -23,6 +20,5 @@ struct VertexInput {
 fn vs_main(
     input: VertexInput,
 ) -> @builtin(position) vec4<f32> {
-    let output = projection.proj_view * transform.matrix * vec4<f32>(input.position, 1.0);
-    return output;
+    return projection * transform.matrix * vec4(input.position, 1.0);
 }

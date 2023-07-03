@@ -30,6 +30,12 @@ var<storage, read> directional_lights: array<DirectionalLight>;
 @group(3) @binding(3)
 var<uniform> directional_light_count: i32;
 
+struct Projection {
+    a: mat4x4<f32>,
+}
+@group(3) @binding(6)
+var<uniform> light_projection: Projection;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -85,6 +91,11 @@ var s_ao: sampler;
 var t_depth_cube: texture_depth_cube;
 @group(3) @binding(5)
 var s_depth_cube: sampler;
+
+@group(3) @binding(7)
+var t_directional_shadow: texture_depth_2d;
+@group(3) @binding(8)
+var s_directional_shadow: sampler;
 
 struct PBR {
     albedo: vec3<f32>,
@@ -149,6 +160,7 @@ fn fs_main(
     for (var i = 1; i < point_light_count; i = i + 1) {
         let l = normalize(point_lights[i].position - in.world_position);
         let h = normalize(v + l);
+        
         let distance = length(point_lights[i].position - in.world_position);
         let attenuation = 1.0 / (distance * distance);
         let radiance = point_lights[i].color * attenuation;
@@ -166,17 +178,23 @@ fn fs_main(
         kd = kd * (1.0 - metallic);
         let nl = max(dot(n, l), 0.0);
 
-        let light_to_fragment = length(point_lights[i].position - in.world_position);
-        let shadow_depth = textureSample(t_depth_cube, s_depth_cube, l) * 11.0;
-
-        if (light_to_fragment > shadow_depth) {
-            shadow = 1.0;  // In shadow
-        } else {
-            shadow = 0.0;  // Not in shadow
-        }
+        //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
+        let shadow_map_depth = textureSample(t_depth_cube, s_depth_cube, l);
         
+        let z = shadow_map_depth * 2.0 - 1.0;
+        let closest_depth = (2.0 * 0.1 * 100.0) / (100.0 + 0.01 - z * (100.0 - 0.01));
+        let depth = closest_depth / 100.0;
 
-        lo = lo + ((kd * albedo / PI + specular) * radiance * nl) * (1.0 - shadow);
+        var shadow_factor: f32;
+        if ((distance / 100.0) - 0.05 > depth) {
+            shadow_factor = 0.3;
+        } else {
+             shadow_factor = 1.0;
+        }
+
+        shadow = shadow_factor;
+
+        lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow_factor));
     }
 
     // for (var i = 1; i < directional_light_count; i = i + 1) {
@@ -204,6 +222,9 @@ fn fs_main(
     color = color / (color + vec3<f32>(1.0));
     color = pow(color, vec3<f32>(1.0/2.2));
 
+    let directional = textureSample(t_directional_shadow, s_directional_shadow, in.tex_coords);
+
+    //return vec4<f32>(shadow, shadow, shadow, 1.0);
     return vec4<f32>(color, 1.0);
 }
 

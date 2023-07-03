@@ -1,7 +1,7 @@
 mod explorer;
 mod viewport;
 
-use std::{sync::{Arc, Mutex}, path::Path};
+use std::{sync::{Arc, Mutex}, path::{Path, PathBuf}};
 
 use reverie::{engine::{
     components::{
@@ -295,9 +295,9 @@ impl Imgui {
         Ok(())
     }
 
-    pub fn load_texture(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) {
-        let bytes = std::fs::read(Path::new(file_name)).unwrap();
-        let texture = Texture::from_bytes(device, queue, &bytes, file_name, false).unwrap();
+    pub fn load_texture(&mut self, file_name: &PathBuf, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32, id: usize) {
+        let bytes = std::fs::read(file_name).unwrap();
+        let texture = Texture::from_bytes(device, queue, &bytes, file_name.to_str().unwrap(), false).unwrap();
         let imgui_texture = imgui_wgpu::Texture::from_raw_parts(
             &device, 
             &self.renderer.lock().unwrap(), 

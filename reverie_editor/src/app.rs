@@ -47,9 +47,9 @@ impl App {
         // let mut watcher = FileWatcher::new().unwrap();
         // watcher.watch(Path::new("res")).unwrap();
 
-        imgui.load_texture("src/imgui/textures/folder.png", &context.device, &context.queue, 64, 64, 3);
-        imgui.load_texture("src/imgui/textures/file.png", &context.device, &context.queue, 64, 64, 4);
-        imgui.load_texture("src/imgui/textures/background.png", &context.device, &context.queue, 1, 1, 5);
+        imgui.load_texture(&res("imgui_textures/folder.png"), &context.device, &context.queue, 64, 64, 3);
+        imgui.load_texture(&res("imgui_textures/file.png"), &context.device, &context.queue, 64, 64, 4);
+        imgui.load_texture(&res("imgui_textures/background.png"), &context.device, &context.queue, 1, 1, 5);
 
         let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device);
 

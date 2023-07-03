@@ -239,6 +239,33 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Depth,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                
             ],
             label: Some("light_bind_group_layout")
         })));
@@ -298,7 +325,7 @@ impl Renderer {
         let light_pipeline = {
             let shader_desc = wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/point_light_shadow.wgsl").into()),
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/shadow.wgsl").into()),
             };
             let shader = device.create_shader_module(shader_desc);
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -319,6 +346,7 @@ impl Renderer {
                     unclipped_depth: false,
                     conservative: false
                 },
+                //depth_stencil: None,
                 depth_stencil: Some(wgpu::TextureFormat::Depth32Float).map(|format| wgpu::DepthStencilState {
                     format,
                     depth_write_enabled: true,
@@ -373,8 +401,8 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba16Float,
-        usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
     });
 
@@ -399,7 +427,7 @@ impl Pass for Renderer {
                 label: Some("light_pass_desc"),
                 color_attachments: &[],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: depth_texture_view,
+                    view: &depth_texture_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,
@@ -421,6 +449,53 @@ impl Pass for Renderer {
                 }
             }
         }
+
+        {
+            let meshes = scene.world.read_storage::<Mesh>();
+            let transforms = scene.world.read_storage::<Transform>();
+            let materials_c = scene.world.read_storage::<MaterialComponent>();
+
+            let light_pass_descriptor = wgpu::RenderPassDescriptor {
+                label: Some("light_pass_desc"),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &scene.light_manager.directional_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
+            };
+            let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
+            light_pass.set_pipeline(&self.light_pipeline);
+            light_pass.set_bind_group(0, &scene.light_manager.directional_shadow_bind_group, &[]);
+        
+
+            for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
+                light_pass.set_bind_group(1, &transform.bind_group, &[]);
+                for m in (*mesh.mesh).iter() {
+                    light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+                    light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                    light_pass.draw_indexed(0..m.element_count, 0, 0..1);
+                }
+            }
+        }
+
+        let directional_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("cubemap_sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            lod_min_clamp: 0.1,
+            lod_max_clamp: 100.0,
+            compare: None,
+            anisotropy_clamp: None,
+            border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
+        });
         
         let cube_view = scene.light_manager.shadow.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("depthcube"),
@@ -438,14 +513,15 @@ impl Pass for Renderer {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Linear,
-            lod_min_clamp: 0.0,
+            lod_min_clamp: 0.1,
             lod_max_clamp: 100.0,
             compare: None,
+            //compare: None,
             anisotropy_clamp: None,
-            border_color: None,
+            border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
         });
 
         let light_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -475,6 +551,18 @@ impl Pass for Renderer {
                     binding: 5,
                     resource: wgpu::BindingResource::Sampler(&cubemap_sampler),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: scene.light_manager.shadow.buffers[0].as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: wgpu::BindingResource::TextureView(&scene.light_manager.directional_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: wgpu::BindingResource::Sampler(&directional_sampler),
+                }
             ],
             label: Some("light_bind_group"),
         });
