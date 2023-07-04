@@ -239,33 +239,6 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 6,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 7,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Depth,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 8,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-                
             ],
             label: Some("light_bind_group_layout")
         })));
@@ -506,21 +479,6 @@ impl Pass for Renderer {
         //         }
         //     }
         // }
-
-        let directional_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cubemap_sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            lod_min_clamp: 0.1,
-            lod_max_clamp: 100.0,
-            compare: None,
-            anisotropy_clamp: None,
-            border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
-        });
         
         let cube_view = scene.light_manager.shadow.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("depthcube"),
@@ -576,18 +534,6 @@ impl Pass for Renderer {
                     binding: 5,
                     resource: wgpu::BindingResource::Sampler(&cubemap_sampler),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 6,
-                    resource: scene.light_manager.shadow.buffers[0].as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 7,
-                    resource: wgpu::BindingResource::TextureView(&scene.light_manager.directional_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 8,
-                    resource: wgpu::BindingResource::Sampler(&directional_sampler),
-                }
             ],
             label: Some("light_bind_group"),
         });

@@ -30,12 +30,6 @@ var<storage, read> directional_lights: array<DirectionalLight>;
 @group(3) @binding(3)
 var<uniform> directional_light_count: i32;
 
-struct Projection {
-    a: mat4x4<f32>,
-}
-@group(3) @binding(6)
-var<uniform> light_projection: Projection;
-
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -91,11 +85,6 @@ var s_ao: sampler;
 var t_depth_cube: texture_cube<f32>;
 @group(3) @binding(5)
 var s_depth_cube: sampler;
-
-@group(3) @binding(7)
-var t_directional_shadow: texture_depth_2d;
-@group(3) @binding(8)
-var s_directional_shadow: sampler;
 
 struct PBR {
     albedo: vec3<f32>,
@@ -224,9 +213,6 @@ fn fs_main(
     color = color / (color + vec3<f32>(1.0));
     color = pow(color, vec3<f32>(1.0/2.2));
 
-    let directional = textureSample(t_directional_shadow, s_directional_shadow, in.tex_coords);
-
-    //return vec4<f32>(shadow, shadow, shadow, 1.0);
     return vec4<f32>(color, 1.0);
 }
 
