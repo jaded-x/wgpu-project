@@ -448,65 +448,6 @@ impl Pass for Renderer {
             }
         }
 
-        // {
-        //     let meshes = scene.world.read_storage::<Mesh>();
-        //     let transforms = scene.world.read_storage::<Transform>();
-        //     let materials_c = scene.world.read_storage::<MaterialComponent>();
-
-        //     let light_pass_descriptor = wgpu::RenderPassDescriptor {
-        //         label: Some("light_pass_desc"),
-        //         color_attachments: &[],
-        //         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-        //             view: &scene.light_manager.directional_view,
-        //             depth_ops: Some(wgpu::Operations {
-        //                 load: wgpu::LoadOp::Clear(1.0),
-        //                 store: true,
-        //             }),
-        //             stencil_ops: None,
-        //         }),
-        //     };
-        //     let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
-        //     light_pass.set_pipeline(&self.light_pipeline);
-        //     light_pass.set_bind_group(0, &scene.light_manager.directional_shadow_bind_group, &[]);
-        
-
-        //     for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
-        //         light_pass.set_bind_group(1, &transform.bind_group, &[]);
-        //         for m in (*mesh.mesh).iter() {
-        //             light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
-        //             light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-        //             light_pass.draw_indexed(0..m.element_count, 0, 0..1);
-        //         }
-        //     }
-        // }
-        
-        let cube_view = scene.light_manager.shadow.texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some("depthcube"),
-            format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
-            dimension: Some(wgpu::TextureViewDimension::Cube),
-            aspect: wgpu::TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: None,
-            base_array_layer: 0,
-            array_layer_count: None,
-        });
-
-        let cubemap_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cubemap_sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            lod_min_clamp: 0.1,
-            lod_max_clamp: 100.0,
-            compare: None,
-            //compare: None,
-            anisotropy_clamp: None,
-            border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
-        });
-
         let light_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &Renderer::get_light_layout(),
             entries: &[
@@ -528,11 +469,11 @@ impl Pass for Renderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
-                    resource: wgpu::BindingResource::TextureView(&cube_view),
+                    resource: wgpu::BindingResource::TextureView(&scene.light_manager.shadow.cube_view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 5,
-                    resource: wgpu::BindingResource::Sampler(&cubemap_sampler),
+                    resource: wgpu::BindingResource::Sampler(&scene.light_manager.shadow.sampler),
                 },
             ],
             label: Some("light_bind_group"),

@@ -20,6 +20,8 @@ struct DirectionalData {
 pub struct PointShadow {
     pub texture: wgpu::Texture,
     pub views: Vec<wgpu::TextureView>,
+    pub cube_view: wgpu::TextureView,
+    pub sampler: wgpu::Sampler,
     pub buffers: Vec<wgpu::Buffer>,
     pub bind_groups: Vec<wgpu::BindGroup>,
 }
@@ -268,7 +270,7 @@ impl LightManager {
         Self {
             point_lights,
             directional_lights,
-            shadow: PointShadow { texture: shadow_texture, views: shadow_views, buffers: shadow_buffers, bind_groups: shadow_bind_groups},
+            shadow: PointShadow { texture: shadow_texture, views: shadow_views, cube_view, sampler: cubemap_sampler, buffers: shadow_buffers, bind_groups: shadow_bind_groups},
             bind_group,
             point_buffer,
             point_count_buffer,

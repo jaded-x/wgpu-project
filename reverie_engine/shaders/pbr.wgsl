@@ -143,8 +143,6 @@ fn fs_main(
     var f0 = vec3<f32>(0.04);
     f0 = mix(f0, albedo, metallic);
 
-    var shadow = 0.0;
-
     var lo = vec3<f32>(0.0);
     for (var i = 1; i < point_light_count; i = i + 1) {
         let l = normalize(point_lights[i].position - in.world_position);
@@ -168,24 +166,25 @@ fn fs_main(
         let nl = max(dot(n, l), 0.0);
 
         //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
-        let shadow_map_depth = textureSample(t_depth_cube, s_depth_cube, l).r;
-        
-        let z = shadow_map_depth * 2.0 - 1.0;
-        let closest_depth = (2.0 * 0.1 * 100.0) / (100.0 + 0.1 - z * (100.0 - 0.1));
-        let depth = closest_depth / 100.0;
 
-        let bias = max(0.5 * (1.0 - dot(in.normal, l)), 0.0005);
-
-        var shadow_factor: f32;
-        if (distance - 0.5 > shadow_map_depth * 100.0) {
-            shadow_factor = 0.3;
-        } else {
-             shadow_factor = 1.0;
+        var shadow = 0.0;
+        let bias = 0.5;
+        let numSamples = 8.0;
+        let offset = 0.001;
+        for (var x = -numSamples/2.0; x <= numSamples/2.0; x = x + 1.0) {
+            for (var y = -numSamples/2.0; y <= numSamples/2.0; y = y + 1.0) {
+                var sampleOffset = vec3<f32>(x * offset, y * offset, 0.0);
+                var sampleDir = normalize(l + sampleOffset);
+                var closestDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir).r;
+                closestDepth = closestDepth * 100.0;
+                if (distance - bias < closestDepth) {
+                    shadow = shadow + 1.0;
+                }
+            }
         }
+        shadow = shadow / (numSamples * numSamples * numSamples);
 
-        shadow = shadow_map_depth;
-
-        lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow_factor));
+        lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }
 
     // for (var i = 1; i < directional_light_count; i = i + 1) {
