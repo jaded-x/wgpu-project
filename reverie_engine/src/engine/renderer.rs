@@ -45,7 +45,7 @@ impl Renderer {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -229,7 +229,7 @@ impl Renderer {
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
                         view_dimension: wgpu::TextureViewDimension::Cube,
-                        sample_type: wgpu::TextureSampleType::Depth,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
                     },
                     count: None,
                 },
@@ -276,6 +276,16 @@ impl Renderer {
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -336,7 +346,15 @@ impl Renderer {
                     entry_point: "vs_main",
                     buffers: &[ModelVertex::desc()],
                 },
-                fragment: None,
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
                     strip_index_format: None,
@@ -425,9 +443,16 @@ impl Pass for Renderer {
 
             let light_pass_descriptor = wgpu::RenderPassDescriptor {
                 label: Some("light_pass_desc"),
-                color_attachments: &[],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &depth_texture_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }),
+                        store: true,
+                    }
+                }),],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &scene.light_manager.shadow_depth_views[i],
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,
@@ -450,37 +475,37 @@ impl Pass for Renderer {
             }
         }
 
-        {
-            let meshes = scene.world.read_storage::<Mesh>();
-            let transforms = scene.world.read_storage::<Transform>();
-            let materials_c = scene.world.read_storage::<MaterialComponent>();
+        // {
+        //     let meshes = scene.world.read_storage::<Mesh>();
+        //     let transforms = scene.world.read_storage::<Transform>();
+        //     let materials_c = scene.world.read_storage::<MaterialComponent>();
 
-            let light_pass_descriptor = wgpu::RenderPassDescriptor {
-                label: Some("light_pass_desc"),
-                color_attachments: &[],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &scene.light_manager.directional_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
-                    }),
-                    stencil_ops: None,
-                }),
-            };
-            let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
-            light_pass.set_pipeline(&self.light_pipeline);
-            light_pass.set_bind_group(0, &scene.light_manager.directional_shadow_bind_group, &[]);
+        //     let light_pass_descriptor = wgpu::RenderPassDescriptor {
+        //         label: Some("light_pass_desc"),
+        //         color_attachments: &[],
+        //         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+        //             view: &scene.light_manager.directional_view,
+        //             depth_ops: Some(wgpu::Operations {
+        //                 load: wgpu::LoadOp::Clear(1.0),
+        //                 store: true,
+        //             }),
+        //             stencil_ops: None,
+        //         }),
+        //     };
+        //     let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
+        //     light_pass.set_pipeline(&self.light_pipeline);
+        //     light_pass.set_bind_group(0, &scene.light_manager.directional_shadow_bind_group, &[]);
         
 
-            for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
-                light_pass.set_bind_group(1, &transform.bind_group, &[]);
-                for m in (*mesh.mesh).iter() {
-                    light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
-                    light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                    light_pass.draw_indexed(0..m.element_count, 0, 0..1);
-                }
-            }
-        }
+        //     for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
+        //         light_pass.set_bind_group(1, &transform.bind_group, &[]);
+        //         for m in (*mesh.mesh).iter() {
+        //             light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+        //             light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        //             light_pass.draw_indexed(0..m.element_count, 0, 0..1);
+        //         }
+        //     }
+        // }
 
         let directional_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("cubemap_sampler"),
@@ -499,7 +524,7 @@ impl Pass for Renderer {
         
         let cube_view = scene.light_manager.shadow.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("depthcube"),
-            format: Some(wgpu::TextureFormat::Depth32Float),
+            format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
             dimension: Some(wgpu::TextureViewDimension::Cube),
             aspect: wgpu::TextureAspect::All,
             base_mip_level: 0,

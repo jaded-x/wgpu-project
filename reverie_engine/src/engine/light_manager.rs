@@ -39,6 +39,8 @@ pub struct LightManager {
     directional_shadow_buffer: wgpu::Buffer,
     pub directional_shadow_bind_group: wgpu::BindGroup,
     pub directional_sampler: wgpu::Sampler,
+
+    pub shadow_depth_views: Vec<wgpu::TextureView>
 }
 
 impl LightManager {
@@ -87,16 +89,45 @@ impl LightManager {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+
+        let shadow_depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("shadow"),
+            size: wgpu::Extent3d {
+                width: 1024,
+                height: 1024,
+                depth_or_array_layers: 6,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Depth32Float,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
 
+        let mut shadow_depth_views = Vec::new();
+        for i in 0..6 {
+            shadow_depth_views.push(shadow_depth_texture.create_view(&wgpu::TextureViewDescriptor {
+                label: Some("shadow view"),
+                format: Some(wgpu::TextureFormat::Depth32Float),
+                dimension: Some(wgpu::TextureViewDimension::D2),
+                aspect: wgpu::TextureAspect::All,
+                base_mip_level: 0,
+                mip_level_count: None,
+                base_array_layer: i,
+                array_layer_count: None,
+            }))
+        }
+
         let mut shadow_views = Vec::new();
         for i in 0..6 {
             shadow_views.push(shadow_texture.create_view(&wgpu::TextureViewDescriptor {
                 label: Some("shadow view"),
-                format: Some(wgpu::TextureFormat::Depth32Float),
+                format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
                 dimension: Some(wgpu::TextureViewDimension::D2),
                 aspect: wgpu::TextureAspect::All,
                 base_mip_level: 0,
@@ -112,8 +143,8 @@ impl LightManager {
         let up_vectors = vec![
             cg::vec3(0.0, -1.0, 0.0),  // Positive X
             cg::vec3(0.0, -1.0, 0.0),  // Negative X
-            cg::vec3(0.0, 0.0, -1.0), // Positive Y
-            cg::vec3(0.0, 0.0, 1.0), // Negative Y
+            cg::vec3(0.0, 0.0, 1.0), // Positive Y
+            cg::vec3(0.0, 0.0, -1.0), // Negative Y
             cg::vec3(0.0, -1.0, 0.0),  // Positive Z
             cg::vec3(0.0, -1.0, 0.0)  // Negative Z
         ];
@@ -130,6 +161,12 @@ impl LightManager {
             }));
         }
 
+        let pos_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("perspective buffer"),
+            contents: cast_slice(&[Align16(point_lights[0]._position.0)]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
         let mut shadow_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
         for buffer in &shadow_buffers {
             shadow_bind_groups.push(device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -139,6 +176,10 @@ impl LightManager {
                         binding: 0,
                         resource: buffer.as_entire_binding()
                     },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: pos_buffer.as_entire_binding()
+                    }
                 ],
                 label: Some("shadow bind group")
             }));
@@ -189,7 +230,7 @@ impl LightManager {
         });
 
         let directional_shadow_view = directional_shadow_texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some("depthcube"),
+            label: Some("dir"),
             format: Some(wgpu::TextureFormat::Depth32Float),
             dimension: Some(wgpu::TextureViewDimension::D2),
             aspect: wgpu::TextureAspect::All,
@@ -200,7 +241,7 @@ impl LightManager {
         });
 
         let directional_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cubemap_sampler"),
+            label: Some("dirmap_sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -231,13 +272,17 @@ impl LightManager {
                     binding: 0,
                     resource: directional_shadow_buffer.as_entire_binding()
                 },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: pos_buffer.as_entire_binding()
+                }
             ],
             label: Some("shadow bind group")
         });
 
         let cube_view = shadow_texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("depthcube"),
-            format: Some(wgpu::TextureFormat::Depth32Float),
+            format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
             dimension: Some(wgpu::TextureViewDimension::Cube),
             aspect: wgpu::TextureAspect::All,
             base_mip_level: 0,
@@ -320,6 +365,8 @@ impl LightManager {
             directional_shadow_buffer,
             directional_shadow_bind_group,
             directional_sampler,
+
+            shadow_depth_views,
         }
     }
 

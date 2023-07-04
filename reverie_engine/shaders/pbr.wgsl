@@ -88,7 +88,7 @@ var t_ao: texture_2d<f32>;
 var s_ao: sampler;
 
 @group(3) @binding(4)
-var t_depth_cube: texture_depth_cube;
+var t_depth_cube: texture_cube<f32>;
 @group(3) @binding(5)
 var s_depth_cube: sampler;
 
@@ -179,20 +179,22 @@ fn fs_main(
         let nl = max(dot(n, l), 0.0);
 
         //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
-        let shadow_map_depth = textureSample(t_depth_cube, s_depth_cube, l);
+        let shadow_map_depth = textureSample(t_depth_cube, s_depth_cube, l).r;
         
         let z = shadow_map_depth * 2.0 - 1.0;
-        let closest_depth = (2.0 * 0.1 * 100.0) / (100.0 + 0.01 - z * (100.0 - 0.01));
+        let closest_depth = (2.0 * 0.1 * 100.0) / (100.0 + 0.1 - z * (100.0 - 0.1));
         let depth = closest_depth / 100.0;
 
+        let bias = max(0.5 * (1.0 - dot(in.normal, l)), 0.0005);
+
         var shadow_factor: f32;
-        if ((distance / 100.0) - 0.05 > depth) {
+        if (distance - 0.5 > shadow_map_depth * 100.0) {
             shadow_factor = 0.3;
         } else {
              shadow_factor = 1.0;
         }
 
-        shadow = shadow_factor;
+        shadow = shadow_map_depth;
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow_factor));
     }
