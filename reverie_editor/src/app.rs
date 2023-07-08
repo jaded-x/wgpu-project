@@ -110,25 +110,6 @@ impl App {
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
         //self.watcher.handle_events(&mut self.textures);
-
-        let transform_components = self.scene.world.read_component::<Transform>();
-        let point_light_components = self.scene.world.read_component::<PointLight>();
-
-        let mut point_lights = Vec::new();
-
-        // for (transform, light) in (&transform_components, &point_light_components).join() {
-        //     let transform_data = transform.get_position();
-        //     let light_data = light.get_color();
-
-        //     point_lights.push(LightData {
-        //         _position: Align16(transform_data),
-        //         _color: Align16(light_data),
-        //         _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
-        //     });
-        // }
-        self.scene.light_manager.point_lights = point_lights;
-
-        //self.context.queue.write_buffer(&self.scene.light_manager.point_buffer, 0, cast_slice(&self.scene.light_manager.point_lights.clone().into_boxed_slice()));
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
@@ -142,10 +123,6 @@ impl App {
         if &[self.imgui.viewport.texture.width(), self.imgui.viewport.texture.height()] != &self.imgui.viewport.size {
             self.resize_viewport();
         }
-
-        // dbg!("t");
-        // dbg!(&self.imgui.viewport.texture.width());
-        // dbg!(&self.imgui.viewport.texture.height());
 
         let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
         self.renderer.draw(&self.context.device, &viewport_view, &mut self.scene, &self.camera, &mut encoder)?;

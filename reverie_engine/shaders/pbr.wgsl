@@ -17,7 +17,6 @@ struct PointLight {
     projection: array<mat4x4<f32>, 6>,
     position: vec3<f32>,
     color: vec3<f32>,
-    bias: vec2<f32>,
 };
 @group(3) @binding(0)
 var<storage, read> point_lights: array<PointLight>;
@@ -170,28 +169,25 @@ fn fs_main(
 
         //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
 
-        let bias = max(point_lights[0].bias[1] * (1.0 - dot(in.normal, l)), point_lights[0].bias[0]);
-        //let bias = mix(point_lights[0].bias[1], point_lights[0].bias[0], dot(in.normal, -l));
-
         var face = 0;
         let absL = abs(l);
         if absL.x > absL.y && absL.x > absL.z {
             if l.x > 0.0 {
-                face = 0; // Positive X face
+                face = 0;
             } else {
-                face = 1; // Negative X face
+                face = 1;
             }
         } else if absL.y > absL.z {
             if l.y > 0.0 {
-                face = 2; // Positive Y face
+                face = 2;
             } else {
-                face = 3; // Negative Y face
+                face = 3;
             }
         } else {
             if l.z > 0.0 {
-                face = 4; // Positive Z face
+                face = 4;
             } else {
-                face = 5; // Negative Z face
+                face = 5;
             }
         }
         let light_projection = point_lights[i].projection[face];
@@ -201,7 +197,6 @@ fn fs_main(
         
 
         var shadow = 0.0;
-        //let bias = 0.4;
         let numSamples = 4.0;
         let offset = 0.001;
         
@@ -218,9 +213,9 @@ fn fs_main(
         // shadow = shadow / (numSamples * numSamples * numSamples);
 
         var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
-                if (depth < closestDepth) {
-                    shadow = shadow + 1.0;
-                }
+        if (depth < closestDepth) {
+            shadow = shadow + 1.0;
+        }
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }

@@ -9,7 +9,6 @@ use super::{components::{light::{PointLight, DirectionalLight}, transform::Trans
 pub struct LightData {
     pub _position: Align16<cg::Vector3<f32>>,
     pub _color: Align16<cg::Vector3<f32>>,
-    pub _bias: Align16<cg::Vector2<f32>>,
     pub _perspective: Align16<[cg::Matrix4<f32>; 6]>,
 }
 
@@ -20,8 +19,7 @@ struct DirectionalData {
 }
 
 pub struct PointShadow {
-    pub texture: wgpu::Texture,
-    pub views: Vec<wgpu::TextureView>,
+    pub views: [wgpu::TextureView; 6],
     pub cube_view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
     pub buffers: Vec<wgpu::Buffer>,
@@ -37,8 +35,6 @@ pub struct LightManager {
     pub point_count_buffer: wgpu::Buffer,
     pub directional_buffer: wgpu::Buffer,
     pub directional_count_buffer: wgpu::Buffer,
-
-    pub shadow_depth_views: Vec<wgpu::TextureView>
 }
 
 impl LightManager {
@@ -54,7 +50,6 @@ impl LightManager {
             _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()]),
             _position: Align16(cg::vec3(0.0, 0.0, 0.0)),
             _color: Align16(cg::vec3(0.0, 0.0, 0.0)),
-            _bias: Align16(cg::vec2(0.0, 0.0)),
         });
 
         let mut g_perspectives = Vec::new();
@@ -82,7 +77,6 @@ impl LightManager {
                 _perspective: Align16([perspectives[0], perspectives[1], perspectives[2], perspectives[3], perspectives[4], perspectives[5]]),
                 _position: Align16(transform_data),
                 _color: Align16(light_data),
-                _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
             });
 
             g_perspectives = perspectives;
@@ -100,21 +94,6 @@ impl LightManager {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        let shadow_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("shadow"),
-            size: wgpu::Extent3d {
-                width: 2048,
-                height: 2048,
-                depth_or_array_layers: 6,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-
         let shadow_depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("shadow"),
             size: wgpu::Extent3d {
@@ -130,33 +109,18 @@ impl LightManager {
             view_formats: &[],
         });
 
-        let mut shadow_depth_views = Vec::new();
-        for i in 0..6 {
-            shadow_depth_views.push(shadow_depth_texture.create_view(&wgpu::TextureViewDescriptor {
+        let shadow_depth_views: [wgpu::TextureView; 6] = array_init::array_init(|i| 
+            shadow_depth_texture.create_view(&wgpu::TextureViewDescriptor {
                 label: Some("shadow view"),
                 format: Some(wgpu::TextureFormat::Depth32Float),
                 dimension: Some(wgpu::TextureViewDimension::D2),
                 aspect: wgpu::TextureAspect::DepthOnly,
                 base_mip_level: 0,
                 mip_level_count: None,
-                base_array_layer: i,
+                base_array_layer: i as u32,
                 array_layer_count: None,
-            }))
-        }
-
-        let mut shadow_views = Vec::new();
-        for i in 0..6 {
-            shadow_views.push(shadow_texture.create_view(&wgpu::TextureViewDescriptor {
-                label: Some("shadow view"),
-                format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
-                dimension: Some(wgpu::TextureViewDimension::D2),
-                aspect: wgpu::TextureAspect::All,
-                base_mip_level: 0,
-                mip_level_count: None,
-                base_array_layer: i,
-                array_layer_count: None,
-            }))
-        }
+            })
+        );
 
         let mut shadow_buffers: Vec<wgpu::Buffer> = Vec::new();
         for perspective in g_perspectives {
@@ -167,12 +131,6 @@ impl LightManager {
             }));
         }
 
-        let pos_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("perspective buffer"),
-            contents: cast_slice(&[Align16(point_lights[0]._position.0)]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
         let mut shadow_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
         for buffer in &shadow_buffers {
             shadow_bind_groups.push(device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -182,10 +140,6 @@ impl LightManager {
                         binding: 0,
                         resource: buffer.as_entire_binding()
                     },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: pos_buffer.as_entire_binding()
-                    }
                 ],
                 label: Some("shadow bind group")
             }));
@@ -224,7 +178,7 @@ impl LightManager {
             label: Some("depthcube"),
             format: Some(wgpu::TextureFormat::Depth32Float),
             dimension: Some(wgpu::TextureViewDimension::Cube),
-            aspect: wgpu::TextureAspect::All,
+            aspect: wgpu::TextureAspect::DepthOnly,
             base_mip_level: 0,
             mip_level_count: None,
             base_array_layer: 0,
@@ -280,14 +234,12 @@ impl LightManager {
         Self {
             point_lights,
             directional_lights,
-            shadow: PointShadow { texture: shadow_texture, views: shadow_views, cube_view, sampler: cubemap_sampler, buffers: shadow_buffers, bind_groups: shadow_bind_groups},
+            shadow: PointShadow { views: shadow_depth_views, cube_view, sampler: cubemap_sampler, buffers: shadow_buffers, bind_groups: shadow_bind_groups},
             bind_group,
             point_buffer,
             point_count_buffer,
             directional_buffer,
             directional_count_buffer,
-
-            shadow_depth_views,
         }
     }
 
@@ -316,7 +268,6 @@ impl LightManager {
         self.point_lights.push(LightData {
             _position: Align16(transform_data),
             _color: Align16(light_data),
-            _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
             _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()])
         });
 
