@@ -14,8 +14,10 @@ var<uniform> camera: Camera;
 
 
 struct PointLight {
+    projection: array<mat4x4<f32>, 6>,
     position: vec3<f32>,
     color: vec3<f32>,
+    bias: vec2<f32>,
 };
 @group(3) @binding(0)
 var<storage, read> point_lights: array<PointLight>;
@@ -49,7 +51,7 @@ struct VertexOutput {
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    let world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
+    var world_position: vec4<f32> = transform.matrix * vec4<f32>(model.position, 1.0);
 
     var out: VertexOutput;
     out.position = camera.view_proj * world_position;
@@ -82,7 +84,7 @@ var t_ao: texture_2d<f32>;
 var s_ao: sampler;
 
 @group(3) @binding(4)
-var t_depth_cube: texture_cube<f32>;
+var t_depth_cube: texture_depth_cube;
 @group(3) @binding(5)
 var s_depth_cube: sampler;
 
@@ -146,7 +148,8 @@ fn fs_main(
     var lo = vec3<f32>(0.0);
     for (var i = 1; i < point_light_count; i = i + 1) {
         let l = normalize(point_lights[i].position - in.world_position);
-        let h = normalize(v + l);
+        let offset_l = normalize(l + in.normal * 0.005);
+        let h = normalize(v + offset_l);
         
         let distance = length(point_lights[i].position - in.world_position);
         let attenuation = 1.0 / (distance * distance);
@@ -167,22 +170,57 @@ fn fs_main(
 
         //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
 
-        var shadow = 0.0;
-        let bias = 0.5;
-        let numSamples = 8.0;
-        let offset = 0.001;
-        for (var x = -numSamples/2.0; x <= numSamples/2.0; x = x + 1.0) {
-            for (var y = -numSamples/2.0; y <= numSamples/2.0; y = y + 1.0) {
-                var sampleOffset = vec3<f32>(x * offset, y * offset, 0.0);
-                var sampleDir = normalize(l + sampleOffset);
-                var closestDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir).r;
-                closestDepth = closestDepth * 100.0;
-                if (distance - bias < closestDepth) {
-                    shadow = shadow + 1.0;
-                }
+        let bias = max(point_lights[0].bias[1] * (1.0 - dot(in.normal, l)), point_lights[0].bias[0]);
+        //let bias = mix(point_lights[0].bias[1], point_lights[0].bias[0], dot(in.normal, -l));
+
+        var face = 0;
+        let absL = abs(l);
+        if absL.x > absL.y && absL.x > absL.z {
+            if l.x > 0.0 {
+                face = 0; // Positive X face
+            } else {
+                face = 1; // Negative X face
+            }
+        } else if absL.y > absL.z {
+            if l.y > 0.0 {
+                face = 2; // Positive Y face
+            } else {
+                face = 3; // Negative Y face
+            }
+        } else {
+            if l.z > 0.0 {
+                face = 4; // Positive Z face
+            } else {
+                face = 5; // Negative Z face
             }
         }
-        shadow = shadow / (numSamples * numSamples * numSamples);
+        let light_projection = point_lights[i].projection[face];
+
+        let fragment_pos_light_space = light_projection * vec4<f32>(in.world_position, 1.0);
+        let depth = fragment_pos_light_space.z / fragment_pos_light_space.w;
+        
+
+        var shadow = 0.0;
+        //let bias = 0.4;
+        let numSamples = 4.0;
+        let offset = 0.001;
+        
+        // for (var x = -numSamples; x <= numSamples; x = x + 1.0) {
+        //     for (var y = -numSamples; y <= numSamples; y = y + 1.0) {
+        //         var sampleOffset = vec3<f32>(x * offset, y * offset, 0.0);
+        //         var sampleDir = normalize(offset_l + sampleOffset);
+        //         var closestDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir);
+        //         if (depth < closestDepth) {
+        //             shadow = shadow + 1.0;
+        //         }
+        //     }
+        // }
+        // shadow = shadow / (numSamples * numSamples * numSamples);
+
+        var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
+                if (depth < closestDepth) {
+                    shadow = shadow + 1.0;
+                }
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }

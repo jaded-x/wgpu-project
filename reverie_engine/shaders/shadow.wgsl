@@ -28,9 +28,11 @@ fn vs_main(
     input: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    let position = projection * transform.matrix * vec4(input.position, 1.0);
+    var position = projection * transform.matrix * vec4(input.position, 1.0);
+
     out.clip_position = position;
     out.v = position.xyz;
+
     return out;
 }
 
@@ -38,8 +40,12 @@ fn vs_main(
 fn fs_main(
     in: VertexOutput
 ) -> @location(0) vec4<f32> {
-    var light_distance = length(in.v - pos);
-    light_distance = light_distance / 100.0;
+    // var light_distance = length(in.v - pos);
+    // light_distance = (light_distance - 0.1) / (15.0 - 0.1);
 
-    return vec4(light_distance, light_distance, light_distance, 1.0);
+    //return vec4(light_distance, light_distance, light_distance, 1.0);
+
+    let depth = in.clip_position.z / in.clip_position.w;
+    //let linearDepth = (in.clip_position.z / in.clip_position.w - 0.1) / (15.0 - 0.1);
+    return vec4(depth, depth, depth, 1.0);
 }

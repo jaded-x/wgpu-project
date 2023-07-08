@@ -229,7 +229,7 @@ impl Renderer {
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
                         view_dimension: wgpu::TextureViewDimension::Cube,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        sample_type: wgpu::TextureSampleType::Depth,
                     },
                     count: None,
                 },
@@ -332,12 +332,11 @@ impl Renderer {
                     topology: wgpu::PrimitiveTopology::TriangleList,
                     strip_index_format: None,
                     front_face: wgpu::FrontFace::Ccw,
-                    cull_mode: Some(wgpu::Face::Back),
+                    cull_mode: Some(wgpu::Face::Front),
                     polygon_mode: wgpu::PolygonMode::Fill,
                     unclipped_depth: false,
                     conservative: false
                 },
-                //depth_stencil: None,
                 depth_stencil: Some(wgpu::TextureFormat::Depth32Float).map(|format| wgpu::DepthStencilState {
                     format,
                     depth_write_enabled: true,

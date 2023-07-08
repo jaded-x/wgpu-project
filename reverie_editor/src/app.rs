@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
+use reverie::engine::components::light::PointLight;
+use reverie::engine::components::transform::Transform;
+use reverie::engine::light_manager::LightData;
 use reverie::engine::registry::Registry;
 use reverie::engine::scene::Scene;
 use reverie::engine::texture::Texture;
+use reverie::util::align::Align16;
 use reverie::util::{cast_slice, res};
 
 use reverie::engine::{
@@ -106,6 +110,25 @@ impl App {
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
         //self.watcher.handle_events(&mut self.textures);
+
+        let transform_components = self.scene.world.read_component::<Transform>();
+        let point_light_components = self.scene.world.read_component::<PointLight>();
+
+        let mut point_lights = Vec::new();
+
+        // for (transform, light) in (&transform_components, &point_light_components).join() {
+        //     let transform_data = transform.get_position();
+        //     let light_data = light.get_color();
+
+        //     point_lights.push(LightData {
+        //         _position: Align16(transform_data),
+        //         _color: Align16(light_data),
+        //         _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
+        //     });
+        // }
+        self.scene.light_manager.point_lights = point_lights;
+
+        //self.context.queue.write_buffer(&self.scene.light_manager.point_buffer, 0, cast_slice(&self.scene.light_manager.point_lights.clone().into_boxed_slice()));
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
@@ -155,6 +178,7 @@ impl App {
     }
 }
 
+use specs::{WorldExt, Join};
 use winit::{
     event::*,
     event_loop::ControlFlow,

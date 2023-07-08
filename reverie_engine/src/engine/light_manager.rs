@@ -6,9 +6,11 @@ use crate::util::{cast_slice, align::Align16};
 use super::{components::{light::{PointLight, DirectionalLight}, transform::Transform}, renderer::Renderer};
 
 #[derive(Clone)]
-struct LightData {
-    _position: Align16<cg::Vector3<f32>>,
-    _color: Align16<cg::Vector3<f32>>
+pub struct LightData {
+    pub _position: Align16<cg::Vector3<f32>>,
+    pub _color: Align16<cg::Vector3<f32>>,
+    pub _bias: Align16<cg::Vector2<f32>>,
+    pub _perspective: Align16<[cg::Matrix4<f32>; 6]>,
 }
 
 #[derive(Clone)]
@@ -27,7 +29,7 @@ pub struct PointShadow {
 }
 
 pub struct LightManager {
-    point_lights: Vec<LightData>,
+    pub point_lights: Vec<LightData>,
     directional_lights: Vec<DirectionalData>,
     pub shadow: PointShadow,
     pub bind_group: wgpu::BindGroup,
@@ -41,7 +43,7 @@ pub struct LightManager {
 
 impl LightManager {
     pub fn new(device: &wgpu::Device, world: &World) -> Self {
-        let mut point_lights = Vec::new();
+        let mut point_lights: Vec<LightData> = Vec::new();
 
         let transform_components = world.read_component::<Transform>();
         let point_light_components = world.read_component::<PointLight>();
@@ -49,18 +51,41 @@ impl LightManager {
         let point_light_count = point_light_components.count() as i32 + 1;
 
         point_lights.push(LightData {
+            _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()]),
             _position: Align16(cg::vec3(0.0, 0.0, 0.0)),
             _color: Align16(cg::vec3(0.0, 0.0, 0.0)),
+            _bias: Align16(cg::vec2(0.0, 0.0)),
         });
+
+        let mut g_perspectives = Vec::new();
 
         for (transform, light) in (&transform_components, &point_light_components).join() {
             let transform_data = transform.get_position();
             let light_data = light.get_color();
 
+            let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 15.0);
+            let light_pos = point_lights[0]._position.0.clone();
+            let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
+            let up_vectors = vec![
+                cg::vec3(0.0, -1.0, 0.0),  // Positive X
+                cg::vec3(0.0, -1.0, 0.0),  // Negative X
+                cg::vec3(0.0, 0.0, 1.0), // Positive Y
+                cg::vec3(0.0, 0.0, -1.0), // Negative Y
+                cg::vec3(0.0, -1.0, 0.0),  // Positive Z
+                cg::vec3(0.0, -1.0, 0.0)  // Negative Z
+            ];
+            let perspectives = centers.iter().zip(up_vectors.iter()).map(|(center, up)| {
+                proj * cg::Matrix4::look_at_rh(cg::point3(light_pos.x, light_pos.y, light_pos.z), cg::point3(center.x, center.y, center.z), *up)
+            }).collect::<Vec<_>>();
+
             point_lights.push(LightData {
+                _perspective: Align16([perspectives[0], perspectives[1], perspectives[2], perspectives[3], perspectives[4], perspectives[5]]),
                 _position: Align16(transform_data),
-                _color: Align16(light_data)
+                _color: Align16(light_data),
+                _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
             });
+
+            g_perspectives = perspectives;
         }
 
         let point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -111,7 +136,7 @@ impl LightManager {
                 label: Some("shadow view"),
                 format: Some(wgpu::TextureFormat::Depth32Float),
                 dimension: Some(wgpu::TextureViewDimension::D2),
-                aspect: wgpu::TextureAspect::All,
+                aspect: wgpu::TextureAspect::DepthOnly,
                 base_mip_level: 0,
                 mip_level_count: None,
                 base_array_layer: i,
@@ -133,23 +158,8 @@ impl LightManager {
             }))
         }
 
-        let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 100.0);
-        let light_pos = point_lights[0]._position.0.clone();
-        let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
-        let up_vectors = vec![
-            cg::vec3(0.0, -1.0, 0.0),  // Positive X
-            cg::vec3(0.0, -1.0, 0.0),  // Negative X
-            cg::vec3(0.0, 0.0, 1.0), // Positive Y
-            cg::vec3(0.0, 0.0, -1.0), // Negative Y
-            cg::vec3(0.0, -1.0, 0.0),  // Positive Z
-            cg::vec3(0.0, -1.0, 0.0)  // Negative Z
-        ];
-        let perspectives = centers.iter().zip(up_vectors.iter()).map(|(center, up)| {
-            proj * cg::Matrix4::look_at_rh(cg::point3(light_pos.x, light_pos.y, light_pos.z), cg::point3(center.x, center.y, center.z), *up)
-        }).collect::<Vec<_>>();
-
         let mut shadow_buffers: Vec<wgpu::Buffer> = Vec::new();
-        for perspective in perspectives {
+        for perspective in g_perspectives {
             shadow_buffers.push(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("perspective buffer"),
                 contents: cast_slice(&[Align16(perspective)]),
@@ -210,9 +220,9 @@ impl LightManager {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        let cube_view = shadow_texture.create_view(&wgpu::TextureViewDescriptor {
+        let cube_view = shadow_depth_texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("depthcube"),
-            format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
+            format: Some(wgpu::TextureFormat::Depth32Float),
             dimension: Some(wgpu::TextureViewDimension::Cube),
             aspect: wgpu::TextureAspect::All,
             base_mip_level: 0,
@@ -230,7 +240,7 @@ impl LightManager {
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Linear,
             lod_min_clamp: 0.1,
-            lod_max_clamp: 100.0,
+            lod_max_clamp: 15.0,
             compare: None,
             anisotropy_clamp: None,
             border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
@@ -305,7 +315,9 @@ impl LightManager {
 
         self.point_lights.push(LightData {
             _position: Align16(transform_data),
-            _color: Align16(light_data)
+            _color: Align16(light_data),
+            _bias: Align16(cg::vec2(light.bias_min, light.bias_max)),
+            _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()])
         });
 
         self.point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

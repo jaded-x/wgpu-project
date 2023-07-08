@@ -1,7 +1,7 @@
 mod explorer;
 mod viewport;
 
-use std::{sync::{Arc, Mutex}, path::{Path, PathBuf}};
+use std::{sync::{Arc, Mutex}, path::PathBuf};
 
 use reverie::{engine::{
     components::{
