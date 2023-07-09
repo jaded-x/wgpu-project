@@ -147,8 +147,7 @@ fn fs_main(
     var lo = vec3<f32>(0.0);
     for (var i = 1; i < point_light_count; i = i + 1) {
         let l = normalize(point_lights[i].position - in.world_position);
-        let offset_l = normalize(l + in.normal * 0.005);
-        let h = normalize(v + offset_l);
+        let h = normalize(v + l);
         
         let distance = length(point_lights[i].position - in.world_position);
         let attenuation = 1.0 / (distance * distance);
@@ -197,9 +196,92 @@ fn fs_main(
         
 
         var shadow = 0.0;
-        let numSamples = 4.0;
-        let offset = 0.002;
-        
+        let samples = 20;        
+        let sample_directions = get_sample_offset_directions();
+        let disk_radius = (1.0 + (distance / 100.0)) / 1000.0;
+        let bias = -0.00025;
+
+        var closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[0] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[1] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[2] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[3] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[4] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[5] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[6] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[7] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[8] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[9] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[10] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[11] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[12] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[13] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[14] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[15] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[16] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[17] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[18] * disk_radius);
+        if (depth - bias< closest_depth) {
+            shadow += 1.0;
+        }
+        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[19] * disk_radius);
+        if (depth - bias < closest_depth) {
+            shadow += 1.0;
+        }
+
         // var totalSamples = 0.0;
         // for (var x = -numSamples; x <= numSamples; x = x + 1.0) {
         //     for (var y = -numSamples; y <= numSamples; y = y + 1.0) {
@@ -214,10 +296,12 @@ fn fs_main(
         // }
         // shadow /= totalSamples;
 
-        var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
-        if (depth < closestDepth) {
-            shadow = shadow + 1.0;
-        }
+        // var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
+        // if (depth < closestDepth) {
+        //     shadow = shadow + 1.0;
+        // }
+
+        shadow /= f32(samples);
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }
@@ -251,6 +335,16 @@ fn fs_main(
 }
 
 const PI = 3.14159265359;
+
+fn get_sample_offset_directions() -> array<vec3<f32>, 20> {
+    return array<vec3<f32>, 20>(
+        vec3<f32>( 1.0,  1.0,  1.0), vec3<f32>( 1.0, -1.0,  1.0), vec3<f32>(-1.0, -1.0,  1.0), vec3<f32>(-1.0,  1.0,  1.0), 
+        vec3<f32>( 1.0,  1.0, -1.0), vec3<f32>( 1.0, -1.0, -1.0), vec3<f32>(-1.0, -1.0, -1.0), vec3<f32>(-1.0,  1.0, -1.0),
+        vec3<f32>( 1.0,  1.0,  0.0), vec3<f32>( 1.0, -1.0,  0.0), vec3<f32>(-1.0, -1.0,  0.0), vec3<f32>(-1.0,  1.0,  0.0),
+        vec3<f32>( 1.0,  0.0,  1.0), vec3<f32>(-1.0,  0.0,  1.0), vec3<f32>( 1.0,  0.0, -1.0), vec3<f32>(-1.0,  0.0, -1.0),
+        vec3<f32>( 0.0,  1.0,  1.0), vec3<f32>( 0.0, -1.0,  1.0), vec3<f32>( 0.0, -1.0, -1.0), vec3<f32>( 0.0,  1.0, -1.0)
+    );
+}
 
 fn get_normal_from_map(normal: vec3<f32>, world_position: vec3<f32>, tex_coords: vec2<f32>) -> vec3<f32> {
     let tangent_normal: vec3<f32> = textureSample(t_normal, s_normal, tex_coords).xyz * 2.0 - 1.0;

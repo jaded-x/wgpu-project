@@ -58,7 +58,7 @@ impl LightManager {
             let transform_data = transform.get_position();
             let light_data = light.get_color();
 
-            let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 15.0);
+            let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 100.0);
             let light_pos = transform_data.clone();
             let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
             let up_vectors = vec![
@@ -194,7 +194,7 @@ impl LightManager {
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Linear,
             lod_min_clamp: 0.1,
-            lod_max_clamp: 15.0,
+            lod_max_clamp: 100.0,
             compare: None,
             anisotropy_clamp: None,
             border_color: Some(wgpu::SamplerBorderColor::OpaqueWhite),
@@ -248,7 +248,7 @@ impl LightManager {
         self.point_lights[index]._position = Align16(data);
         queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index + std::mem::size_of::<Align16<[cg::Matrix4<f32>; 6]>>()) as u64, cast_slice(&[Align16(data)]));
 
-        let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 15.0);
+        let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 100.0);
         let light_pos = data;
         let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
         let up_vectors = vec![
