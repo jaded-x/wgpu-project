@@ -1,12 +1,5 @@
 use std::sync::Arc;
 
-use reverie::engine::components::light::PointLight;
-use reverie::engine::components::transform::Transform;
-use reverie::engine::light_manager::LightData;
-use reverie::engine::registry::Registry;
-use reverie::engine::scene::Scene;
-use reverie::engine::texture::Texture;
-use reverie::util::align::Align16;
 use reverie::util::{cast_slice, res};
 
 use reverie::engine::{
@@ -14,7 +7,10 @@ use reverie::engine::{
     renderer::{Renderer, Pass},
     context::Context,
     input::InputState,
-    window::*, 
+    window::*,
+    registry::Registry,
+    scene::Scene,
+    texture::Texture,
 };
 
 pub struct App {
@@ -155,7 +151,6 @@ impl App {
     }
 }
 
-use specs::{WorldExt, Join};
 use winit::{
     event::*,
     event_loop::ControlFlow,

@@ -152,7 +152,7 @@ fn fs_main(
         
         let distance = length(point_lights[i].position - in.world_position);
         let attenuation = 1.0 / (distance * distance);
-        let radiance = point_lights[i].color * attenuation;
+        let radiance = (point_lights[i].color * 255.0) * attenuation;
 
         let ndf = distributionggx(n, h, roughness);
         let g = geometrysmith(n, v, l, roughness);
@@ -198,19 +198,21 @@ fn fs_main(
 
         var shadow = 0.0;
         let numSamples = 4.0;
-        let offset = 0.001;
+        let offset = 0.002;
         
+        // var totalSamples = 0.0;
         // for (var x = -numSamples; x <= numSamples; x = x + 1.0) {
         //     for (var y = -numSamples; y <= numSamples; y = y + 1.0) {
         //         var sampleOffset = vec3<f32>(x * offset, y * offset, 0.0);
         //         var sampleDir = normalize(offset_l + sampleOffset);
-        //         var closestDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir);
-        //         if (depth < closestDepth) {
+        //         var sampledDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir);
+        //         if (depth < sampledDepth) {
         //             shadow = shadow + 1.0;
         //         }
+        //         totalSamples += 1.0;
         //     }
         // }
-        // shadow = shadow / (numSamples * numSamples * numSamples);
+        // shadow /= totalSamples;
 
         var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
         if (depth < closestDepth) {

@@ -119,7 +119,7 @@
     z: 0.1
 2:
   position:
-    x: 0.0
+    x: 2.0
     y: 0.0
     z: 0.0
   rotation:
@@ -203,11 +203,9 @@
 # Point Lights
 2:
   diffuse_color:
-  - 255.0
-  - 255.0
-  - 255.0
-  bias_min: 0.015
-  bias_max: 0.035
+  - 1.0
+  - 1.0
+  - 1.0
 
 
 # Directional Lights

@@ -115,7 +115,7 @@ impl Imgui {
                         if let Some(light) = lights.get_mut(entity) {
                             if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                                 if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                    scene.light_manager.update_light_data(queue, self.point_light_index.unwrap(), light.get_color());
+                                    scene.light_manager.update_light_color(queue, self.point_light_index.unwrap(), light.get_color());
                                 }
                             }
                         }

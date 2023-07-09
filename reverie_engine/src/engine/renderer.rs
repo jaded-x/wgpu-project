@@ -422,37 +422,6 @@ impl Pass for Renderer {
             }
         }
 
-        let light_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &Renderer::get_light_layout(),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: scene.light_manager.point_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: scene.light_manager.point_count_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: scene.light_manager.directional_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: scene.light_manager.directional_count_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(&scene.light_manager.shadow.cube_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: wgpu::BindingResource::Sampler(&scene.light_manager.shadow.sampler),
-                },
-            ],
-            label: Some("light_bind_group"),
-        });
-
         let meshes = scene.world.read_storage::<Mesh>();
         let transforms = scene.world.read_storage::<Transform>();
         let materials_c = scene.world.read_storage::<MaterialComponent>();
@@ -482,7 +451,7 @@ impl Pass for Renderer {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);
-            render_pass.set_bind_group(3, &light_bind_group, &[]);
+            render_pass.set_bind_group(3, &scene.light_manager.bind_group, &[]);
             
             for (mesh, transform, material) in (&meshes, &transforms, &materials_c).join()  {
                 render_pass.set_bind_group(0, &transform.bind_group, &[]);

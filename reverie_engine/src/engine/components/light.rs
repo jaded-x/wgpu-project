@@ -13,18 +13,12 @@ use super::{ComponentDefault, TypeName};
 pub struct PointLight {
     #[inspect(widget = "color")]
     diffuse_color: [f32; 3],
-    #[inspect(speed = 0.001)]
-    pub bias_min: f32,
-    #[inspect(speed = 0.001)]
-    pub bias_max: f32,
 }
 
 impl PointLight {
     pub fn new(diffuse_color: [f32; 3]) -> Self {
         Self {
             diffuse_color,
-            bias_max: 0.0,
-            bias_min: 0.0,
         }
     }
 
@@ -37,8 +31,6 @@ impl ComponentDefault for PointLight {
     fn default(_device: &wgpu::Device, _registry: &mut Registry) -> Self {
         Self {
             diffuse_color: [1.0, 1.0, 1.0],
-            bias_max: 0.0,
-            bias_min: 0.0,
         }
     }
 }

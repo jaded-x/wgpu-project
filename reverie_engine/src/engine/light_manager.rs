@@ -7,9 +7,9 @@ use super::{components::{light::{PointLight, DirectionalLight}, transform::Trans
 
 #[derive(Clone)]
 pub struct LightData {
+    pub _projection: Align16<[cg::Matrix4<f32>; 6]>,
     pub _position: Align16<cg::Vector3<f32>>,
     pub _color: Align16<cg::Vector3<f32>>,
-    pub _perspective: Align16<[cg::Matrix4<f32>; 6]>,
 }
 
 #[derive(Clone)]
@@ -47,7 +47,7 @@ impl LightManager {
         let point_light_count = point_light_components.count() as i32 + 1;
 
         point_lights.push(LightData {
-            _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()]),
+            _projection: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()]),
             _position: Align16(cg::vec3(0.0, 0.0, 0.0)),
             _color: Align16(cg::vec3(0.0, 0.0, 0.0)),
         });
@@ -59,7 +59,7 @@ impl LightManager {
             let light_data = light.get_color();
 
             let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 15.0);
-            let light_pos = point_lights[0]._position.0.clone();
+            let light_pos = transform_data.clone();
             let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
             let up_vectors = vec![
                 cg::vec3(0.0, -1.0, 0.0),  // Positive X
@@ -74,7 +74,7 @@ impl LightManager {
             }).collect::<Vec<_>>();
 
             point_lights.push(LightData {
-                _perspective: Align16([perspectives[0], perspectives[1], perspectives[2], perspectives[3], perspectives[4], perspectives[5]]),
+                _projection: Align16([perspectives[0], perspectives[1], perspectives[2], perspectives[3], perspectives[4], perspectives[5]]),
                 _position: Align16(transform_data),
                 _color: Align16(light_data),
             });
@@ -243,14 +243,35 @@ impl LightManager {
         }
     }
 
-    pub fn update_light_position(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
+    pub fn update_light_position(&mut self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
         let index = index + 1;
-        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[data]));
+        self.point_lights[index]._position = Align16(data);
+        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index + std::mem::size_of::<Align16<[cg::Matrix4<f32>; 6]>>()) as u64, cast_slice(&[Align16(data)]));
+
+        let proj = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 15.0);
+        let light_pos = data;
+        let centers = vec![light_pos + cg::vec3(-1.0, 0.0, 0.0), light_pos + cg::vec3(1.0, 0.0, 0.0), light_pos + cg::vec3(0.0, -1.0, 0.0), light_pos + cg::vec3(0.0, 1.0, 0.0), light_pos + cg::vec3(0.0, 0.0, -1.0), light_pos + cg::vec3(0.0, 0.0, 1.0)];
+        let up_vectors = vec![
+            cg::vec3(0.0, -1.0, 0.0),  // Positive X
+            cg::vec3(0.0, -1.0, 0.0),  // Negative X
+            cg::vec3(0.0, 0.0, 1.0), // Positive Y
+            cg::vec3(0.0, 0.0, -1.0), // Negative Y
+            cg::vec3(0.0, -1.0, 0.0),  // Positive Z
+            cg::vec3(0.0, -1.0, 0.0)  // Negative Z
+        ];
+        let perspectives = centers.iter().zip(up_vectors.iter()).map(|(center, up)| {
+            proj * cg::Matrix4::look_at_rh(cg::point3(light_pos.x, light_pos.y, light_pos.z), cg::point3(center.x, center.y, center.z), *up)
+        }).collect::<Vec<_>>();
+
+        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[Align16([perspectives[0], perspectives[1], perspectives[2], perspectives[3], perspectives[4], perspectives[5]])]));
+        for (i, buffer) in self.shadow.buffers.iter().enumerate() {
+            queue.write_buffer(&buffer, 0, cast_slice(&[Align16(perspectives[i])]));
+        }
     }
 
-    pub fn update_light_data(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
+    pub fn update_light_color(&self, queue: &wgpu::Queue, index: usize, data: cg::Vector3<f32>) {
         let index = index + 1;
-        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index + 16) as u64, cast_slice(&[data]));
+        queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index + std::mem::size_of::<Align16<[cg::Matrix4<f32>; 6]>>() + std::mem::size_of::<Align16<cg::Vector3<f32>>>()) as u64, cast_slice(&[data]));
     }
 
     pub fn update_directional_data(&self, queue: &wgpu::Queue, index: usize, direction: cg::Vector3<f32>, color: [f32; 3]) {
@@ -268,7 +289,7 @@ impl LightManager {
         self.point_lights.push(LightData {
             _position: Align16(transform_data),
             _color: Align16(light_data),
-            _perspective: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()])
+            _projection: Align16([cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity(), cg::SquareMatrix::identity()])
         });
 
         self.point_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
