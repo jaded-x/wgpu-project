@@ -251,7 +251,7 @@ impl LightManager {
         let projections = calculate_point_light_projection(position);
 
         queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[Align16(projections)]));
-        for (i, buffer) in self.shadow[0].buffers.iter().enumerate() {
+        for (i, buffer) in self.shadow[index].buffers.iter().enumerate() {
             queue.write_buffer(&buffer, 0, cast_slice(&[Align16(projections[i])]));
         }
     }
