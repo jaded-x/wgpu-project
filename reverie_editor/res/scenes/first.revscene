@@ -108,7 +108,7 @@
   position:
     x: 0.2999996
     y: -0.28
-    z: 0.97999954
+    z: 0.0
   rotation:
     x: 0.0
     y: 0.0
@@ -202,6 +202,11 @@
 
 # Point Lights
 2:
+  diffuse_color:
+  - 1.0
+  - 1.0
+  - 1.0
+4:
   diffuse_color:
   - 1.0
   - 1.0

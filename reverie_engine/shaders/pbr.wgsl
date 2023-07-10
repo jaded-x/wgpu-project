@@ -12,7 +12,6 @@ struct Camera {
 @group(1) @binding(0)
 var<uniform> camera: Camera;
 
-
 struct PointLight {
     projection: array<mat4x4<f32>, 6>,
     position: vec3<f32>,
@@ -83,7 +82,7 @@ var t_ao: texture_2d<f32>;
 var s_ao: sampler;
 
 @group(3) @binding(4)
-var t_depth_cube: texture_depth_cube;
+var t_depth_cube: texture_depth_cube_array;
 @group(3) @binding(5)
 var s_depth_cube: sampler;
 
@@ -145,7 +144,7 @@ fn fs_main(
     f0 = mix(f0, albedo, metallic);
 
     var lo = vec3<f32>(0.0);
-    for (var i = 1; i < point_light_count; i = i + 1) {
+    for (var i = 0; i < point_light_count; i += 1) {
         let l = normalize(point_lights[i].position - in.world_position);
         let h = normalize(v + l);
         
@@ -168,140 +167,17 @@ fn fs_main(
 
         //let shadow_factor = textureSampleCompare(t_depth_cube, s_depth_cube, l, distance / 100.0);
 
-        var face = 0;
-        let absL = abs(l);
-        if absL.x > absL.y && absL.x > absL.z {
-            if l.x > 0.0 {
-                face = 0;
-            } else {
-                face = 1;
-            }
-        } else if absL.y > absL.z {
-            if l.y > 0.0 {
-                face = 2;
-            } else {
-                face = 3;
-            }
-        } else {
-            if l.z > 0.0 {
-                face = 4;
-            } else {
-                face = 5;
-            }
-        }
-        let light_projection = point_lights[i].projection[face];
+        var face = get_cube_face(l);
 
-        let fragment_pos_light_space = light_projection * vec4<f32>(in.world_position, 1.0);
+        let fragment_pos_light_space = point_lights[i].projection[face] * vec4<f32>(in.world_position, 1.0);
         let depth = fragment_pos_light_space.z / fragment_pos_light_space.w;
         
-
+        //let shadow = calculate_shadow(distance, depth, l, i);
         var shadow = 0.0;
-        let samples = 20;        
-        let sample_directions = get_sample_offset_directions();
-        let disk_radius = (1.0 + (distance / 100.0)) / 1000.0;
-        let bias = -0.00025;
-
-        var closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[0] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
+        var closestDepth = textureSample(t_depth_cube, s_depth_cube, l, i);
+        if (depth < closestDepth) {
+            shadow = shadow + 1.0;
         }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[1] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[2] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[3] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[4] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[5] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[6] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[7] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[8] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[9] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[10] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[11] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[12] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[13] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[14] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[15] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[16] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[17] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[18] * disk_radius);
-        if (depth - bias< closest_depth) {
-            shadow += 1.0;
-        }
-        closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[19] * disk_radius);
-        if (depth - bias < closest_depth) {
-            shadow += 1.0;
-        }
-
-        // var totalSamples = 0.0;
-        // for (var x = -numSamples; x <= numSamples; x = x + 1.0) {
-        //     for (var y = -numSamples; y <= numSamples; y = y + 1.0) {
-        //         var sampleOffset = vec3<f32>(x * offset, y * offset, 0.0);
-        //         var sampleDir = normalize(offset_l + sampleOffset);
-        //         var sampledDepth = textureSample(t_depth_cube, s_depth_cube, sampleDir);
-        //         if (depth < sampledDepth) {
-        //             shadow = shadow + 1.0;
-        //         }
-        //         totalSamples += 1.0;
-        //     }
-        // }
-        // shadow /= totalSamples;
-
-        // var closestDepth = textureSample(t_depth_cube, s_depth_cube, l);
-        // if (depth < closestDepth) {
-        //     shadow = shadow + 1.0;
-        // }
-
-        shadow /= f32(samples);
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }
@@ -335,16 +211,6 @@ fn fs_main(
 }
 
 const PI = 3.14159265359;
-
-fn get_sample_offset_directions() -> array<vec3<f32>, 20> {
-    return array<vec3<f32>, 20>(
-        vec3<f32>( 1.0,  1.0,  1.0), vec3<f32>( 1.0, -1.0,  1.0), vec3<f32>(-1.0, -1.0,  1.0), vec3<f32>(-1.0,  1.0,  1.0), 
-        vec3<f32>( 1.0,  1.0, -1.0), vec3<f32>( 1.0, -1.0, -1.0), vec3<f32>(-1.0, -1.0, -1.0), vec3<f32>(-1.0,  1.0, -1.0),
-        vec3<f32>( 1.0,  1.0,  0.0), vec3<f32>( 1.0, -1.0,  0.0), vec3<f32>(-1.0, -1.0,  0.0), vec3<f32>(-1.0,  1.0,  0.0),
-        vec3<f32>( 1.0,  0.0,  1.0), vec3<f32>(-1.0,  0.0,  1.0), vec3<f32>( 1.0,  0.0, -1.0), vec3<f32>(-1.0,  0.0, -1.0),
-        vec3<f32>( 0.0,  1.0,  1.0), vec3<f32>( 0.0, -1.0,  1.0), vec3<f32>( 0.0, -1.0, -1.0), vec3<f32>( 0.0,  1.0, -1.0)
-    );
-}
 
 fn get_normal_from_map(normal: vec3<f32>, world_position: vec3<f32>, tex_coords: vec2<f32>) -> vec3<f32> {
     let tangent_normal: vec3<f32> = textureSample(t_normal, s_normal, tex_coords).xyz * 2.0 - 1.0;
@@ -396,3 +262,97 @@ fn fresnelschlick(cos_theta: f32, f0: vec3<f32>) -> vec3<f32> {
     return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
+fn get_sample_offset_directions() -> array<vec3<f32>, 20> {
+    return array<vec3<f32>, 20>(
+        vec3<f32>( 1.0,  1.0,  1.0), vec3<f32>( 1.0, -1.0,  1.0), vec3<f32>(-1.0, -1.0,  1.0), vec3<f32>(-1.0,  1.0,  1.0), 
+        vec3<f32>( 1.0,  1.0, -1.0), vec3<f32>( 1.0, -1.0, -1.0), vec3<f32>(-1.0, -1.0, -1.0), vec3<f32>(-1.0,  1.0, -1.0),
+        vec3<f32>( 1.0,  1.0,  0.0), vec3<f32>( 1.0, -1.0,  0.0), vec3<f32>(-1.0, -1.0,  0.0), vec3<f32>(-1.0,  1.0,  0.0),
+        vec3<f32>( 1.0,  0.0,  1.0), vec3<f32>(-1.0,  0.0,  1.0), vec3<f32>( 1.0,  0.0, -1.0), vec3<f32>(-1.0,  0.0, -1.0),
+        vec3<f32>( 0.0,  1.0,  1.0), vec3<f32>( 0.0, -1.0,  1.0), vec3<f32>( 0.0, -1.0, -1.0), vec3<f32>( 0.0,  1.0, -1.0)
+    );
+}
+
+fn calculate_shadow(distance: f32, depth: f32, l: vec3<f32>, i: i32) -> f32 {
+    var shadow = 0.0;
+    let samples = 20;        
+    let sample_directions = get_sample_offset_directions();
+    let disk_radius = (1.0 + (distance / 100.0)) / 400.0;
+    let bias = -0.001;
+
+    var closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[0] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[1] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[2] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[3] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[4] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[5] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[6] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[7] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[8] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[9] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[10] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[11] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[12] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[13] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[14] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[15] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[16] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[17] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[18] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+    closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[19] * disk_radius, i);
+    shadow += compare_depth(depth, closest_depth, bias);
+
+    return shadow / f32(samples);
+}
+
+fn compare_depth(depth: f32, closest_depth: f32, bias: f32) -> f32 {
+    if (depth - bias< closest_depth) {
+        return 1.0;
+    }
+    
+    return 0.0;
+}
+
+fn get_cube_face(l: vec3<f32>) -> i32 {
+    var face = 0;
+    let absL = abs(l);
+    if absL.x > absL.y && absL.x > absL.z {
+        if l.x > 0.0 {
+            face = 0;
+        } else {
+            face = 1;
+        }
+    } else if absL.y > absL.z {
+        if l.y > 0.0 {
+            face = 2;
+        } else {
+            face = 3;
+        }
+    } else {
+        if l.z > 0.0 {
+            face = 4;
+        } else {
+            face = 5;
+        }
+    }
+
+    return face;
+}

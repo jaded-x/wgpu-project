@@ -1,7 +1,5 @@
 @group(0) @binding(0)
 var<uniform> projection: mat4x4<f32>;
-@group(0) @binding(1)
-var<uniform> pos: vec3<f32>; 
 
 struct Transform {
     matrix: mat4x4<f32>,

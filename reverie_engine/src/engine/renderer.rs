@@ -228,10 +228,10 @@ impl Renderer {
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::Cube,
+                        view_dimension: wgpu::TextureViewDimension::CubeArray,
                         sample_type: wgpu::TextureSampleType::Depth,
                     },
-                    count: None,
+                    count: Some(std::num::NonZeroU32::new(16).unwrap()),
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 5,
@@ -385,39 +385,41 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
 }
 
 pub trait Pass {
-    fn draw(&mut self, device: &wgpu::Device, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, device: &wgpu::Device, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
-        for (i, depth_texture_view) in scene.light_manager.shadow.views.iter().enumerate() {
-            let meshes = scene.world.read_storage::<Mesh>();
-            let transforms = scene.world.read_storage::<Transform>();
-            let materials_c = scene.world.read_storage::<MaterialComponent>();
-
-            let light_pass_descriptor = wgpu::RenderPassDescriptor {
-                label: Some("light_pass_desc"),
-                color_attachments: &[],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: depth_texture_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
-                    }),
-                    stencil_ops: None,
-                }),
-            };
-            let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
-            light_pass.set_pipeline(&self.light_pipeline);
-            light_pass.set_bind_group(0, &scene.light_manager.shadow.bind_groups[i], &[]);
+    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         
+        for shadow in &scene.light_manager.shadow {
+            for (i, depth_texture_view) in shadow.views.iter().enumerate() {
+                let meshes = scene.world.read_storage::<Mesh>();
+                let transforms = scene.world.read_storage::<Transform>();
+                let materials_c = scene.world.read_storage::<MaterialComponent>();
 
-            for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
-                light_pass.set_bind_group(1, &transform.bind_group, &[]);
-                for m in (*mesh.mesh).iter() {
-                    light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
-                    light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                    light_pass.draw_indexed(0..m.element_count, 0, 0..1);
+                let light_pass_descriptor = wgpu::RenderPassDescriptor {
+                    label: Some("light_pass_desc"),
+                    color_attachments: &[],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: depth_texture_view,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(1.0),
+                            store: true,
+                        }),
+                        stencil_ops: None,
+                    }),
+                };
+                let mut light_pass = encoder.begin_render_pass(&light_pass_descriptor);
+                light_pass.set_pipeline(&self.light_pipeline);
+                light_pass.set_bind_group(0, &shadow.bind_groups[i], &[]);
+
+                for (transform, mesh, _) in (&transforms, &meshes, &materials_c).join() {
+                    light_pass.set_bind_group(1, &transform.bind_group, &[]);
+                    for m in (*mesh.mesh).iter() {
+                        light_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+                        light_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                        light_pass.draw_indexed(0..m.element_count, 0, 0..1);
+                    }
                 }
             }
         }
