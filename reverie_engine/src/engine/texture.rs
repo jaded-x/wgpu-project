@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
 use image::{GenericImageView, ImageBuffer, Rgba};
 use anyhow::*;
@@ -84,6 +84,7 @@ impl Texture {
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Nearest,
+            anisotropy_clamp: Some(std::num::NonZeroU8::new(16).unwrap()),
             ..Default::default()
         });
 

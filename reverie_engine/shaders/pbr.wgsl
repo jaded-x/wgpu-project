@@ -172,12 +172,12 @@ fn fs_main(
         let fragment_pos_light_space = point_lights[i].projection[face] * vec4<f32>(in.world_position, 1.0);
         let depth = fragment_pos_light_space.z / fragment_pos_light_space.w;
         
-        //let shadow = calculate_shadow(distance, depth, l, i);
-        var shadow = 0.0;
-        var closestDepth = textureSample(t_depth_cube, s_depth_cube, l, i);
-        if (depth < closestDepth) {
-            shadow = shadow + 1.0;
-        }
+        let shadow = calculate_shadow(distance, depth, l, i);
+        // var shadow = 0.0;
+        // var closestDepth = textureSample(t_depth_cube, s_depth_cube, l, i);
+        // if (depth < closestDepth) {
+        //     shadow = shadow + 1.0;
+        // }
 
         lo = lo + ((kd * albedo / PI + specular) * radiance * (nl * shadow));
     }
@@ -276,8 +276,8 @@ fn calculate_shadow(distance: f32, depth: f32, l: vec3<f32>, i: i32) -> f32 {
     var shadow = 0.0;
     let samples = 20;        
     let sample_directions = get_sample_offset_directions();
-    let disk_radius = (1.0 + (distance / 100.0)) / 400.0;
-    let bias = -0.001;
+    let disk_radius = (1.0 + (distance / 100.0)) / 200.0;
+    let bias = -0.0;
 
     var closest_depth = textureSample(t_depth_cube, s_depth_cube, l + sample_directions[0] * disk_radius, i);
     shadow += compare_depth(depth, closest_depth, bias);

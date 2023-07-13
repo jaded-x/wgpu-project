@@ -1,8 +1,13 @@
 use std::sync::{Arc, Mutex};
 
+use cg::{Angle, InnerSpace};
+use cg::Transform as cgTransform;
 use once_cell::sync::Lazy;
 use specs::prelude::*;
 use wgpu::BindGroupLayout;
+use wgpu::util::DeviceExt;
+
+use crate::util::cast_slice;
 
 use super::{
     components::{
@@ -22,13 +27,15 @@ pub struct Renderer {
     pub depth_texture: Texture,
     pub camera_bind_group_layout: wgpu::BindGroupLayout,
     pub render_pipeline: wgpu::RenderPipeline,
-    pub light_pipeline: wgpu::RenderPipeline
+    pub light_pipeline: wgpu::RenderPipeline,
+    pub skybox_pipeline: wgpu::RenderPipeline,
 }
 
 static MATERIAL_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 static TRANSFORM_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 static LIGHT_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 static SHADOW_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
+static SKYBOX_LAYOUT: Lazy<Mutex<Option<Arc<wgpu::BindGroupLayout>>>> = Lazy::new(|| Mutex::new(None));
 
 impl Renderer {
     pub fn new(
@@ -260,6 +267,39 @@ impl Renderer {
             label: Some("shadow_layout"),
         })));
 
+        let mut skybox_layout = SKYBOX_LAYOUT.lock().unwrap();
+        *skybox_layout = Some(Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::Cube,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("shadow_layout"),
+        })));
+
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
@@ -335,6 +375,72 @@ impl Renderer {
             })
         };
 
+        let skybox_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[
+                skybox_layout.as_ref().unwrap(),
+            ],
+            push_constant_ranges: &[],
+        });
+
+        let skybox_pipeline = {
+            let shader_desc = wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/skybox.wgsl").into()),
+            };
+            let shader = device.create_shader_module(shader_desc);
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("skybox pass"),
+                layout: Some(&skybox_pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &[
+                            wgpu::VertexAttribute {
+                                offset: 0,
+                                shader_location: 0,
+                                format: wgpu::VertexFormat::Float32x3,
+                            }
+                        ]
+                    }],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: None,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false
+                },
+                depth_stencil: Some(wgpu::TextureFormat::Depth32Float).map(|format| wgpu::DepthStencilState {
+                    format,
+                    depth_write_enabled: false,
+                    depth_compare: wgpu::CompareFunction::LessEqual,
+                    stencil: wgpu::StencilState::default(),
+                    bias: wgpu::DepthBiasState::default(),
+                }),
+                multisample: wgpu::MultisampleState  {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None
+            })
+        };
+
         Self {
             clear_color,
             texture_view,
@@ -342,6 +448,7 @@ impl Renderer {
             camera_bind_group_layout,
             render_pipeline,
             light_pipeline,
+            skybox_pipeline,
         }
     }
 
@@ -364,6 +471,10 @@ impl Renderer {
     pub fn get_shadow_layout() -> Arc<BindGroupLayout> {
         SHADOW_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
     }
+
+    pub fn get_skybox_layout() -> Arc<BindGroupLayout> {
+        SKYBOX_LAYOUT.lock().unwrap().as_ref().unwrap().clone()
+    }
 }
 
 pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (wgpu::TextureView, Texture){
@@ -385,13 +496,13 @@ pub fn create_depth_texture(device: &wgpu::Device, extent: &wgpu::Extent3d) -> (
 }
 
 pub trait Pass {
-    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
+    fn draw(&mut self, device: &wgpu::Device, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>;
 }
 
 impl Pass for Renderer {
-    fn draw(&mut self, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
+    fn draw(&mut self, device: &wgpu::Device, view: &wgpu::TextureView, scene: &mut Scene, camera: &Camera, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError> {
         
-        for shadow in &scene.light_manager.shadow {
+        for shadow in &scene.light_manager.point_shadows {
             for (i, depth_texture_view) in shadow.views.iter().enumerate() {
                 let meshes = scene.world.read_storage::<Mesh>();
                 let transforms = scene.world.read_storage::<Transform>();
@@ -424,6 +535,41 @@ impl Pass for Renderer {
             }
         }
 
+        let camera_view = camera.calc_matrix();
+        let rotation = cg::Matrix3::new(
+            camera_view.x.x, camera_view.x.y, camera_view.x.z,
+            camera_view.y.x, camera_view.y.y, camera_view.y.z,
+            camera_view.z.x, camera_view.z.y, camera_view.z.z,
+        );
+        let view_mat4 = cg::Matrix4::from(rotation);
+        let proj = camera.projection.calc_matrix();
+        let proj_view = proj * view_mat4;
+
+        let proj_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("skybox_index_buffer"),
+            contents: cast_slice(&[proj_view]),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &Renderer::get_skybox_layout(),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&scene.skybox.as_ref().unwrap().0.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&scene.skybox.as_ref().unwrap().0.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: proj_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("skybox_bind_group"),
+        });
+
         let meshes = scene.world.read_storage::<Mesh>();
         let transforms = scene.world.read_storage::<Transform>();
         let materials_c = scene.world.read_storage::<MaterialComponent>();
@@ -450,6 +596,12 @@ impl Pass for Renderer {
                     stencil_ops: None,
                 }),
             });
+
+            render_pass.set_pipeline(&self.skybox_pipeline);
+            render_pass.set_bind_group(0, &bind_group, &[]);
+            
+            render_pass.set_vertex_buffer(0, scene.skybox.as_ref().unwrap().1.slice(..));
+            render_pass.draw(0..36, 0..1);
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(1, &camera.bind_group, &[]);

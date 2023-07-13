@@ -21,8 +21,8 @@ const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 pub struct Camera {
     pub position: cg::Point3<f32>,
-    yaw: cg::Rad<f32>,
-    pitch: cg::Rad<f32>,
+    pub yaw: cg::Rad<f32>,
+    pub pitch: cg::Rad<f32>,
     pub projection: Projection,
     pub uniform: CameraUniform,
     pub buffer: wgpu::Buffer,

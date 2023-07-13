@@ -6,10 +6,10 @@ use crate::util::{cast_slice, align::Align16};
 use super::{components::{light::{PointLight, DirectionalLight}, transform::Transform}, renderer::Renderer};
 
 #[derive(Clone)]
-pub struct LightData {
-    pub _projections: Align16<[cg::Matrix4<f32>; 6]>,
-    pub _position: Align16<cg::Vector3<f32>>,
-    pub _color: Align16<cg::Vector3<f32>>,
+struct LightData {
+    _projections: Align16<[cg::Matrix4<f32>; 6]>,
+    _position: Align16<cg::Vector3<f32>>,
+    _color: Align16<cg::Vector3<f32>>,
 }
 
 #[derive(Clone)]
@@ -26,9 +26,9 @@ pub struct PointShadow {
 }
 
 pub struct LightManager {
-    pub point_lights: Vec<LightData>,
+    point_lights: Vec<LightData>,
     directional_lights: Vec<DirectionalData>,
-    pub shadow: Vec<PointShadow>,
+    pub point_shadows: Vec<PointShadow>,
     pub bind_group: wgpu::BindGroup,
     pub point_buffer: wgpu::Buffer,
     pub point_count_buffer: wgpu::Buffer,
@@ -51,7 +51,7 @@ impl LightManager {
             size: wgpu::Extent3d {
                 width: 2048,
                 height: 2048,
-                depth_or_array_layers: 6 * 2,
+                depth_or_array_layers: 6 * 8,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -235,7 +235,7 @@ impl LightManager {
         Self {
             point_lights,
             directional_lights,
-            shadow: point_light_shadows,
+            point_shadows: point_light_shadows,
             bind_group,
             point_buffer,
             point_count_buffer,
@@ -251,7 +251,7 @@ impl LightManager {
         let projections = calculate_point_light_projection(position);
 
         queue.write_buffer(&self.point_buffer, (std::mem::size_of::<LightData>() * index) as u64, cast_slice(&[Align16(projections)]));
-        for (i, buffer) in self.shadow[index].buffers.iter().enumerate() {
+        for (i, buffer) in self.point_shadows[index].buffers.iter().enumerate() {
             queue.write_buffer(&buffer, 0, cast_slice(&[Align16(projections[i])]));
         }
     }
@@ -437,7 +437,7 @@ impl LightManager {
 
 fn calculate_point_light_projection(position: cg::Vector3<f32>) -> [cg::Matrix4<f32>; 6] {
     let projection = cg::perspective(cg::Deg(90.0), 1.0, 0.1, 100.0);
-    let centers = vec![position + cg::vec3(-1.0, 0.0, 0.0), position + cg::vec3(1.0, 0.0, 0.0), position + cg::vec3(0.0, -1.0, 0.0), position + cg::vec3(0.0, 1.0, 0.0), position + cg::vec3(0.0, 0.0, -1.0), position + cg::vec3(0.0, 0.0, 1.0)];
+    let centers = vec![position + cg::vec3(1.0, 0.0, 0.0), position + cg::vec3(-1.0, 0.0, 0.0), position + cg::vec3(0.0, 1.0, 0.0), position + cg::vec3(0.0, -1.0, 0.0), position + cg::vec3(0.0, 0.0, 1.0), position + cg::vec3(0.0, 0.0, -1.0)];
     let up_vectors = vec![
         cg::vec3(0.0, -1.0, 0.0),
         cg::vec3(0.0, -1.0, 0.0),
@@ -447,7 +447,7 @@ fn calculate_point_light_projection(position: cg::Vector3<f32>) -> [cg::Matrix4<
         cg::vec3(0.0, -1.0, 0.0),
     ];
     let perspectives: [cg::Matrix4<f32>; 6] = centers.iter().zip(up_vectors.iter()).map(|(center, up)| {
-        projection * cg::Matrix4::look_at_rh(cg::point3(position.x, position.y, position.z), cg::point3(center.x, center.y, center.z), *up)
+        projection * cg::Matrix4::look_at_lh(cg::point3(position.x, position.y, position.z), cg::point3(center.x, center.y, center.z), *up)
     }).collect::<Vec<_>>().try_into().unwrap();
 
     perspectives

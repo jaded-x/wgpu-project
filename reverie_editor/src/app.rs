@@ -51,11 +51,11 @@ impl App {
         imgui.load_texture(&res("imgui_textures/file.png"), &context.device, &context.queue, 64, 64, 4);
         imgui.load_texture(&res("imgui_textures/background.png"), &context.device, &context.queue, 1, 1, 5);
 
-        let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device);
-
         let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
         let camera_controller = CameraController::new(4.0, 0.5);
+
+        let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device, &context.queue);
 
         Self {
             context,
@@ -121,7 +121,7 @@ impl App {
         }
 
         let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.renderer.draw(&viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
+        self.renderer.draw(&self.context.device, &viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 

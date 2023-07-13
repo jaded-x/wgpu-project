@@ -11,7 +11,7 @@ albedo_map:
 normal_map:
   id: 16743552215167775342
 metallic_map:
-  id: 16991410803735127310
+  id: null
 roughness_map:
   id: 2678702412802696419
 ao_map:

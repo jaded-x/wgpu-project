@@ -6,6 +6,7 @@ pub struct Viewport {
     pub texture: Arc<wgpu::Texture>,
     pub size: [u32; 2],
     pub active: bool,
+    pub gizmos: bool,
 }
 
 impl Viewport {
@@ -29,6 +30,7 @@ impl Viewport {
             size: [texture.width(), texture.height()],
             texture,
             active: false,
+            gizmos: true,
         }
     }
 
@@ -39,6 +41,7 @@ impl Viewport {
             if ui.menu_item("Save") {
                 scene.save_scene();
             }
+            
             bar.unwrap().end();
             self.size = [ui.content_region_avail()[0] as u32, ui.content_region_avail()[1] as u32];
             imgui::Image::new(imgui::TextureId::new(2), ui.content_region_avail()).build(ui);
