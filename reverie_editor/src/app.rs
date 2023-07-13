@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use reverie::util::{cast_slice, res};
@@ -24,7 +25,7 @@ pub struct App {
 
     scene: Scene,
 
-    //watcher: FileWatcher,
+    watcher: FileWatcher,
 
     registry: Registry,
 }
@@ -44,8 +45,8 @@ impl App {
 
         let input = InputState::default();
 
-        // let mut watcher = FileWatcher::new().unwrap();
-        // watcher.watch(Path::new("res")).unwrap();
+        let mut watcher = FileWatcher::new().unwrap();
+        watcher.watch(Path::new("res")).unwrap();
 
         imgui.load_texture(&res("imgui_textures/folder.png"), &context.device, &context.queue, 64, 64, 3);
         imgui.load_texture(&res("imgui_textures/file.png"), &context.device, &context.queue, 64, 64, 4);
@@ -65,7 +66,7 @@ impl App {
             scene,
             renderer,
             imgui,
-            //watcher,
+            watcher,
             registry
         }
     }
@@ -108,7 +109,7 @@ impl App {
         
         self.scene.skybox.as_ref().unwrap().update_projection(&self.camera, &self.context.queue);
 
-        //self.watcher.handle_events(&mut self.textures);
+        self.watcher.handle_events(&mut self.registry);
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
@@ -160,6 +161,7 @@ use winit::{
 };
 
 use crate::imgui::Imgui;
+use crate::watcher::FileWatcher;
 
 pub async fn run() {
     let window = Window::new();

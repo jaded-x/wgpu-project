@@ -1,6 +1,7 @@
 mod cursor;
 mod app;
 mod imgui;
+mod watcher;
 
 use app::run;
 

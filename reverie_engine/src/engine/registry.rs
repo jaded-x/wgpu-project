@@ -348,6 +348,17 @@ impl Registry {
 
         Ok(())
     }
+
+    pub fn update_filepath(&mut self, id: usize, new_file_path: PathBuf) -> Result<(), Box<dyn Error>> {
+        if let Some(metadata) = self.metadata.get_mut(&id) {
+            metadata.file_path = new_file_path;
+            self.save_metadata()?;
+        } else {
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "Asset ID not found")));
+        }
+
+        Ok(())
+    }
 }
 
 fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {

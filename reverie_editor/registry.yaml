@@ -1,34 +1,26 @@
-13853359215724971597:
-  id: 13853359215724971597
-  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-albedo.png
-  asset_type: Texture
-4245367715641574756:
-  id: 4245367715641574756
-  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_ao.png
-  asset_type: Texture
-3681944568728389845:
-  id: 3681944568728389845
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\sphere.obj
-  asset_type: Mesh
-5784636323544774328:
-  id: 5784636323544774328
-  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-ao.png
-  asset_type: Texture
-2678702412802696419:
-  id: 2678702412802696419
-  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_roughness.png
-  asset_type: Texture
 14749053899041155073:
   id: 14749053899041155073
   file_path: C:\dev\reverie\reverie_editor\res\materials\stainless_steel.revmat
   asset_type: Material
-8179118488590238915:
-  id: 8179118488590238915
-  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_metallic.png
+3681944568728389845:
+  id: 3681944568728389845
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\sphere.obj
+  asset_type: Mesh
+13529245170620284884:
+  id: 13529245170620284884
+  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_metallic.png
   asset_type: Texture
-8193855199045641447:
-  id: 8193855199045641447
-  file_path: C:\dev\reverie\reverie_editor\res\materials\rusted_iron.revmat
+1845237758309538035:
+  id: 1845237758309538035
+  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-normal-dx.png
+  asset_type: Texture
+1652586285925694124:
+  id: 1652586285925694124
+  file_path: C:\dev\reverie\reverie_editor\res\materials\bricks_mortar.revmat
+  asset_type: Material
+7609922033089075037:
+  id: 7609922033089075037
+  file_path: C:\dev\reverie\reverie_editor\res\materials\brick.revmat
   asset_type: Material
 17574920008220227172:
   id: 17574920008220227172
@@ -38,111 +30,119 @@
   id: 18008327401358744117
   file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_basecolor.png
   asset_type: Texture
-15746056944050096376:
-  id: 15746056944050096376
-  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_ao.png
-  asset_type: Texture
-18107631171250797795:
-  id: 18107631171250797795
-  file_path: C:\dev\reverie\reverie_editor\res\materials\basic.revmat
-  asset_type: Material
-14004660404556113654:
-  id: 14004660404556113654
-  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall_normal.jpg
-  asset_type: Texture
-3343638556417035312:
-  id: 3343638556417035312
-  file_path: C:\dev\reverie\reverie_editor\res\scenes\first.revscene
-  asset_type: Scene
-13980511551806226922:
-  id: 13980511551806226922
-  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_normal.png
-  asset_type: Texture
-14220652958971434394:
-  id: 14220652958971434394
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\plane.obj
-  asset_type: Mesh
-18383461605085444235:
-  id: 18383461605085444235
-  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_albedo.png
-  asset_type: Texture
-7403896815389001851:
-  id: 7403896815389001851
-  file_path: C:\dev\reverie\reverie_editor\res\imgui_textures\file.png
-  asset_type: Texture
-6171138106866476653:
-  id: 6171138106866476653
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\m4a1.obj
-  asset_type: Mesh
-3413657097294810512:
-  id: 3413657097294810512
-  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_albedo.png
-  asset_type: Texture
 1400986165044252771:
   id: 1400986165044252771
   file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-metallic.png
-  asset_type: Texture
-13529245170620284884:
-  id: 13529245170620284884
-  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_metallic.png
-  asset_type: Texture
-16991410803735127310:
-  id: 16991410803735127310
-  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_metallic.png
-  asset_type: Texture
-1:
-  id: 1
-  file_path: C:\dev\reverie\reverie_editor\res\materials\default.revmat
-  asset_type: Material
-4868344826589006944:
-  id: 4868344826589006944
-  file_path: C:\dev\reverie\reverie_editor\res\scenes\test.revscene
-  asset_type: Scene
-16743552215167775342:
-  id: 16743552215167775342
-  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_normal-ogl.png
-  asset_type: Texture
-7827023665519822699:
-  id: 7827023665519822699
-  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall.jpg
-  asset_type: Texture
-11893785222860336258:
-  id: 11893785222860336258
-  file_path: C:\dev\reverie\reverie_editor\res\imgui_textures\folder.png
-  asset_type: Texture
-14782095511122872678:
-  id: 14782095511122872678
-  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_roughness.png
-  asset_type: Texture
-521589741683229499:
-  id: 521589741683229499
-  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_normal-ogl.png
-  asset_type: Texture
-0:
-  id: 0
-  file_path: C:\dev\reverie\reverie_editor\res\meshes\cube.obj
-  asset_type: Mesh
-7609922033089075037:
-  id: 7609922033089075037
-  file_path: C:\dev\reverie\reverie_editor\res\materials\brick.revmat
-  asset_type: Material
-1652586285925694124:
-  id: 1652586285925694124
-  file_path: C:\dev\reverie\reverie_editor\res\materials\bricks_mortar.revmat
-  asset_type: Material
-1845237758309538035:
-  id: 1845237758309538035
-  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-normal-dx.png
   asset_type: Texture
 10257896035189384858:
   id: 10257896035189384858
   file_path: C:\dev\reverie\reverie_editor\res\materials\wood.revmat
   asset_type: Material
+16991410803735127310:
+  id: 16991410803735127310
+  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_metallic.png
+  asset_type: Texture
+7827023665519822699:
+  id: 7827023665519822699
+  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall.jpg
+  asset_type: Texture
+1:
+  id: 1
+  file_path: C:\dev\reverie\reverie_editor\res\materials\default.revmat
+  asset_type: Material
+3343638556417035312:
+  id: 3343638556417035312
+  file_path: C:\dev\reverie\reverie_editor\res\scenes\first.revscene
+  asset_type: Scene
+11893785222860336258:
+  id: 11893785222860336258
+  file_path: C:\dev\reverie\reverie_editor\res\imgui_textures\folder.png
+  asset_type: Texture
+4245367715641574756:
+  id: 4245367715641574756
+  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_ao.png
+  asset_type: Texture
+2678702412802696419:
+  id: 2678702412802696419
+  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_roughness.png
+  asset_type: Texture
+8179118488590238915:
+  id: 8179118488590238915
+  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_metallic.png
+  asset_type: Texture
+18107631171250797795:
+  id: 18107631171250797795
+  file_path: C:\dev\reverie\reverie_editor\res\materials\basic.revmat
+  asset_type: Material
+8193855199045641447:
+  id: 8193855199045641447
+  file_path: C:\dev\reverie\reverie_editor\res\materials\rusted_iron.revmat
+  asset_type: Material
+5784636323544774328:
+  id: 5784636323544774328
+  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-ao.png
+  asset_type: Texture
+14782095511122872678:
+  id: 14782095511122872678
+  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_roughness.png
+  asset_type: Texture
+0:
+  id: 0
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\cube.obj
+  asset_type: Mesh
+14004660404556113654:
+  id: 14004660404556113654
+  file_path: C:\dev\reverie\reverie_editor\res\textures\brickwall_normal.jpg
+  asset_type: Texture
+15746056944050096376:
+  id: 15746056944050096376
+  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_ao.png
+  asset_type: Texture
+7403896815389001851:
+  id: 7403896815389001851
+  file_path: C:\dev\reverie\reverie_editor\res\imgui_textures\file.png
+  asset_type: Texture
+521589741683229499:
+  id: 521589741683229499
+  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_normal-ogl.png
+  asset_type: Texture
+6171138106866476653:
+  id: 6171138106866476653
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\m4a1.obj
+  asset_type: Mesh
+14220652958971434394:
+  id: 14220652958971434394
+  file_path: C:\dev\reverie\reverie_editor\res\meshes\plane.obj
+  asset_type: Mesh
+10023980551404377262:
+  id: 10023980551404377262
+  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-roughness.png
+  asset_type: Texture
 18150260911918932675:
   id: 18150260911918932675
   file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_roughness.png
   asset_type: Texture
-10023980551404377262:
-  id: 10023980551404377262
-  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-roughness.png
+16743552215167775342:
+  id: 16743552215167775342
+  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_normal-ogl.png
+  asset_type: Texture
+13980511551806226922:
+  id: 13980511551806226922
+  file_path: C:\dev\reverie\reverie_editor\res\textures\rusted_iron\rustediron2_normal.png
+  asset_type: Texture
+3413657097294810512:
+  id: 3413657097294810512
+  file_path: C:\dev\reverie\reverie_editor\res\textures\stainless_steel\used-stainless-steel2_albedo.png
+  asset_type: Texture
+4868344826589006944:
+  id: 4868344826589006944
+  file_path: C:\dev\reverie\reverie_editor\res\scenes\test.revscene
+  asset_type: Scene
+13853359215724971597:
+  id: 13853359215724971597
+  file_path: C:\dev\reverie\reverie_editor\res\textures\bricks_mortar\bricks-mortar-albedo.png
+  asset_type: Texture
+18383461605085444235:
+  id: 18383461605085444235
+  file_path: C:\dev\reverie\reverie_editor\res\textures\saloon_wood\saloon-wood-floor_albedo.png
   asset_type: Texture
