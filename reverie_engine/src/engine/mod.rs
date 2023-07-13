@@ -12,5 +12,6 @@ pub mod light_manager;
 pub mod registry;
 pub mod scene;
 pub mod material;
+pub mod skybox;
 
 pub mod components;

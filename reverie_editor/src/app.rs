@@ -55,7 +55,7 @@ impl App {
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));
         let camera_controller = CameraController::new(4.0, 0.5);
 
-        let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device, &context.queue);
+        let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device, &context.queue, &camera);
 
         Self {
             context,
@@ -105,6 +105,9 @@ impl App {
         }
         self.camera.update_uniform();
         self.context.queue.write_buffer(&self.camera.buffer, 0, cast_slice(&[self.camera.uniform]));
+        
+        self.scene.skybox.as_ref().unwrap().update_projection(&self.camera, &self.context.queue);
+
         //self.watcher.handle_events(&mut self.textures);
     }
 
@@ -121,7 +124,7 @@ impl App {
         }
 
         let viewport_view = self.imgui.viewport.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.renderer.draw(&self.context.device, &viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
+        self.renderer.draw(&viewport_view, &mut self.scene, &self.camera, &mut encoder)?;
         
         let texture = imgui_wgpu::Texture::from_raw_parts(
             &self.context.device, 

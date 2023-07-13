@@ -17,7 +17,8 @@ fn vs_main(
     var out: VertexOutput;
 
     out.tex_coords = in.position;
-    out.position = view_proj * vec4<f32>(in.position, 1.0);
+    let pos = view_proj * vec4<f32>(in.position, 1.0);
+    out.position = pos.xyww;
 
     return out;
 }
