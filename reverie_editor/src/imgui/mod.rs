@@ -3,13 +3,13 @@ mod viewport;
 
 use std::{sync::{Arc, Mutex}, path::PathBuf};
 
-use reverie::{engine::{
+use reverie::engine::{
     components::{
         transform::Transform, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
     }, registry::AssetType, texture::Texture, scene::Scene,
-}};
+};
 use specs::{*, WorldExt};
 
 use reverie::engine::registry::Registry;
@@ -209,52 +209,78 @@ impl Imgui {
             });
 
         ui.window("Objects").build(|| {
-            let names = scene.world.read_component::<Name>();
-            let point_light_component = scene.world.read_component::<PointLight>();
-            let directional_light_component = scene.world.read_component::<DirectionalLight>();
+            // let names = scene.world.read_component::<Name>();
+            // let point_light_component = scene.world.read_component::<PointLight>();
+            // let directional_light_component = scene.world.read_component::<DirectionalLight>();
 
-            let mut point_light_index = 0;
-            let mut directional_light_index = 0;
+            // let mut point_light_index = 0;
+            // let mut directional_light_index = 0;
+
+            // for entity in scene.world.entities().join() {
+            //     let name = names.get(entity).unwrap();
+
+            //     if ui.button(format!("{}##{}", name.0.to_string(), entity.id())) {
+            //         self.entity = Some(entity);
+            //         self.explorer.selected_file = None;
+            //         self.explorer.material = None;
+
+            //         match point_light_component.get(entity) {
+            //             Some(_) => self.point_light_index = Some(point_light_index),
+            //             None => self.point_light_index = None,
+            //         }
+
+            //         match directional_light_component.get(entity) {
+            //             Some(_) => self.directional_light_index = Some(directional_light_index),
+            //             None => self.directional_light_index = None,
+            //         }
+            //     }
+
+            //     if point_light_component.get(entity).is_some() {
+            //         point_light_index += 1;
+            //     }
+
+            //     if directional_light_component.get(entity).is_some() {
+            //         directional_light_index += 1;
+            //     }
+            // }
+            // drop(names);
+            // drop(point_light_component);
+            // drop(directional_light_component);
+
+            // ui.popup("objects_popup", || {
+            //     if ui.button("Create Object") {
+            //         scene.create_entity(device);
+            //     }
+            // });
+
+            // if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
+            //     ui.open_popup("objects_popup")
+            //}
+            
+            let names = scene.world.read_component::<Name>();
 
             for entity in scene.world.entities().join() {
                 let name = names.get(entity).unwrap();
 
-                if ui.button(format!("{}##{}", name.0.to_string(), entity.id())) {
+                let mut flags = imgui::TreeNodeFlags::DEFAULT_OPEN | 
+                    imgui::TreeNodeFlags::FRAME_PADDING | 
+                    imgui::TreeNodeFlags::OPEN_ON_ARROW | 
+                    imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH;
+
+                if self.entity == Some(entity) {
+                    flags |= imgui::TreeNodeFlags::SELECTED
+                }
+
+
+                ui.tree_node_config(name.0.as_str())
+                    .flags(flags)
+                    .build(|| {
+
+                    });
+
+                if ui.is_item_clicked() && !ui.is_item_toggled_open() {
                     self.entity = Some(entity);
-                    self.explorer.selected_file = None;
-                    self.explorer.material = None;
-
-                    match point_light_component.get(entity) {
-                        Some(_) => self.point_light_index = Some(point_light_index),
-                        None => self.point_light_index = None,
-                    }
-
-                    match directional_light_component.get(entity) {
-                        Some(_) => self.directional_light_index = Some(directional_light_index),
-                        None => self.directional_light_index = None,
-                    }
                 }
-
-                if point_light_component.get(entity).is_some() {
-                    point_light_index += 1;
-                }
-
-                if directional_light_component.get(entity).is_some() {
-                    directional_light_index += 1;
-                }
-            }
-            drop(names);
-            drop(point_light_component);
-            drop(directional_light_component);
-
-            ui.popup("objects_popup", || {
-                if ui.button("Create Object") {
-                    scene.create_entity(device);
-                }
-            });
-
-            if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
-                ui.open_popup("objects_popup")
             }
         });
         
