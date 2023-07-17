@@ -74,24 +74,17 @@ impl Explorer {
     }
 
     fn create_node<'a>(&mut self, ui: &'a imgui::Ui, path: PathBuf, depth: i32) {
-        let indent = ui.clone_style().indent_spacing;
         let file_name = path.file_name().unwrap().to_str().unwrap();
-        let mut flags = imgui::TreeNodeFlags::DEFAULT_OPEN | imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::ALLOW_ITEM_OVERLAP;
+        let mut flags = imgui::TreeNodeFlags::DEFAULT_OPEN | imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH;
         if self.current_folder == path {
             flags |= imgui::TreeNodeFlags::SELECTED;
         }
-        if ui.tree_node_config(&file_name).default_open(true).flags(flags).build(|| {
-            ui.same_line_with_pos(28.0 + indent * depth as f32);
-            if ui.invisible_button(format!("##{}", &file_name), [ui.content_region_avail()[0], ui.calc_text_size(file_name)[1]]) {
+        ui.tree_node_config(&file_name).flags(flags).build(|| {
+            if ui.is_item_clicked() && !ui.is_item_toggled_open() {
                 self.current_folder = path.clone();
             }
             self.get_inner_dirs(ui, path.clone(), depth + 1);
-        }).is_none() {
-            ui.same_line_with_pos(28.0 + indent * depth as f32);
-            if ui.invisible_button(format!("##{}", &file_name), [ui.content_region_avail()[0], ui.calc_text_size(file_name)[1]]) {
-                self.current_folder = path.clone();
-            }
-        }
+        });
     }
 
     fn get_files<'a>(&mut self, ui: &'a imgui::Ui, registry: &mut Registry) {
