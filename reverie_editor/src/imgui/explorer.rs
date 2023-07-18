@@ -62,7 +62,7 @@ impl Explorer {
                     match entry {
                         Ok(entry) => {
                             if entry.file_type().unwrap().is_dir() {
-                                self.create_node(ui, entry.path(), depth)
+                                self.create_node(ui, entry.path(), depth);
                             }
                         },
                         Err(_) => {}
@@ -79,12 +79,17 @@ impl Explorer {
         if self.current_folder == path {
             flags |= imgui::TreeNodeFlags::SELECTED;
         }
+        let mut opened = false;
         ui.tree_node_config(&file_name).flags(flags).build(|| {
+            opened = true;
             if ui.is_item_clicked() && !ui.is_item_toggled_open() {
                 self.current_folder = path.clone();
             }
             self.get_inner_dirs(ui, path.clone(), depth + 1);
         });
+        if ui.is_item_clicked() && !ui.is_item_toggled_open() && !opened {
+            self.current_folder = path.clone();
+        }
     }
 
     fn get_files<'a>(&mut self, ui: &'a imgui::Ui, registry: &mut Registry) {
