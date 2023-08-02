@@ -24,6 +24,8 @@ pub struct DeserializedData {
     pub position: cg::Vector3<f32>,
     pub rotation: cg::Vector3<f32>,
     pub scale: cg::Vector3<f32>,
+    pub parent: Option<u32>,
+    pub children: Vec<u32>,
 }
 
 #[derive(Clone, ImguiInspect, Serialize)]
@@ -34,6 +36,12 @@ pub struct TransformData {
     rotation: cg::Vector3<f32>,
     #[inspect(widget = "custom", min = 0.001, max = 100.0, speed = 0.01)]
     scale: cg::Vector3<f32>,
+
+    #[inspect(hide = true)]
+    pub parent: Option<u32>,
+
+    #[inspect(hide = true)]
+    pub children: Vec<u32>,
 
     #[inspect(hide = true)]
     #[serde(skip)]
@@ -84,14 +92,18 @@ impl Transform {
         }
     }
 
-    pub fn set_position(&mut self, position: cg::Vector3<f32>, queue: &wgpu::Queue) {
+    pub fn set_position(&mut self, position: cg::Vector3<f32>, queue: &wgpu::Queue, parent_matrix: Option<cg::Matrix4<f32>>) {
         self.data.position = position;
-        self.data.update_matrix();
+        self.data.update_matrix(parent_matrix);
         self.update_buffers(queue);
     }
 
     pub fn get_position(&self) -> cg::Vector3<f32> {
         self.data.position
+    }
+
+    pub fn get_matrix(&self) -> cg::Matrix4<f32> {
+        self.data.matrix
     }
 
     pub fn update_buffers(&self, queue: &wgpu::Queue) {
@@ -102,7 +114,7 @@ impl Transform {
 
 
 impl TransformData {
-    pub fn new(position: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>) -> Self {
+    pub fn new(position: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>, parent: Option<u32>) -> Self {
         
         let matrix = calculate_transform_matrix(position, rotation, scale);
 
@@ -110,18 +122,24 @@ impl TransformData {
             position,
             rotation,
             scale,
+            parent,
+            children: Vec::new(),
             matrix,
             normal_matrix: matrix.invert().unwrap().transpose(),
         }
     }
 
-    pub fn update_matrix(&mut self) {
+    pub fn update_matrix(&mut self, parent_matrix: Option<cg::Matrix4<f32>>) {
         let rotation = cg::Matrix4::from_angle_x(cg::Deg(self.rotation.x))
             * cg::Matrix4::from_angle_y(cg::Deg(self.rotation.y))
             * cg::Matrix4::from_angle_z(cg::Deg(self.rotation.z));
         
         self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
         self.normal_matrix = self.matrix.invert().unwrap().transpose();
+
+        if let Some(parent_matrix) = parent_matrix {
+            self.matrix = parent_matrix * self.matrix;
+        }
     }
 
 }
@@ -134,6 +152,8 @@ impl Default for TransformData {
             position: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: cg::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             scale: cg::Vector3 { x: 1.0, y: 1.0, z: 1.0 },
+            parent: None,
+            children: Vec::new(),
             matrix: cg::SquareMatrix::identity(),
             normal_matrix: matrix.invert().unwrap().transpose(),
         }

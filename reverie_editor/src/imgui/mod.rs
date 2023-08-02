@@ -1,5 +1,6 @@
 mod explorer;
 mod viewport;
+mod hierarchy;
 
 use std::{sync::{Arc, Mutex}, path::PathBuf};
 
@@ -19,7 +20,7 @@ use crate::cursor::set_cursor;
 
 use explorer::Explorer;
 
-use self::viewport::Viewport;
+use self::{viewport::Viewport, hierarchy::Hierarchy};
 
 pub struct Imgui {
     pub context: imgui::Context,
@@ -28,9 +29,8 @@ pub struct Imgui {
 
     pub viewport: Viewport,
     pub explorer: Explorer,
+    pub hierarchy: Hierarchy,
 
-    entity: Option<Entity>,
-    point_light_index: Option<usize>,
     directional_light_index: Option<usize>,
 }
 
@@ -56,9 +56,8 @@ impl Imgui {
             renderer,
             viewport: Viewport::new(device),
             explorer: Explorer::new(),
+            hierarchy: Hierarchy::new(),
 
-            entity: None,
-            point_light_index: None,
             directional_light_index: None,
         }
     }
@@ -93,19 +92,41 @@ impl Imgui {
                     }
                 }
 
-                if let Some(entity) = self.entity {
+                if let Some(entity) = self.hierarchy.entity {
                     let mut names = scene.world.write_component::<Name>();
                     ui.input_text("##entity name", &mut names.get_mut(entity).unwrap().0).build();
                     ui.separator();
                     {
                         let mut transforms = scene.world.write_component::<Transform>();
+
+                        let mut parent_id = None;
+                        let mut parent_matrix: Option<cg::Matrix4<f32>> = None;
+                        if let Some(transform) = transforms.get_mut(entity) {
+                            if let Some(id) = transform.data.parent {
+                                parent_id = Some(id);
+                            }
+                        }
+                        if let Some(id) = parent_id {
+                            if let Some(transform) = transforms.get(scene.world.entities().entity(id as u32)) {
+                                parent_matrix = Some(transform.get_matrix());
+                            }
+                        }
+
                         if let Some(transform) = transforms.get_mut(entity) {
                             if ui.collapsing_header("Transform", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                                 if transform.data.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                    transform.data.update_matrix();
+                                    transform.data.update_matrix(parent_matrix);
                                     transform.update_buffers(queue);
-                                    if self.point_light_index.is_some() {
-                                        scene.light_manager.update_light_position(queue, self.point_light_index.unwrap(), transform.get_position());
+                                    if self.hierarchy.point_light_index.is_some() {
+                                        scene.light_manager.update_light_position(queue, self.hierarchy.point_light_index.unwrap(), transform.get_position());
+                                    }
+                                    for transform in (&mut transforms).join() {
+                                        if let Some(parent) = transform.data.parent {
+                                            if parent == entity.id() {
+                                                transform.data.update_matrix(Some(transform.get_matrix()));
+                                                transform.update_buffers(queue);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -115,7 +136,7 @@ impl Imgui {
                         if let Some(light) = lights.get_mut(entity) {
                             if ui.collapsing_header("Point Light", imgui::TreeNodeFlags::DEFAULT_OPEN) {
                                 if light.imgui_inspect(ui).iter().any(|&value| value == true) {
-                                    scene.light_manager.update_light_color(queue, self.point_light_index.unwrap(), light.get_color());
+                                    scene.light_manager.update_light_color(queue, self.hierarchy.point_light_index.unwrap(), light.get_color());
                                 }
                             }
                         }
@@ -198,7 +219,7 @@ impl Imgui {
                         add_component::<Transform>(ui, scene, entity, device, registry, None);
                         add_component::<MaterialComponent>(ui, scene, entity, device, registry, None);
                         add_component::<Mesh>(ui, scene, entity, device, registry, None);
-                        add_component::<PointLight>(ui, scene, entity, device, registry, self.point_light_index);
+                        add_component::<PointLight>(ui, scene, entity, device, registry, self.hierarchy.point_light_index);
                         add_component::<DirectionalLight>(ui, scene, entity, device, registry, self.directional_light_index);
                     });
 
@@ -208,51 +229,13 @@ impl Imgui {
                 }
             });
 
-        ui.window("Objects").build(|| {
-            let names = scene.world.read_component::<Name>();
-            let point_light_component = scene.world.read_component::<PointLight>();
-            
-            let mut point_light_index = 0;
-            for entity in scene.world.entities().join() {
-
-                let name = names.get(entity).unwrap();
-
-                let mut flags = imgui::TreeNodeFlags::DEFAULT_OPEN | 
-                    imgui::TreeNodeFlags::FRAME_PADDING | 
-                    imgui::TreeNodeFlags::OPEN_ON_ARROW | 
-                    imgui::TreeNodeFlags::SPAN_AVAIL_WIDTH;
-
-                if self.entity == Some(entity) {
-                    flags |= imgui::TreeNodeFlags::SELECTED
-                }
-
-
-                ui.tree_node_config(name.0.as_str())
-                    .flags(flags)
-                    .build(|| {});
-
-                if ui.is_item_clicked() && !ui.is_item_toggled_open() {
-                    self.entity = Some(entity);
-                    self.explorer.selected_file = None;
-                    self.explorer.material = None;
-                    match point_light_component.get(entity) {
-                        Some(_) => self.point_light_index = Some(point_light_index),
-                        None => self.point_light_index = None,
-                    }
-                }
-
-                if point_light_component.get(entity).is_some() {
-                    point_light_index += 1;
-                }
-            }
-        });
-        
+        self.hierarchy.ui(ui, scene, &mut self.explorer);
 
         self.viewport.ui(ui, scene, registry, device);
         self.explorer.ui(ui, registry);
         
         if self.explorer.selected_file.is_some() {
-            self.entity = None;
+            self.hierarchy.entity = None;
         }
 
         set_cursor(window, ui);

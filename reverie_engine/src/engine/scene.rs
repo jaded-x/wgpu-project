@@ -5,7 +5,19 @@ use specs::{World, WorldExt, Join, Builder};
 
 use crate::util::res;
 
-use super::{light_manager::LightManager, components::{name::Name, transform::{Transform, DeserializedData, TransformData}, material::MaterialComponent, mesh::Mesh, light::{PointLight, DirectionalLight}}, registry::Registry, camera::Camera, skybox::Skybox};
+use super::{
+    light_manager::LightManager, 
+    components::{
+        name::Name, 
+        transform::{Transform, DeserializedData, TransformData}, 
+        material::MaterialComponent, 
+        mesh::Mesh, 
+        light::{PointLight, DirectionalLight},
+    }, 
+    registry::Registry, 
+    camera::Camera, 
+    skybox::Skybox
+};
 
 pub struct Scene {
     pub path: PathBuf,
@@ -75,7 +87,7 @@ impl Scene {
 
         let yaml = format!(
             "# Names\n{}\n\n# Transforms\n{}\n\n# Materials\n{}\n\n# Meshes\n{}\n\n# Point Lights\n{}\n\n# Directional Lights\n{}",
-            yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_point_lights, yaml_directional_lights
+            yaml_names, yaml_transforms, yaml_materials, yaml_meshes, yaml_point_lights, yaml_directional_lights,
         );
         
         std::fs::write(self.path.clone(), yaml).unwrap();
@@ -97,12 +109,8 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
     let yaml = std::fs::read_to_string(path).unwrap();
     if yaml == "" {
         let mut world = specs::World::new();
-        world.register::<Transform>();
-        world.register::<MaterialComponent>();
-        world.register::<Mesh>();
-        world.register::<Name>();
-        world.register::<PointLight>();
-        world.register::<DirectionalLight>();
+        register_components(&mut world);
+
         world.create_entity().with(Transform::new(TransformData::default(), device)).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
         return world;
     }
@@ -116,12 +124,7 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
     let s_directional_lights: HashMap<u32, DirectionalLight> = serde_yaml::from_str(sections[5]).unwrap();
 
     let mut world = specs::World::new();
-        world.register::<Transform>();
-        world.register::<MaterialComponent>();
-        world.register::<Mesh>();
-        world.register::<Name>();
-        world.register::<PointLight>();
-        world.register::<DirectionalLight>();
+    register_components(&mut world);
 
     for id in 0..s_names.len() as u32 {
         let mut entity = world.create_entity();
@@ -130,7 +133,7 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
             entity = entity.with(name.clone());
         }
         if let Some(transform) = s_transforms.get(&id) {
-            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale), device))
+            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale, transform.parent), device))
         }
         if let Some(material) = s_materials.get(&id) {
             entity = entity.with(MaterialComponent::new(material.id, registry))
@@ -154,4 +157,13 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
 #[derive(Deserialize)]
 struct DeserializedId {
     id: usize
+} 
+
+fn register_components(world: &mut World) {
+    world.register::<Transform>();
+    world.register::<MaterialComponent>();
+    world.register::<Mesh>();
+    world.register::<Name>();
+    world.register::<PointLight>();
+    world.register::<DirectionalLight>();
 }
