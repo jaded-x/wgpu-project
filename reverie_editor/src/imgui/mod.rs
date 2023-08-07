@@ -120,12 +120,14 @@ impl Imgui {
                                     if self.hierarchy.point_light_index.is_some() {
                                         scene.light_manager.update_light_position(queue, self.hierarchy.point_light_index.unwrap(), transform.get_position());
                                     }
-                                    for transform in (&mut transforms).join() {
-                                        if let Some(parent) = transform.data.parent {
-                                            if parent == entity.id() {
-                                                transform.data.update_matrix(Some(transform.get_matrix()));
-                                                transform.update_buffers(queue);
-                                            }
+                                    let matrix = transform.get_matrix().clone();
+                                    let children = transform.data.children.clone();
+                                    drop(transform);
+                                    for child in children {
+                                        let child_transform = transforms.get_mut(scene.world.entities().entity(child)).unwrap();
+                                        if child_transform.data.parent.unwrap() == entity.id() {
+                                            child_transform.data.update_matrix(Some(matrix));
+                                            child_transform.update_buffers(queue);
                                         }
                                     }
                                 }

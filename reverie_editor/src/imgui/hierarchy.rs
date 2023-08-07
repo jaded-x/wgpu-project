@@ -1,3 +1,4 @@
+use cg::SquareMatrix;
 use reverie::engine::{scene::Scene, components::{transform::Transform, name::Name, light::PointLight}};
 use specs::{Entity, WorldExt, Join, Storage, shred::Fetch, storage::MaskedStorage, WriteStorage};
 
@@ -62,8 +63,12 @@ impl Hierarchy {
                                     let old_parent_transform = transforms.get_mut(old_parent).unwrap();
                                     old_parent_transform.data.children.retain(|&x| x != payload_data.data.id());
                                 }
-                                let child_transform = transforms.get_mut(payload_data.data);
-                                child_transform.unwrap().data.parent = Some(entity.id());
+                                let parent_transform = transforms.get_mut(entity).unwrap();
+                                let parent_matrix = parent_transform.get_matrix();
+                                let child_transform = transforms.get_mut(payload_data.data).unwrap();
+                                child_transform.data.parent = Some(entity.id());
+                                child_transform.update_local_transformation(parent_matrix);
+                                
                                 let parent_transform = transforms.get_mut(entity);
                                 parent_transform.unwrap().data.children.push(payload_data.data.id());
                             },
@@ -99,10 +104,15 @@ impl Hierarchy {
                 Some(target) => {
                     match target.accept_payload::<Entity, _>("Object", imgui::DragDropFlags::empty()) {
                         Some(Ok(payload_data)) => {
-                            let child_transform = transforms.get_mut(payload_data.data);
-                            child_transform.unwrap().data.parent = Some(entity.id());
+                            let parent_transform = transforms.get_mut(entity).unwrap();
+                            let parent_matrix = parent_transform.get_matrix();
+                            let child_transform = transforms.get_mut(payload_data.data).unwrap();
+                            child_transform.data.parent = Some(entity.id());
+                            child_transform.update_local_transformation(parent_matrix);
+                            
                             let parent_transform = transforms.get_mut(entity);
                             parent_transform.unwrap().data.children.push(payload_data.data.id());
+
                         },
                         Some(Err(e)) => {
                             println!("{}", e);

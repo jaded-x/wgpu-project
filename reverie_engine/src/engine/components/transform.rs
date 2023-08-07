@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+
+use cg::InnerSpace;
 use cg::Matrix;
 use cg::SquareMatrix;
 use serde::Deserialize;
@@ -102,6 +104,15 @@ impl Transform {
         self.data.position
     }
 
+    
+    pub fn get_rotation(&self) -> cg::Vector3<f32> {
+        self.data.rotation
+    }
+
+    pub fn get_scale(&self) -> cg::Vector3<f32> {
+        self.data.scale
+    }
+
     pub fn get_matrix(&self) -> cg::Matrix4<f32> {
         self.data.matrix
     }
@@ -109,6 +120,24 @@ impl Transform {
     pub fn update_buffers(&self, queue: &wgpu::Queue) {
         queue.write_buffer(&self.buffers.get("matrix").unwrap(), 0, cast_slice(&[self.data.matrix, self.data.normal_matrix]));
         queue.write_buffer(&self.buffers.get("position").unwrap(), 0, cast_slice(&[self.data.position]));
+    }
+
+    pub fn update_local_transformation(&mut self, parent_matrix: cg::Matrix4<f32>) {
+        let inverse_parent = parent_matrix.invert().unwrap();
+        let new_matrix: cg::Matrix4<f32> = inverse_parent * self.data.matrix;
+
+        let position = new_matrix.w.truncate();
+
+        let scale = cg::vec3(
+            new_matrix.x.truncate().magnitude(),
+            new_matrix.y.truncate().magnitude(),
+            new_matrix.z.truncate().magnitude(),
+        );
+        
+        self.data.position = position;
+        self.data.scale = scale;
+
+        self.data.update_matrix(Some(parent_matrix));
     }
 }
 
@@ -141,7 +170,6 @@ impl TransformData {
             self.matrix = parent_matrix * self.matrix;
         }
     }
-
 }
 
 impl Default for TransformData {
