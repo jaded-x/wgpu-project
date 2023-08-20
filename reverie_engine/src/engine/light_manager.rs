@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::util::{cast_slice, align::Align16};
 
-use super::{components::{light::{PointLight, DirectionalLight}, transform::Transform}, renderer::Renderer};
+use super::{components::{light::{PointLight, DirectionalLight}, transform::{Transform, TransformComponent}}, renderer::Renderer};
 
 #[derive(Clone)]
 struct LightData {
@@ -41,7 +41,7 @@ impl LightManager {
         let mut point_lights: Vec<LightData> = Vec::new();
         let mut point_light_shadows: Vec<PointShadow> = Vec::new();
 
-        let transform_components = world.read_component::<Transform>();
+        let transform_components = world.read_component::<TransformComponent>();
         let point_light_components = world.read_component::<PointLight>();
 
         let point_light_count = point_light_components.count() as i32 + 1;
@@ -268,7 +268,7 @@ impl LightManager {
         }]));
     }
 
-    pub fn add_point_light(&mut self, device: &wgpu::Device, transform: &Transform, light: &PointLight) {
+    pub fn add_point_light(&mut self, device: &wgpu::Device, transform: &TransformComponent, light: &PointLight) {
         let transform_data = transform.get_position();
         let light_data = light.get_color();
 

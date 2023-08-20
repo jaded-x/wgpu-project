@@ -9,7 +9,7 @@ use super::{
     light_manager::LightManager, 
     components::{
         name::Name, 
-        transform::{Transform, DeserializedData, TransformData}, 
+        transform::{Transform, DeserializedTransform, TransformComponent}, 
         material::MaterialComponent, 
         mesh::Mesh, 
         light::{PointLight, DirectionalLight},
@@ -43,7 +43,7 @@ impl Scene {
     pub fn save_scene(&mut self) {
         let entities = self.world.entities();
         let names = self.world.read_storage::<Name>();
-        let transforms = self.world.read_storage::<Transform>();
+        let transforms = self.world.read_storage::<TransformComponent>();
         let materials = self.world.read_storage::<MaterialComponent>();
         let meshes = self.world.read_storage::<Mesh>();
         let point_lights = self.world.read_storage::<PointLight>();
@@ -101,7 +101,7 @@ impl Scene {
     }
 
     pub fn create_entity(&mut self, device: &wgpu::Device) {
-        self.world.create_entity().with(Name::new("Object")).with(Transform::new(TransformData::default(), device)).build();
+        self.world.create_entity().with(Name::new("Object")).with(TransformComponent::new(Transform::default(), device)).build();
     }
 }
 
@@ -111,13 +111,13 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
         let mut world = specs::World::new();
         register_components(&mut world);
 
-        world.create_entity().with(Transform::new(TransformData::default(), device)).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
+        world.create_entity().with(TransformComponent::new(Transform::default(), device)).with(Name::new("Light")).with(PointLight::new([0.0, 0.0, 0.0])).build();
         return world;
     }
     let sections: Vec<&str> = yaml.split("\n\n").collect();
 
     let s_names: HashMap<u32, Name> = serde_yaml::from_str(sections[0]).unwrap();
-    let s_transforms: HashMap<u32, DeserializedData> = serde_yaml::from_str(sections[1]).unwrap();
+    let s_transforms: HashMap<u32, DeserializedTransform> = serde_yaml::from_str(sections[1]).unwrap();
     let s_materials: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[2]).unwrap();
     let s_meshes: HashMap<u32, DeserializedId> = serde_yaml::from_str(sections[3]).unwrap();
     let s_point_lights: HashMap<u32, PointLight> = serde_yaml::from_str(sections[4]).unwrap();
@@ -133,7 +133,7 @@ fn load_world(path: &PathBuf, registry: &mut Registry, device: &wgpu::Device) ->
             entity = entity.with(name.clone());
         }
         if let Some(transform) = s_transforms.get(&id) {
-            entity = entity.with(Transform::new(TransformData::new(transform.position, transform.rotation, transform.scale, transform.parent), device))
+            entity = entity.with(TransformComponent::new(Transform::new(transform.position, transform.rotation, transform.scale, transform.parent), device))
         }
         if let Some(material) = s_materials.get(&id) {
             entity = entity.with(MaterialComponent::new(material.id, registry))
@@ -160,7 +160,7 @@ struct DeserializedId {
 } 
 
 fn register_components(world: &mut World) {
-    world.register::<Transform>();
+    world.register::<TransformComponent>();
     world.register::<MaterialComponent>();
     world.register::<Mesh>();
     world.register::<Name>();

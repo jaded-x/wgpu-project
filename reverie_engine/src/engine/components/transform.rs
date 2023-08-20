@@ -22,7 +22,7 @@ use super::ComponentDefault;
 use super::TypeName;
 
 #[derive(Deserialize)]
-pub struct DeserializedData {
+pub struct DeserializedTransform {
     pub position: cg::Vector3<f32>,
     pub rotation: cg::Vector3<f32>,
     pub scale: cg::Vector3<f32>,
@@ -31,7 +31,7 @@ pub struct DeserializedData {
 }
 
 #[derive(Clone, ImguiInspect, Serialize)]
-pub struct TransformData {
+pub struct Transform {
     #[inspect(widget = "custom", speed = 0.01)]
     position: cg::Vector3<f32>,
     #[inspect(widget = "custom")]
@@ -55,15 +55,15 @@ pub struct TransformData {
 
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct Transform {
-    pub data: TransformData,
+pub struct TransformComponent {
+    pub data: Transform,
 
     pub buffers: HashMap<&'static str, wgpu::Buffer>,
     pub bind_group: wgpu::BindGroup,
 }
 
-impl Transform {
-    pub fn new(transform: TransformData, device: &wgpu::Device) -> Self {
+impl TransformComponent {
+    pub fn new(transform: Transform, device: &wgpu::Device) -> Self {
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("matrix_buffer"),
             contents: cast_slice(&[transform.matrix, transform.normal_matrix]),
@@ -142,7 +142,7 @@ impl Transform {
 }
 
 
-impl TransformData {
+impl Transform {
     pub fn new(position: cg::Vector3<f32>, rotation: cg::Vector3<f32>, scale: cg::Vector3<f32>, parent: Option<u32>) -> Self {
         
         let matrix = calculate_transform_matrix(position, rotation, scale);
@@ -164,15 +164,16 @@ impl TransformData {
             * cg::Matrix4::from_angle_z(cg::Deg(self.rotation.z));
         
         self.matrix = cg::Matrix4::from_translation(self.position) * rotation * cg::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
-        self.normal_matrix = self.matrix.invert().unwrap().transpose();
 
         if let Some(parent_matrix) = parent_matrix {
             self.matrix = parent_matrix * self.matrix;
         }
+
+        self.normal_matrix = self.matrix.invert().unwrap().transpose();
     }
 }
 
-impl Default for TransformData {
+impl Default for Transform {
     fn default() -> Self {
         let matrix: cg::Matrix4<f32> = cg::SquareMatrix::identity();
 
@@ -196,9 +197,9 @@ fn calculate_transform_matrix(position: cg::Vector3<f32>, rotation: cg::Vector3<
     cg::Matrix4::from_translation(position) * rotation * cg::Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z)
 }
 
-impl ComponentDefault for Transform {
+impl ComponentDefault for TransformComponent {
     fn default(device: &wgpu::Device, _registry: &mut Registry) -> Self {
-        let transform = TransformData::default();
+        let transform = Transform::default();
 
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("matrix_buffer"),
@@ -224,14 +225,14 @@ impl ComponentDefault for Transform {
         });
 
         Self {
-            data: TransformData::default(),
+            data: Transform::default(),
             buffers: HashMap::from([("matrix", matrix_buffer), ("position", position_buffer)]),
             bind_group,
         }
     }
 }
 
-impl TypeName for Transform {
+impl TypeName for TransformComponent {
     fn type_name() -> &'static str {
         "transform"
     }

@@ -6,7 +6,7 @@ use std::{sync::{Arc, Mutex}, path::PathBuf};
 
 use reverie::engine::{
     components::{
-        transform::Transform, 
+        transform::{Transform, TransformComponent}, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
     }, registry::AssetType, texture::Texture, scene::Scene,
@@ -97,7 +97,7 @@ impl Imgui {
                     ui.input_text("##entity name", &mut names.get_mut(entity).unwrap().0).build();
                     ui.separator();
                     {
-                        let mut transforms = scene.world.write_component::<Transform>();
+                        let mut transforms = scene.world.write_component::<TransformComponent>();
 
                         let mut parent_id = None;
                         let mut parent_matrix: Option<cg::Matrix4<f32>> = None;
@@ -218,7 +218,7 @@ impl Imgui {
                     ui.popup("components", || {
                         ui.text("Add Component");
                         add_component::<Name>(ui, scene, entity, device, registry, None);
-                        add_component::<Transform>(ui, scene, entity, device, registry, None);
+                        add_component::<TransformComponent>(ui, scene, entity, device, registry, None);
                         add_component::<MaterialComponent>(ui, scene, entity, device, registry, None);
                         add_component::<Mesh>(ui, scene, entity, device, registry, None);
                         add_component::<PointLight>(ui, scene, entity, device, registry, self.hierarchy.point_light_index);
@@ -321,7 +321,7 @@ fn add_component<'a, T: ComponentDefault + specs::Component>(ui: &'a imgui::Ui, 
             components.insert(entity, T::default(device, registry)).expect(&format!("Failed to add component: {}", T::type_name()));
             drop(components);
             if T::type_name() == "point_light" {
-                let transforms = scene.world.read_component::<Transform>();
+                let transforms = scene.world.read_component::<TransformComponent>();
                 let lights = scene.world.read_component::<PointLight>();
                 scene.light_manager.add_point_light(device, transforms.get(entity).unwrap(), lights.get(entity).unwrap());
             } else if T::type_name() == "directional_light" {

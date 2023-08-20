@@ -1,5 +1,5 @@
 use cg::SquareMatrix;
-use reverie::engine::{scene::Scene, components::{transform::Transform, name::Name, light::PointLight}};
+use reverie::engine::{scene::Scene, components::{transform::{Transform, TransformComponent}, name::Name, light::PointLight}};
 use specs::{Entity, WorldExt, Join, Storage, shred::Fetch, storage::MaskedStorage, WriteStorage};
 
 use super::explorer::Explorer;
@@ -20,7 +20,7 @@ impl Hierarchy {
     pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, scene: &mut Scene, explorer: &mut Explorer) {
         ui.window("Hierarchy").build(|| {
             let mut point_light_index = 0;
-            let mut transforms = scene.world.write_component::<Transform>();
+            let mut transforms = scene.world.write_component::<TransformComponent>();
             for entity in scene.world.entities().join() {
                 if transforms.get(entity).unwrap().data.parent == None {
                     self.create_node(ui, scene, explorer, entity, &mut point_light_index, &mut transforms);
@@ -29,7 +29,7 @@ impl Hierarchy {
         });
     }
 
-    fn create_node<'a>(&mut self, ui: &'a imgui::Ui, scene: &Scene, explorer: &mut Explorer, entity: Entity, point_light_index: &mut usize, transforms: &mut WriteStorage<Transform>) {
+    fn create_node<'a>(&mut self, ui: &'a imgui::Ui, scene: &Scene, explorer: &mut Explorer, entity: Entity, point_light_index: &mut usize, transforms: &mut WriteStorage<TransformComponent>) {
         let names = scene.world.read_component::<Name>();
         let point_light_component = scene.world.read_component::<PointLight>();
         let name = names.get(entity).unwrap();

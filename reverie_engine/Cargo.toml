@@ -26,7 +26,6 @@ obj-rs = "0.7.1"
 rayon = "1.7.0"
 notify = "6.0.1"
 fbxcel = { version = "0.9.0", features = ["tree"] }
-nalgebra = "0.32.3"
 
 array-init = "2.1.0"
 

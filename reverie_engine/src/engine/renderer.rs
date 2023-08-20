@@ -7,7 +7,7 @@ use wgpu::BindGroupLayout;
 use super::{
     components::{
         mesh::Mesh, 
-        material::MaterialComponent, transform::Transform,
+        material::MaterialComponent, transform::{Transform, TransformComponent},
     },
     context::create_render_pipeline, 
     camera::Camera,
@@ -500,7 +500,7 @@ impl Pass for Renderer {
         for shadow in &scene.light_manager.point_shadows {
             for (i, depth_texture_view) in shadow.views.iter().enumerate() {
                 let meshes = scene.world.read_storage::<Mesh>();
-                let transforms = scene.world.read_storage::<Transform>();
+                let transforms = scene.world.read_storage::<TransformComponent>();
                 let materials_c = scene.world.read_storage::<MaterialComponent>();
 
                 let light_pass_descriptor = wgpu::RenderPassDescriptor {
@@ -531,7 +531,7 @@ impl Pass for Renderer {
         }
 
         let meshes = scene.world.read_storage::<Mesh>();
-        let transforms = scene.world.read_storage::<Transform>();
+        let transforms = scene.world.read_storage::<TransformComponent>();
         let materials_c = scene.world.read_storage::<MaterialComponent>();
 
         {
