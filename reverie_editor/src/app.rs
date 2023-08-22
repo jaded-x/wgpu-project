@@ -11,7 +11,7 @@ use reverie::engine::{
     window::*,
     registry::Registry,
     scene::Scene,
-    texture::Texture,
+    asset::texture::Texture,
 };
 
 pub struct App {

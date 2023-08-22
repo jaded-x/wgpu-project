@@ -9,7 +9,7 @@ use reverie::engine::{
         transform::TransformComponent, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
-    }, registry::AssetType, texture::Texture, scene::Scene,
+    }, registry::AssetType, asset::texture::Texture, scene::Scene,
 };
 use specs::{*, WorldExt};
 

@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use reverie::engine::{registry::{Registry, AssetType}, gpu::Gpu, material::Material};
+use reverie::engine::{registry::{Registry, AssetType}, gpu::Gpu, asset::material::Material};
 
 pub struct Explorer {
     current_folder: PathBuf,
