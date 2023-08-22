@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use specs::{Component, VecStorage};
 
-use crate::engine::{model, registry::Registry};
+use crate::engine::{asset::model, registry::Registry};
 
 use super::{ComponentDefault, TypeName};
 

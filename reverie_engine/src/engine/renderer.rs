@@ -7,14 +7,14 @@ use wgpu::BindGroupLayout;
 use super::{
     components::{
         mesh::Mesh, 
-        material::MaterialComponent, transform::{Transform, TransformComponent},
+        material::MaterialComponent, transform::TransformComponent,
     },
     context::create_render_pipeline, 
     camera::Camera,
-    model::{DrawModel, Vertex, ModelVertex}, scene::Scene,
+    asset::model::{DrawModel, Vertex, ModelVertex}, scene::Scene,
 };
 
-use super::texture::Texture;
+use super::asset::texture::Texture;
 
 pub struct Renderer {
     pub clear_color: wgpu::Color,

@@ -1,3 +1,6 @@
+pub mod light_manager;
+pub mod skybox;
+
 use std::{path::PathBuf, collections::HashMap};
 
 use serde::Deserialize;
@@ -5,8 +8,9 @@ use specs::{World, WorldExt, Join, Builder};
 
 use crate::util::res;
 
+use self::{light_manager::LightManager, skybox::Skybox};
+
 use super::{
-    light_manager::LightManager, 
     components::{
         name::Name, 
         transform::{Transform, DeserializedTransform, TransformComponent}, 
@@ -16,7 +20,6 @@ use super::{
     }, 
     registry::Registry, 
     camera::Camera, 
-    skybox::Skybox
 };
 
 pub struct Scene {

@@ -5,7 +5,8 @@ use wgpu::util::DeviceExt;
 
 use crate::util::cast_slice;
 
-use super::{texture::Texture, camera::Camera, renderer::Renderer};
+use super::super::{camera::Camera, renderer::Renderer};
+use crate::engine::asset::texture::Texture;
 
 pub struct Skybox {
     pub texture: Texture,

@@ -1,6 +1,5 @@
-use cg::SquareMatrix;
-use reverie::engine::{scene::Scene, components::{transform::{Transform, TransformComponent}, name::Name, light::PointLight}};
-use specs::{Entity, WorldExt, Join, Storage, shred::Fetch, storage::MaskedStorage, WriteStorage};
+use reverie::engine::{scene::Scene, components::{transform::TransformComponent, name::Name, light::PointLight}};
+use specs::{Entity, WorldExt, Join, WriteStorage};
 
 use super::explorer::Explorer;
 
@@ -17,14 +16,25 @@ impl Hierarchy {
         }
     }
 
-    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, scene: &mut Scene, explorer: &mut Explorer) {
+    pub fn ui<'a>(&mut self, ui: &'a imgui::Ui, scene: &mut Scene, explorer: &mut Explorer, device: &wgpu::Device) {
         ui.window("Hierarchy").build(|| {
             let mut point_light_index = 0;
             let mut transforms = scene.world.write_component::<TransformComponent>();
             for entity in scene.world.entities().join() {
-                if transforms.get(entity).unwrap().data.parent == None {
+                if transforms.get(entity).unwrap().data.parent.is_none() {
                     self.create_node(ui, scene, explorer, entity, &mut point_light_index, &mut transforms);
                 }
+            }
+            drop(transforms);
+
+            ui.popup("create_object", || {
+                if ui.button("Create Object") {
+                    scene.create_entity(device);
+                }
+            });
+
+            if ui.is_window_hovered() && ui.is_mouse_clicked(imgui::MouseButton::Right) {
+                ui.open_popup("create_object")
             }
         });
     }

@@ -1,7 +1,7 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use super::gpu::Gpu;
+use super::super::gpu::Gpu;
 
 use super::material::Material;
 

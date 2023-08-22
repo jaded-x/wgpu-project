@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::util::cast_slice;
 
-use super::texture::Texture;
-use super::model::{ModelVertex, Mesh};
+use super::asset::texture::Texture;
+use super::asset::model::{ModelVertex, Mesh};
 
 pub fn load_string(file_name: &str) -> Result<String> {
     let mut path = std::env::current_dir().unwrap().join("res");

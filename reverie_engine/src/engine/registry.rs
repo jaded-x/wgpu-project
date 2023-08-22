@@ -7,7 +7,7 @@ use std::error::Error;
 
 use crate::util::cast_slice;
 
-use super::{texture::Texture, model::Mesh, gpu::Gpu, renderer::Renderer, resources, material::Material};
+use super::{asset::{texture::Texture, model::Mesh, material::Material}, gpu::Gpu, renderer::Renderer, resources};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {

@@ -1,0 +1,5 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\reverie_engine\\Cargo.toml"
+    ]
+}

@@ -6,7 +6,7 @@ use std::{sync::{Arc, Mutex}, path::PathBuf};
 
 use reverie::engine::{
     components::{
-        transform::{Transform, TransformComponent}, 
+        transform::TransformComponent, 
         name::Name,
         light::{PointLight, DirectionalLight}, material::MaterialComponent, mesh::Mesh, ComponentDefault, TypeName
     }, registry::AssetType, texture::Texture, scene::Scene,
@@ -231,7 +231,7 @@ impl Imgui {
                 }
             });
 
-        self.hierarchy.ui(ui, scene, &mut self.explorer);
+        self.hierarchy.ui(ui, scene, &mut self.explorer, device);
 
         self.viewport.ui(ui, scene, registry, device);
         self.explorer.ui(ui, registry);

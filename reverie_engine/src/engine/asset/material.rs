@@ -6,7 +6,8 @@ use serde::{Serialize, Deserialize};
 
 use crate::util::cast_slice;
 
-use super::{registry::AssetType, gpu::{Gpu, Asset}, texture::Texture};
+use super::super::{registry::AssetType, gpu::{Gpu, Asset}};
+use super::texture::Texture;
 
 #[derive(Serialize, Deserialize)]
 pub struct TextureId {

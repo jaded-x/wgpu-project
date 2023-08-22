@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use specs::{Component, VecStorage};
 
-use crate::engine::{gpu::Gpu, registry::Registry, material::Material};
+use crate::engine::{gpu::Gpu, registry::Registry, asset::material::Material};
 
 use super::{ComponentDefault, TypeName};
 
