@@ -30,7 +30,7 @@ impl InspectTexture for TextureId {
         let mut result = false;
         match self.id {
             Some(id) => imgui::Image::new(imgui::TextureId::new(id), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui),
-            None => imgui::Image::new(imgui::TextureId::new(5), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui),
+            None => imgui::Image::new(imgui::TextureId::new(17574920008220227172), [32.0, 32.0]).border_col([1.0, 1.0, 1.0, 1.0]).build(ui),
         } 
         
         match ui.drag_drop_target() {

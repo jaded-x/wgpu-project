@@ -105,9 +105,9 @@ impl Registry {
             }
     }
 
-    fn load_texture(&self, id: usize, normal: bool) -> Option<(usize, Arc<Texture>, imgui_wgpu::Texture)> {
+    fn load_texture(&mut self, id: usize, normal: bool) {
         if let Some(asset) = self.metadata.get(&id) {
-            let (sender, receiver) = channel();
+            //let (sender, receiver) = channel();
             let imgui_renderer = self.imgui_renderer.clone();
             let device = self.device.clone();
             let queue = self.queue.clone();
@@ -116,16 +116,16 @@ impl Registry {
             let img = image::load_from_memory(bytes.as_slice()).unwrap();
             let imgui_img = img.clone();
             
-            std::thread::spawn(move || {
-                let imgui_texture = create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 32, 32);
-                sender.send(imgui_texture).unwrap();
-            });
+            create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 64, 64, id);
+
+            // std::thread::spawn(move || {
+            //     let imgui_texture = create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 64, 64);
+            //     sender.send(imgui_texture).unwrap();
+            // });
 
             let texture = Texture::from_image(&self.device, &self.queue, &img, Some(asset.file_path.to_str().unwrap()), normal).unwrap();
-            
-            return Some((asset.id, Arc::new(texture), receiver.recv().unwrap()));
+            self.textures.insert(id, Arc::new(texture));
         }
-        None
     }
 
     fn load_mesh(&mut self, id: usize) {
@@ -186,19 +186,14 @@ impl Registry {
                 let texture_option_ids = vec![material_lock.albedo_map.id, material_lock.normal_map.id, material_lock.metallic_map.id, material_lock.roughness_map.id, material_lock.ao_map.id];
                 let texture_ids: Vec<usize> = texture_option_ids.into_iter().filter_map(|x| x).collect();
                 
-                let computed_textures: Vec<_> = texture_ids.into_par_iter().filter_map(|id| {
-                    if let Some(_) = self.metadata.get(&id) {
-                        let is_normal = self.get_filepath(id).to_str().unwrap().contains("normal");
-                        self.load_texture(id, is_normal)
-                    } else {
-                        None
-                    }
-                }).collect();
-
-                for (id, texture, imgui_texture) in computed_textures {
-                    self.textures.insert(id, texture);
-                    self.imgui_renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
-                }
+                // let computed_textures: Vec<_> = texture_ids.into_par_iter().filter_map(|id| {
+                //     if let Some(_) = self.metadata.get(&id) {
+                //         let is_normal = self.get_filepath(id).to_str().unwrap().contains("normal");
+                //         self.load_texture(id, is_normal)
+                //     } else {
+                //         None
+                //     }
+                // }).collect();
         
                 let default = &Texture::default();
                 let default_normal = &Texture::default_normal();
@@ -367,9 +362,9 @@ fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {
     Ok(metadata)
 }
 
-fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image::DynamicImage, file_name: &str, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, width: u32, height: u32) -> imgui_wgpu::Texture {
+fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image::DynamicImage, file_name: &str, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, width: u32, height: u32, id: usize) {
     let texture = Texture::from_image(&device, &queue, img, Some(file_name), false).unwrap();
-    imgui_wgpu::Texture::from_raw_parts(
+    let imgui_texture = imgui_wgpu::Texture::from_raw_parts(
         &device, 
         &renderer.lock().unwrap(), 
         Arc::new(texture.texture), 
@@ -386,5 +381,6 @@ fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image:
             height,
             depth_or_array_layers: 1,
         },
-    )
+    );
+    renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
 }

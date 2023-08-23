@@ -99,7 +99,7 @@ impl Explorer {
                     match entry {
                         Ok(entry) => {
                             if entry.file_type().unwrap().is_dir() {
-                                ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(3), [64.0, 64.0]);
+                                ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(11893785222860336258), [64.0, 64.0]);
                                 if ui.is_item_hovered() && ui.is_mouse_double_clicked(imgui::MouseButton::Left) {
                                     self.current_folder = entry.path();
                                 }
@@ -110,7 +110,15 @@ impl Explorer {
                                 ui.next_column();
                             }
                             if entry.file_type().unwrap().is_file() {
-                                if ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(4), [64.0, 64.0]) {
+                                let mut texture_id = registry.get_id(entry.path());
+                                if registry.metadata.get(&texture_id).unwrap().asset_type == AssetType::Texture {
+                                    let texture = registry.get_texture(texture_id, false);
+                                } else {
+                                    texture_id = 7403896815389001851;
+                                }
+                                
+
+                                if ui.image_button(entry.file_name().to_str().unwrap(), imgui::TextureId::new(texture_id), [64.0, 64.0]) {
                                     self.selected_file = Some(entry.path());
                                     if let Some(extension) = entry.path().extension() {
                                         if AssetType::from_extension(extension) == AssetType::Material {
