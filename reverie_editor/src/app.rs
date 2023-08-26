@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::mpsc::TryRecvError;
 
 use reverie::util::{cast_slice, res};
 
@@ -29,7 +30,6 @@ pub struct App {
     watcher: FileWatcher,
 
     registry: Registry,
-    texture_loader: TextureLoader,
 }
 
 impl App {
@@ -60,9 +60,6 @@ impl App {
 
         let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device, &context.queue, &camera);
 
-        let mut texture_loader = TextureLoader::new(context.device.clone(), context.queue.clone());
-        texture_loader.load_textures(registry.metadata.clone()).await;
-
         Self {
             context,
             input,
@@ -73,7 +70,6 @@ impl App {
             imgui,
             watcher,
             registry,
-            texture_loader,
         }
     }
 
@@ -120,6 +116,23 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
+        if self.registry.rx.is_some() {
+            match self.registry.rx.as_mut().unwrap().try_recv() {
+                Ok((id, texture)) => {
+                    self.registry.textures.insert(id, texture);
+                    self.registry.loading.retain(|&x| x != id);
+                },
+                Err(TryRecvError::Empty) => {
+                    // The channel is currently empty, but it's still open.
+                    // You can continue doing other work and try again later.
+                },
+                Err(TryRecvError::Disconnected) => {
+                    // The channel is closed and will not receive any more messages.
+                },
+            }
+        }   
+
+
         let output = self.context.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
         

@@ -2086,6 +2086,7 @@ name = "reverie_editor"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-std",
  "cgmath",
  "env_logger",
  "fs_extra",

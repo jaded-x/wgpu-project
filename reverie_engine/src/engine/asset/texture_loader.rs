@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::{collections::VecDeque, path::PathBuf};
 
-use async_std::task;
+use async_std::task::{self, sleep};
 use async_std::sync::Mutex;
 use async_std::sync::Arc;
 
@@ -16,7 +16,8 @@ pub struct TextureLoader {
     queue: Arc<wgpu::Queue>,
 
     imgui_texture_layout: wgpu::BindGroupLayout,
-    loaded_textures: Vec<(usize, Texture, imgui_wgpu::Texture)>
+    pub loaded_textures: Vec<(usize, Texture, imgui_wgpu::Texture)>,
+    loaded_ids: Vec<usize>,
 }
 
 impl TextureLoader {
@@ -49,20 +50,31 @@ impl TextureLoader {
             queue,
             imgui_texture_layout,
             loaded_textures: Vec::new(),
+            loaded_ids: Vec::new(),
         }
     }
 
     pub fn add_to_queue(&self, id: usize) {
         let mut texture_queue = task::block_on(self.texture_queue.lock());
-        texture_queue.push_back(id);
+        
+        if !texture_queue.contains(&id) {
+            println!("added");
+            texture_queue.push_back(id);
+        }
     }
 
     pub async fn load_textures(&mut self, metadata: HashMap<usize, AssetMetadata>) {
-        while let Some(id) = self.next_texture().await {
+        println!("1");
+        if let Some(id) = self.next_texture().await {
+            println!("2");
             if let Some(asset) = metadata.get(&id) {
+                println!("loading");
                 let texture = self.load_texture(asset).await;
-                self.loaded_textures.push((id, texture.0, texture.1))
+                self.loaded_textures.push((id, texture.0, texture.1));
+                self.loaded_ids.push(id);
             }
+        } else {
+            sleep(instant::Duration::from_millis(100)).await;
         }
     }
 

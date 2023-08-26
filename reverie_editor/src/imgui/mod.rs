@@ -19,6 +19,7 @@ use imgui_inspector::ImguiInspect;
 use crate::cursor::set_cursor;
 
 use explorer::Explorer;
+use reverie::engine::asset::texture_loader::TextureLoader;
 
 use self::{viewport::Viewport, hierarchy::Hierarchy};
 
@@ -85,7 +86,7 @@ impl Imgui {
                                 drop(material_asset);
                                 registry.load_material(material_id, true);
                                 update_entity_material(&scene.world, material_id, registry);
-                                self.explorer.material = registry.get_material(material_id);
+                                self.explorer.material = Some(registry.get_material(material_id));
                             }
                         }
                         _ => {}
@@ -162,7 +163,7 @@ impl Imgui {
                                         match target.accept_payload::<Option<usize>, _>(AssetType::Material.to_string(), imgui::DragDropFlags::empty()) {
                                             Some(Ok(payload_data)) => {
                                                 material.id = payload_data.data.unwrap();
-                                                material.material = registry.get_material(material.id).unwrap();
+                                                material.material = registry.get_material(material.id);
                                             },
                                             Some(Err(e)) => {
                                                 println!("{}", e);
@@ -186,7 +187,7 @@ impl Imgui {
                                     registry.load_material(material_id, true);
                                     drop(materials);
                                     update_entity_material(&scene.world, material_id, registry);
-                                    self.explorer.material = registry.get_material(material_id);
+                                    self.explorer.material = Some(registry.get_material(material_id));
                                 }
                             }
                         }
@@ -299,7 +300,7 @@ fn update_entity_material(world: &World, id: usize, registry: &mut Registry) {
         let mut materials = world.write_component::<MaterialComponent>();
         if let Some(material) = materials.get_mut(entity) {
             if material.id == id {
-                material.material = registry.get_material(id).unwrap();
+                material.material = registry.get_material(id);
             }
         }
     }

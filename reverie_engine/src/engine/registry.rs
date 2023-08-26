@@ -1,4 +1,4 @@
-use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex, mpsc::channel}, ffi::OsStr};
+use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex, mpsc::{channel, TryRecvError, Receiver}}, ffi::OsStr};
 use rand::random;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use serde::{Serialize, Deserialize};
@@ -7,7 +7,7 @@ use std::error::Error;
 
 use crate::util::cast_slice;
 
-use super::{asset::{texture::Texture, model::Mesh, material::Material}, gpu::Gpu, renderer::Renderer, resources};
+use super::{asset::{texture::Texture, model::Mesh, material::Material, texture_loader::TextureLoader}, gpu::Gpu, renderer::Renderer, resources};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
@@ -64,10 +64,34 @@ pub struct Registry {
     pub materials: HashMap<usize, Arc<Gpu<Material>>>,
     pub meshes: HashMap<usize, Arc<Vec<Mesh>>>,
     pub metadata: HashMap<usize, AssetMetadata>,
+    pub loading: Vec<usize>,
+    pub rx: Option<Receiver<(usize, Arc<Texture>)>>
 }
 
 impl Registry {
     pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>) -> Self {
+        let imgui_texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("imgui-wgpu bind group layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        
         Self {
             device,
             queue,
@@ -76,6 +100,8 @@ impl Registry {
             materials: HashMap::new(),
             meshes: HashMap::new(),
             metadata: load_metadata().unwrap(),
+            loading: Vec::new(),
+            rx: None,
         }
     }
 
@@ -107,7 +133,6 @@ impl Registry {
 
     fn load_texture(&mut self, id: usize, normal: bool) {
         if let Some(asset) = self.metadata.get(&id) {
-            //let (sender, receiver) = channel();
             let imgui_renderer = self.imgui_renderer.clone();
             let device = self.device.clone();
             let queue = self.queue.clone();
@@ -118,15 +143,39 @@ impl Registry {
             
             create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 64, 64, id);
 
-            // std::thread::spawn(move || {
-            //     let imgui_texture = create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device, queue, 64, 64);
-            //     sender.send(imgui_texture).unwrap();
-            // });
-
             let texture = Texture::from_image(&self.device, &self.queue, &img, Some(asset.file_path.to_str().unwrap()), normal).unwrap();
             self.textures.insert(id, Arc::new(texture));
         }
     }
+
+    pub fn load_texture_async(&mut self, id: usize, normal: bool) {
+        self.loading.push(id);
+        let asset = self.metadata.get(&id).cloned();
+        let imgui_renderer = self.imgui_renderer.clone();
+        let device = self.device.clone();
+        let queue = self.queue.clone();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        self.rx = Some(rx);
+
+        std::thread::spawn(move || {
+            if let Some(asset) = asset {
+                let file_path = asset.file_path.clone();
+                let bytes = std::fs::read(&asset.file_path).expect(&asset.file_path.to_str().unwrap());
+                let img = image::load_from_memory(bytes.as_slice()).unwrap();
+                let imgui_img = img.clone();
+                
+                create_imgui_texture(imgui_renderer, &imgui_img, file_path.to_str().unwrap(), device.clone(), queue.clone(), 64, 64, id);
+
+                let texture = Texture::from_image(&device, &queue, &img, Some(asset.file_path.to_str().unwrap()), normal).unwrap();
+                tx.send((id, Arc::new(texture))).unwrap();
+
+            }
+        });
+    }
+
+    
 
     fn load_mesh(&mut self, id: usize) {
         if let Some(asset) = self.metadata.get(&id) {
@@ -139,17 +188,18 @@ impl Registry {
     pub fn get_texture(&mut self, id: usize, normal: bool) -> Option<Arc<Texture>> {
         if !self.textures.contains_key(&id) {
             self.load_texture(id, normal);
+            //self.texture_loader.add_to_queue(id);
         }
 
         self.textures.get(&id).cloned()
     }
 
-    pub fn get_material(&mut self, id: usize) -> Option<Arc<Gpu<Material>>> {
+    pub fn get_material(&mut self, id: usize) -> Arc<Gpu<Material>> {
         if !self.materials.contains_key(&id) {
             self.load_material(id, false);
         }
 
-        self.materials.get(&id).cloned()
+        self.materials.get(&id).cloned().unwrap()
     }
 
     pub fn get_mesh(&mut self, id: usize) -> Option<Arc<Vec<Mesh>>> {
@@ -183,18 +233,6 @@ impl Registry {
 
                 let mut bools: Vec<f32> = vec![];
 
-                let texture_option_ids = vec![material_lock.albedo_map.id, material_lock.normal_map.id, material_lock.metallic_map.id, material_lock.roughness_map.id, material_lock.ao_map.id];
-                let texture_ids: Vec<usize> = texture_option_ids.into_iter().filter_map(|x| x).collect();
-                
-                // let computed_textures: Vec<_> = texture_ids.into_par_iter().filter_map(|id| {
-                //     if let Some(_) = self.metadata.get(&id) {
-                //         let is_normal = self.get_filepath(id).to_str().unwrap().contains("normal");
-                //         self.load_texture(id, is_normal)
-                //     } else {
-                //         None
-                //     }
-                // }).collect();
-        
                 let default = &Texture::default();
                 let default_normal = &Texture::default_normal();
         
@@ -332,7 +370,7 @@ impl Registry {
         self.metadata.get(&id).unwrap().file_path.clone()
     }
 
-    pub fn get_material_from_path(&mut self, file_path: PathBuf) -> Option<Arc<Gpu<Material>>> {
+    pub fn get_material_from_path(&mut self, file_path: PathBuf) -> Arc<Gpu<Material>> {
         let id = self.get_id(file_path);
         self.get_material(id)
     }
@@ -383,7 +421,5 @@ fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image:
             depth_or_array_layers: 1,
         },
     );
-    println!("hi");
     renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
-    println!("bye");
 }

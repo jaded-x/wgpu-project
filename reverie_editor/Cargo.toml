@@ -21,6 +21,7 @@ imgui-wgpu = { path = "../../imgui-wgpu-rs/imgui-wgpu-rs" }
 notify = "6.0.0"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_yaml = "0.9.21"
+async-std = "1.12.0"
 
 
 imgui_inspector = { path = "../../imgui_inspector" }
