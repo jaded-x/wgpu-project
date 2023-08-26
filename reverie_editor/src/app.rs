@@ -12,6 +12,7 @@ use reverie::engine::{
     registry::Registry,
     scene::Scene,
     asset::texture::Texture,
+    asset::texture_loader::TextureLoader,
 };
 
 pub struct App {
@@ -28,6 +29,7 @@ pub struct App {
     watcher: FileWatcher,
 
     registry: Registry,
+    texture_loader: TextureLoader,
 }
 
 impl App {
@@ -58,6 +60,9 @@ impl App {
 
         let scene = Scene::new(res("scenes/first.revscene"), &mut registry, &context.device, &context.queue, &camera);
 
+        let mut texture_loader = TextureLoader::new(context.device.clone(), context.queue.clone());
+        texture_loader.load_textures(registry.metadata.clone()).await;
+
         Self {
             context,
             input,
@@ -67,7 +72,8 @@ impl App {
             renderer,
             imgui,
             watcher,
-            registry
+            registry,
+            texture_loader,
         }
     }
 
@@ -97,6 +103,7 @@ impl App {
             self.context.config.width = new_window_size.width;
             self.context.config.height = new_window_size.height;
             self.context.surface.configure(&self.context.device, &self.context.config);
+            
         }
     }
 

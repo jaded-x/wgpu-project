@@ -46,7 +46,7 @@ impl ToString for AssetType {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AssetMetadata {
     id: usize,
-    file_path: PathBuf,
+    pub file_path: PathBuf,
     pub asset_type: AssetType
 }
 
@@ -363,6 +363,7 @@ fn load_metadata() -> Result<HashMap<usize, AssetMetadata>, Box<dyn Error>> {
 }
 
 fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image::DynamicImage, file_name: &str, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, width: u32, height: u32, id: usize) {
+    
     let texture = Texture::from_image(&device, &queue, img, Some(file_name), false).unwrap();
     let imgui_texture = imgui_wgpu::Texture::from_raw_parts(
         &device, 
@@ -382,5 +383,7 @@ fn create_imgui_texture(renderer: Arc<Mutex<imgui_wgpu::Renderer>>, img: &image:
             depth_or_array_layers: 1,
         },
     );
+    println!("hi");
     renderer.lock().unwrap().textures.replace(imgui::TextureId::new(id), imgui_texture);
+    println!("bye");
 }
