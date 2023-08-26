@@ -65,7 +65,7 @@ pub struct Registry {
     pub meshes: HashMap<usize, Arc<Vec<Mesh>>>,
     pub metadata: HashMap<usize, AssetMetadata>,
     pub loading: Vec<usize>,
-    pub rx: Option<Receiver<(usize, Arc<Texture>)>>
+    pub rx: Vec<Receiver<(usize, Arc<Texture>)>>
 }
 
 impl Registry {
@@ -101,7 +101,7 @@ impl Registry {
             meshes: HashMap::new(),
             metadata: load_metadata().unwrap(),
             loading: Vec::new(),
-            rx: None,
+            rx: Vec::new(),
         }
     }
 
@@ -157,7 +157,7 @@ impl Registry {
 
         let (tx, rx) = std::sync::mpsc::channel();
 
-        self.rx = Some(rx);
+        self.rx.push(rx);
 
         std::thread::spawn(move || {
             if let Some(asset) = asset {

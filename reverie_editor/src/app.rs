@@ -116,21 +116,22 @@ impl App {
     }
 
     fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
-        if self.registry.rx.is_some() {
-            match self.registry.rx.as_mut().unwrap().try_recv() {
+        let mut i = 0;
+        while i != self.registry.rx.len() {
+            match self.registry.rx[i].try_recv() {
                 Ok((id, texture)) => {
                     self.registry.textures.insert(id, texture);
                     self.registry.loading.retain(|&x| x != id);
+                    self.registry.rx.remove(i);
                 },
                 Err(TryRecvError::Empty) => {
-                    // The channel is currently empty, but it's still open.
-                    // You can continue doing other work and try again later.
+                    i += 1;
                 },
                 Err(TryRecvError::Disconnected) => {
-                    // The channel is closed and will not receive any more messages.
+                    self.registry.rx.remove(i);
                 },
             }
-        }   
+        } 
 
 
         let output = self.context.surface.get_current_texture()?;

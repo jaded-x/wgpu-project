@@ -114,7 +114,7 @@ impl Explorer {
                                 let mut texture_id = registry.get_id(entry.path());
                                 if registry.metadata.get(&texture_id).unwrap().asset_type == AssetType::Texture {
                                     if !registry.textures.contains_key(&texture_id) {
-                                        if registry.loading.is_empty() {
+                                        if !registry.loading.contains(&texture_id) {
                                             registry.load_texture_async(texture_id, false);
                                         }
                                         texture_id = 7403896815389001851
