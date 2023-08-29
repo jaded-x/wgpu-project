@@ -1,7 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
 use reverie::engine::{registry::{Registry, AssetType}, gpu::Gpu, asset::material::Material};
-use reverie::engine::asset::texture_loader::TextureLoader;
 
 pub struct Explorer {
     current_folder: PathBuf,
@@ -113,12 +112,7 @@ impl Explorer {
                             if entry.file_type().unwrap().is_file() {
                                 let mut texture_id = registry.get_id(entry.path());
                                 if registry.metadata.get(&texture_id).unwrap().asset_type == AssetType::Texture {
-                                    if !registry.textures.contains_key(&texture_id) {
-                                        if !registry.loading.contains(&texture_id) {
-                                            registry.load_texture_async(texture_id, false);
-                                        }
-                                        texture_id = 7403896815389001851
-                                    } 
+                                    texture_id = registry.get_async(texture_id, false, Some(7403896815389001851));
                                 } else {
                                     texture_id = 7403896815389001851;
                                 }

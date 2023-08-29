@@ -1,13 +1,12 @@
-use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex, mpsc::{channel, TryRecvError, Receiver}}, ffi::OsStr};
+use std::{path::PathBuf, collections::HashMap, sync::{Arc, Mutex, mpsc::Receiver}, ffi::OsStr};
 use rand::random;
-use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use serde::{Serialize, Deserialize};
 use wgpu::util::DeviceExt;
 use std::error::Error;
 
 use crate::util::cast_slice;
 
-use super::{asset::{texture::Texture, model::Mesh, material::Material, texture_loader::TextureLoader}, gpu::Gpu, renderer::Renderer, resources};
+use super::{asset::{texture::Texture, model::Mesh, material::Material}, gpu::Gpu, renderer::Renderer, resources};
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AssetType {
@@ -70,27 +69,6 @@ pub struct Registry {
 
 impl Registry {
     pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, imgui_renderer: Arc<Mutex<imgui_wgpu::Renderer>>) -> Self {
-        let imgui_texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("imgui-wgpu bind group layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
         
         Self {
             device,
@@ -130,7 +108,7 @@ impl Registry {
                 None => false
             }
     }
-
+    
     fn load_texture(&mut self, id: usize, normal: bool) {
         if let Some(asset) = self.metadata.get(&id) {
             let imgui_renderer = self.imgui_renderer.clone();
@@ -148,7 +126,20 @@ impl Registry {
         }
     }
 
-    pub fn load_texture_async(&mut self, id: usize, normal: bool) {
+    pub fn get_async(&mut self, id: usize, normal: bool, default: Option<usize>) -> usize {
+        if !self.textures.contains_key(&id) {
+            if self.loading.contains(&id) {
+                return default.unwrap();
+            } else {
+                self.load_texture_async(id, normal);
+                return default.unwrap();
+            }
+        }
+    
+        id
+    }
+
+    fn load_texture_async(&mut self, id: usize, normal: bool) {
         self.loading.push(id);
         let asset = self.metadata.get(&id).cloned();
         let imgui_renderer = self.imgui_renderer.clone();

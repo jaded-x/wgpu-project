@@ -13,7 +13,6 @@ use reverie::engine::{
     registry::Registry,
     scene::Scene,
     asset::texture::Texture,
-    asset::texture_loader::TextureLoader,
 };
 
 pub struct App {
@@ -37,7 +36,7 @@ impl App {
         env_logger::init();
 
         let context = Context::new(&window.window).await;
-        let mut imgui = Imgui::new(&window.window, &context.device, &context.queue);
+        let imgui = Imgui::new(&window.window, &context.device, &context.queue);
 
         let renderer = Renderer::new(&context.device, &context.config, &imgui.viewport.texture.size()); 
 
@@ -50,9 +49,9 @@ impl App {
         let mut watcher = FileWatcher::new().unwrap();
         watcher.watch(Path::new("res")).unwrap();
 
-        imgui.load_texture(&res("imgui_textures/folder.png"), &context.device, &context.queue, 64, 64, 11893785222860336258);
-        imgui.load_texture(&res("imgui_textures/file.png"), &context.device, &context.queue, 64, 64, 7403896815389001851);
-        imgui.load_texture(&res("imgui_textures/background.png"), &context.device, &context.queue, 1, 1, 17574920008220227172);
+        registry.get_texture(11893785222860336258, false);
+        registry.get_texture(7403896815389001851, false);
+        registry.get_texture(17574920008220227172, false);
 
         let camera = Camera::new(&context.device, &renderer.camera_bind_group_layout, (0.0, 5.0, 10.0), cg::Deg(-90.0), cg::Deg(-20.0), 
             Projection::new(context.config.width, context.config.height, cg::Deg(45.0), 0.1, 100.0));

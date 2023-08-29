@@ -19,7 +19,6 @@ use imgui_inspector::ImguiInspect;
 use crate::cursor::set_cursor;
 
 use explorer::Explorer;
-use reverie::engine::asset::texture_loader::TextureLoader;
 
 use self::{viewport::Viewport, hierarchy::Hierarchy};
 
